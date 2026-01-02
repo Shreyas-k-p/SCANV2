@@ -1,0 +1,934 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { ShoppingCart, Filter, X, Info, MessageSquare } from 'lucide-react';
+import { extractGradientColor } from '../utils/gradientUtils';
+
+export default function Menu() {
+    const { menuItems, placeOrder, addFeedback } = useApp();
+    const [activeCategory, setActiveCategory] = useState('All');
+    const [cart, setCart] = useState([]);
+    const [selectedItem, setSelectedItem] = useState(null); // For detail modal
+    const [showCart, setShowCart] = useState(false);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [tableNumber, setTableNumber] = useState('');
+    const [instructions, setInstructions] = useState('');
+
+    const categories = ['All', ...new Set(menuItems.map(item => item.category))];
+
+    const filteredItems = activeCategory === 'All'
+        ? menuItems
+        : menuItems.filter(item => item.category === activeCategory);
+
+    const addToCart = (item, quantity, notes) => {
+        const existing = cart.find(i => i.id === item.id);
+        if (existing) {
+            setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + quantity, notes } : i));
+        } else {
+            setCart([...cart, { ...item, quantity, notes }]);
+        }
+        setSelectedItem(null);
+    };
+
+    const submitOrder = () => {
+        const trimmedTableNumber = tableNumber.trim();
+        if (!trimmedTableNumber) {
+            alert('Please enter your table number');
+            return;
+        }
+        if (cart.length === 0) {
+            alert('Your cart is empty');
+            return;
+        }
+        
+        // Place the order
+        placeOrder(trimmedTableNumber, cart, { instructions: instructions.trim() || '' });
+        
+        // Clear form
+        setCart([]);
+        setShowCart(false);
+        setTableNumber('');
+        setInstructions('');
+        
+        alert(`Order Placed Successfully for Table ${trimmedTableNumber}!`);
+    };
+
+    const submitFeedback = (feedbackData) => {
+        addFeedback({
+            ...feedbackData,
+            tableNo: tableNumber || null
+        });
+        setShowFeedback(false);
+        alert('Thank you for your feedback!');
+    };
+
+    return (
+        <div style={{ padding: '2rem', paddingBottom: '100px' }}>
+            <header style={{ 
+                marginBottom: '2.5rem', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+            }}>
+                <div>
+                    <div style={{
+                        display: 'inline-block',
+                        padding: '0.75rem 1.5rem',
+                        background: 'var(--gradient-accent)',
+                        borderRadius: '16px',
+                        marginBottom: '1rem',
+                        boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
+                    }}>
+                        <h1 style={{ 
+                            fontSize: '2.5rem', 
+                            fontWeight: '800',
+                            margin: 0,
+                            color: '#ffffff',
+                            letterSpacing: '-1px',
+                            textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+                        }}>
+                            🍽️ Our Menu
+                        </h1>
+                    </div>
+                    <p style={{ 
+                        color: 'var(--text-dim)', 
+                        fontSize: '0.95rem',
+                        marginTop: '0.5rem',
+                        fontWeight: '500'
+                    }}>
+                        {filteredItems.length} {filteredItems.length === 1 ? 'delicious item' : 'delicious items'} available
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => setShowFeedback(true)}
+                        style={{ 
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                            color: 'white',
+                            border: 'none'
+                        }}
+                    >
+                        <MessageSquare size={18} />
+                        Feedback
+                    </button>
+                    <button 
+                        className="btn btn-primary" 
+                        onClick={() => setShowCart(true)}
+                        style={{ 
+                            borderRadius: '12px',
+                            position: 'relative'
+                        }}
+                    >
+                        <ShoppingCart size={20} />
+                        <span style={{ marginLeft: '8px' }}>Cart</span>
+                        {cart.length > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                right: '-8px',
+                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: '28px',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5)',
+                                animation: 'bounce 1s ease-in-out infinite',
+                                border: '2px solid white'
+                            }}>
+                                {cart.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+            </header>
+
+            {/* Categories */}
+            <div 
+                className="category-buttons-container"
+                style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    overflowX: 'auto', 
+                    overflowY: 'hidden',
+                    padding: '1rem 1.5rem',
+                    marginBottom: '2rem',
+                    scrollbarWidth: 'thin',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollBehavior: 'smooth',
+                    width: '100%',
+                    maxWidth: '100%'
+                }}
+            >
+                {categories.map((cat, idx) => {
+                    const gradients = [
+                        'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
+                        'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                        'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                        'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                        'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
+                        'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)'
+                    ];
+                    const isActive = activeCategory === cat;
+                    return (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveCategory(cat)}
+                            className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ 
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                minWidth: 'fit-content',
+                                borderRadius: '16px',
+                                padding: '0.875rem 1.75rem',
+                                animation: `fadeIn 0.4s ease-out ${idx * 0.1}s both`,
+                                background: isActive 
+                                    ? gradients[idx % gradients.length]
+                                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                color: isActive ? 'white' : 'var(--text-light)',
+                                border: isActive ? 'none' : '2px solid var(--border-color)',
+                                boxShadow: isActive 
+                                    ? `0 4px 20px ${extractGradientColor(gradients[idx % gradients.length])}40`
+                                    : 'var(--shadow-sm)',
+                                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                transition: 'all 0.3s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                fontWeight: '600',
+                                fontSize: '0.95rem'
+                            }}
+                        >
+                            {cat}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Grid */}
+            <div className="card-grid" style={{ gap: '2rem' }}>
+                {filteredItems.length === 0 ? (
+                    <div style={{ 
+                        gridColumn: '1 / -1', 
+                        textAlign: 'center', 
+                        padding: '4rem 2rem',
+                        color: 'var(--text-dim)'
+                    }}>
+                        <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No items found</p>
+                        <p>Try selecting a different category</p>
+                    </div>
+                ) : (
+                    filteredItems.map((item, idx) => (
+                        <div 
+                            key={item.id} 
+                            className="glass-panel fade-in" 
+                            onClick={() => item.available && setSelectedItem(item)} 
+                            style={{ 
+                                cursor: item.available ? 'pointer' : 'not-allowed', 
+                                overflow: 'hidden',
+                                opacity: item.available ? 1 : 0.6,
+                                position: 'relative',
+                                animation: `fadeIn 0.5s ease-out ${idx * 0.05}s both`,
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (item.available) {
+                                    e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                            }}
+                        >
+                            <div style={{ 
+                                height: '220px', 
+                                width: '100%', 
+                                overflow: 'hidden',
+                                position: 'relative'
+                            }}>
+                                <img 
+                                    src={item.image} 
+                                    alt={item.name} 
+                                    style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        objectFit: 'cover', 
+                                        transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (item.available) {
+                                            e.target.style.transform = 'scale(1.1)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.transform = 'scale(1)';
+                                    }}
+                                />
+                                {!item.available && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        background: 'rgba(0,0,0,0.7)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backdropFilter: 'blur(2px)'
+                                    }}>
+                                        <span className="badge badge-error" style={{ 
+                                            fontSize: '1rem', 
+                                            padding: '12px 24px',
+                                            boxShadow: '0 4px 15px rgba(231, 76, 60, 0.4)'
+                                        }}>
+                                            Sold Out
+                                        </span>
+                                    </div>
+                                )}
+                                {item.available && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '12px',
+                                        right: '12px',
+                                        background: 'var(--gradient-accent)',
+                                        backdropFilter: 'blur(10px)',
+                                        padding: '8px 14px',
+                                        borderRadius: '25px',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '700',
+                                        color: 'white',
+                                        boxShadow: '0 4px 15px rgba(233, 69, 96, 0.4)',
+                                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                                        animation: 'pulse 2s ease-in-out infinite'
+                                    }}>
+                                        ₹{item.price}
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ padding: '1.25rem' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'flex-start',
+                                    marginBottom: '0.5rem'
+                                }}>
+                                    <h3 style={{ 
+                                        margin: 0, 
+                                        fontSize: '1.25rem',
+                                        fontWeight: '700',
+                                        lineHeight: '1.3'
+                                    }}>
+                                        {item.name}
+                                    </h3>
+                                </div>
+                                <p style={{ 
+                                    color: 'var(--text-dim)', 
+                                    fontSize: '0.9rem',
+                                    lineHeight: '1.5',
+                                    margin: 0
+                                }}>
+                                    {item.benefits}
+                                </p>
+                                {item.available && (
+                                    <div style={{
+                                        marginTop: '1rem',
+                                        paddingTop: '1rem',
+                                        borderTop: '2px solid var(--accent-light)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.05) 0%, transparent 100%)',
+                                        margin: '1rem -1.25rem -1.25rem',
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '0 0 16px 16px'
+                                    }}>
+                                        <span style={{ 
+                                            background: 'var(--gradient-accent)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                            fontWeight: '800',
+                                            fontSize: '1.3rem'
+                                        }}>
+                                            ₹{item.price}
+                                        </span>
+                                        <span style={{
+                                            fontSize: '0.9rem',
+                                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                            color: 'white',
+                                            fontWeight: '700',
+                                            padding: '6px 14px',
+                                            borderRadius: '20px',
+                                            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)'
+                                        }}>
+                                            ✓ Available
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Item Detail Modal */}
+            {selectedItem && (
+                <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} onAdd={addToCart} />
+            )}
+
+            {/* Cart Modal */}
+            {showCart && (
+                <div style={{ 
+                    position: 'fixed', 
+                    inset: 0, 
+                    background: 'rgba(0,0,0,0.7)', 
+                    backdropFilter: 'blur(5px)',
+                    zIndex: 100, 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px',
+                    animation: 'fadeIn 0.3s ease-out'
+                }}>
+                    <div className="glass-panel" style={{ 
+                        width: '100%', 
+                        maxWidth: '500px', 
+                        maxHeight: '90vh',
+                        borderRadius: '20px', 
+                        padding: '0',
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
+                        border: '3px solid var(--accent-light)',
+                        overflow: 'hidden',
+                        animation: 'scaleIn 0.3s ease-out'
+                    }}>
+                        <div style={{ 
+                            padding: '1.5rem',
+                            background: 'var(--gradient-accent)',
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
+                        }}>
+                            <h2 style={{ 
+                                margin: 0,
+                                color: '#ffffff',
+                                fontSize: '1.75rem',
+                                fontWeight: '800',
+                                textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                            }}>
+                                🛒 Your Order
+                            </h2>
+                            <button 
+                                onClick={() => setShowCart(false)} 
+                                style={{ 
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    border: 'none', 
+                                    color: 'white', 
+                                    cursor: 'pointer',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                                    e.currentTarget.style.transform = 'rotate(90deg)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                                    e.currentTarget.style.transform = 'rotate(0deg)';
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', minHeight: 0 }}>
+                            {cart.length === 0 ? (
+                                <div style={{ 
+                                    textAlign: 'center', 
+                                    padding: '4rem 2rem',
+                                    color: 'var(--text-dim)'
+                                }}>
+                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛒</div>
+                                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                                        Your cart is empty
+                                    </p>
+                                    <p style={{ fontSize: '0.9rem' }}>Add items from the menu to get started!</p>
+                                </div>
+                            ) : (
+                                cart.map((item, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center',
+                                            marginBottom: '1rem', 
+                                            padding: '1rem',
+                                            background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                                            borderRadius: '12px',
+                                            border: '2px solid var(--accent-light)',
+                                            animation: `fadeInUp 0.4s ease-out ${idx * 0.1}s both`
+                                        }}
+                                    >
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ 
+                                                margin: 0,
+                                                marginBottom: '0.5rem',
+                                                fontSize: '1.1rem',
+                                                fontWeight: '700',
+                                                color: 'var(--text-light)'
+                                            }}>
+                                                🍽️ {item.name} x {item.quantity}
+                                            </h4>
+                                            {item.notes && (
+                                                <small style={{ 
+                                                    color: 'var(--accent)', 
+                                                    fontSize: '0.85rem',
+                                                    fontStyle: 'italic',
+                                                    display: 'block',
+                                                    marginTop: '0.25rem'
+                                                }}>
+                                                    📝 {item.notes}
+                                                </small>
+                                            )}
+                                        </div>
+                                        <span style={{
+                                            fontSize: '1.1rem',
+                                            fontWeight: '800',
+                                            background: 'var(--gradient-accent)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                            marginLeft: '1rem'
+                                        }}>
+                                            ₹{item.price * item.quantity}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div style={{ marginTop: 'auto', padding: '1.5rem', paddingTop: '20px', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                    Table Number <span style={{ color: 'var(--accent)' }}>*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Table Number (e.g., 1, 2, 3...)"
+                                    className="input-field"
+                                    value={tableNumber}
+                                    onChange={e => setTableNumber(e.target.value)}
+                                    required
+                                    style={{ 
+                                        border: tableNumber ? '1px solid var(--glass-border)' : '2px solid var(--accent)',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-light)', fontSize: '0.9rem' }}>
+                                    Special Instructions (Optional)
+                                </label>
+                                <textarea
+                                    className="input-field"
+                                    placeholder="Any special cooking instructions or dietary requirements?"
+                                    value={instructions}
+                                    onChange={e => setInstructions(e.target.value)}
+                                    rows="3"
+                                ></textarea>
+                            </div>
+                            <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                fontSize: '1.5rem', 
+                                fontWeight: '800', 
+                                margin: '1.5rem 0',
+                                padding: '1.25rem',
+                                background: 'var(--gradient-accent)',
+                                borderRadius: '16px',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 20px rgba(233, 69, 96, 0.4)',
+                                textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                            }}>
+                                <span>Total:</span>
+                                <span>₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
+                            </div>
+                            <button 
+                                className="btn btn-primary" 
+                                style={{ 
+                                    width: '100%', 
+                                    justifyContent: 'center',
+                                    padding: '1.25rem',
+                                    fontSize: '1.1rem',
+                                    fontWeight: '800',
+                                    borderRadius: '16px',
+                                    boxShadow: cart.length > 0 && tableNumber.trim() 
+                                        ? '0 6px 25px rgba(233, 69, 96, 0.5)' 
+                                        : 'none',
+                                    opacity: cart.length === 0 || !tableNumber.trim() ? 0.6 : 1
+                                }} 
+                                onClick={submitOrder} 
+                                disabled={cart.length === 0 || !tableNumber.trim()}
+                            >
+                                {cart.length === 0 ? '🛒 Cart is Empty' : !tableNumber.trim() ? '📝 Enter Table Number' : '✅ Place Order'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback Modal */}
+            {showFeedback && (
+                <FeedbackModal 
+                    onClose={() => setShowFeedback(false)} 
+                    onSubmit={submitFeedback}
+                    tableNumber={tableNumber}
+                />
+            )}
+        </div>
+    );
+}
+
+function ItemModal({ item, onClose, onAdd }) {
+    const [qty, setQty] = useState(1);
+    const [note, setNote] = useState('');
+
+    if (!item.available) return null;
+
+    return (
+        <div style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            background: 'rgba(0,0,0,0.7)', 
+            backdropFilter: 'blur(5px)',
+            zIndex: 100, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '20px',
+            animation: 'fadeIn 0.3s ease-out'
+        }}>
+            <div className="glass-panel" style={{ 
+                width: '100%', 
+                maxWidth: '550px', 
+                padding: '0', 
+                overflow: 'hidden',
+                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                border: '3px solid var(--accent-light)',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                animation: 'scaleIn 0.3s ease-out'
+            }}>
+                <div style={{ position: 'relative' }}>
+                    <img 
+                        src={item.image} 
+                        style={{ 
+                            width: '100%', 
+                            height: '280px', 
+                            objectFit: 'cover',
+                            display: 'block'
+                        }} 
+                    />
+                    <div style={{
+                        position: 'absolute',
+                        top: '15px',
+                        right: '15px',
+                        background: 'var(--gradient-accent)',
+                        padding: '10px 18px',
+                        borderRadius: '25px',
+                        color: 'white',
+                        fontWeight: '800',
+                        fontSize: '1.1rem',
+                        boxShadow: '0 4px 20px rgba(233, 69, 96, 0.5)',
+                        border: '2px solid rgba(255, 255, 255, 0.3)'
+                    }}>
+                        ₹{item.price}
+                    </div>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            position: 'absolute',
+                            top: '15px',
+                            left: '15px',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--accent)';
+                            e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.transform = 'rotate(90deg)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                            e.currentTarget.style.color = 'var(--text-light)';
+                            e.currentTarget.style.transform = 'rotate(0deg)';
+                        }}
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+                <div style={{ padding: '2rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <h2 style={{ 
+                            margin: 0,
+                            marginBottom: '0.5rem',
+                            fontSize: '2rem',
+                            fontWeight: '800',
+                            background: 'var(--gradient-accent)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}>
+                            {item.name}
+                        </h2>
+                        <p style={{ 
+                            color: 'var(--text-dim)', 
+                            fontSize: '1rem',
+                            lineHeight: '1.6',
+                            margin: 0
+                        }}>
+                            {item.benefits}
+                        </p>
+                    </div>
+                    <div style={{ margin: '1.5rem 0' }}>
+                        <label style={{
+                            display: 'block',
+                            marginBottom: '1rem',
+                            fontWeight: '700',
+                            color: 'var(--text-light)',
+                            fontSize: '1rem',
+                            textAlign: 'left'
+                        }}>
+                            Quantity
+                        </label>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'flex-start',
+                            gap: '1rem',
+                            width: '100%'
+                        }}>
+                            <button 
+                                onClick={() => setQty(Math.max(1, qty - 1))}
+                                disabled={qty <= 1}
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    padding: 0,
+                                    fontSize: '1.75rem',
+                                    fontWeight: '700',
+                                    background: qty <= 1 
+                                        ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
+                                        : 'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
+                                    color: qty <= 1 ? '#9ca3af' : 'white',
+                                    border: 'none',
+                                    cursor: qty <= 1 ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: qty <= 1 
+                                        ? '0 2px 8px rgba(0, 0, 0, 0.1)'
+                                        : '0 4px 15px rgba(233, 69, 96, 0.4)',
+                                    transition: 'all 0.3s ease',
+                                    lineHeight: 1
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (qty > 1) {
+                                        e.currentTarget.style.transform = 'scale(0.95)';
+                                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.5)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (qty > 1) {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(233, 69, 96, 0.4)';
+                                    }
+                                }}
+                            >
+                                −
+                            </button>
+                            <div style={{ 
+                                minWidth: '80px',
+                                height: '48px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                                borderRadius: '12px',
+                                border: '2px solid var(--accent-light)',
+                                padding: '0 1rem'
+                            }}>
+                                <span style={{ 
+                                    fontSize: '1.75rem', 
+                                    fontWeight: '800',
+                                    background: 'var(--gradient-accent)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                    textAlign: 'center',
+                                    userSelect: 'none'
+                                }}>
+                                    {qty}
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => setQty(qty + 1)}
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    padding: 0,
+                                    fontSize: '1.75rem',
+                                    fontWeight: '700',
+                                    background: 'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 4px 15px rgba(233, 69, 96, 0.4)',
+                                    transition: 'all 0.3s ease',
+                                    lineHeight: 1
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(0.95)';
+                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.5)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(233, 69, 96, 0.4)';
+                                }}
+                            >
+                                +
+                            </button>
+                        </div>
+                    </div>
+                    <input 
+                        className="input-field" 
+                        placeholder="📝 Special instructions (optional)" 
+                        value={note} 
+                        onChange={e => setNote(e.target.value)}
+                        style={{ marginBottom: '1.5rem' }}
+                    />
+                    <button 
+                        className="btn btn-primary" 
+                        style={{ 
+                            width: '100%', 
+                            marginTop: '0.5rem', 
+                            justifyContent: 'center',
+                            padding: '1.25rem',
+                            fontSize: '1.1rem',
+                            fontWeight: '800',
+                            borderRadius: '16px'
+                        }} 
+                        onClick={() => onAdd(item, qty, note)}
+                    >
+                        🛒 Add to Order - ₹{item.price * qty}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FeedbackModal({ onClose, onSubmit, tableNumber }) {
+    const [formData, setFormData] = useState({
+        customerName: '',
+        message: '',
+        rating: 5,
+        tableNo: tableNumber || ''
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.message.trim()) {
+            alert('Please enter your feedback message');
+            return;
+        }
+        onSubmit(formData);
+        setFormData({ customerName: '', message: '', rating: 5, tableNo: '' });
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <h2>Share Your Feedback</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X /></button>
+                </div>
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    <input
+                        className="input-field"
+                        placeholder="Your Name (optional)"
+                        value={formData.customerName}
+                        onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                    />
+                    <input
+                        className="input-field"
+                        placeholder="Table Number (optional)"
+                        value={formData.tableNo}
+                        onChange={e => setFormData({ ...formData, tableNo: e.target.value })}
+                    />
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '10px' }}>Rating</label>
+                        <div style={{ display: 'flex', gap: '5px', fontSize: '1.5rem' }}>
+                            {[1, 2, 3, 4, 5].map(rating => (
+                                <span
+                                    key={rating}
+                                    onClick={() => setFormData({ ...formData, rating })}
+                                    style={{
+                                        cursor: 'pointer',
+                                        color: rating <= formData.rating ? '#f1c40f' : '#555',
+                                        transition: 'color 0.2s'
+                                    }}
+                                >
+                                    ★
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                    <textarea
+                        className="input-field"
+                        placeholder="Your feedback..."
+                        rows="5"
+                        required
+                        value={formData.message}
+                        onChange={e => setFormData({ ...formData, message: e.target.value })}
+                    />
+                    <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} type="submit">
+                        Submit Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
