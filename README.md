@@ -1,6 +1,6 @@
-# Scan4Serve
+# ScanNServe
 
-Scan4Serve is a QR-Based Restaurant Ordering and Management web app with QR-based ordering,
+ScanNServe is a smart restaurant management web app with QR-based ordering,
 real-time order tracking, and role-based dashboards for managers, waiters,
 and kitchen staff.
 
@@ -12,5 +12,3 @@ and kitchen staff.
 
 ## License
 MIT License © 2026 Shreyas KP
-
-

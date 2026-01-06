@@ -1,21 +1,40 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { listenToMenu, addMenuItemToDB } from "../services/menuService";
+import { saveManagerToDB } from "../services/managerService";
+import {
+    addWaiterToDB,
+    listenToWaiters,
+    removeWaiterFromDB
+  } from "../services/waiterService";
+  import {
+    addKitchenStaffToDB,
+    listenToKitchenStaff,
+    removeKitchenStaffFromDB
+  } from "../services/kitchenService";
+  import {
+    addTableToDB,
+    listenToTables,
+    removeTableFromDB
+  } from "../services/tableService";
+     
 
 const AppContext = createContext();
 
 export function AppProvider({ children }) {
     // --- STATE ---
-    const [tables, setTables] = useState([]);
-    const addTable = (tableNo) => {
-      setTables(prev => {
-          if (prev.includes(tableNo)) return prev;
-          return [...prev, tableNo];
-      });
-  };
+    //const [tables, setTables] = useState([]);
+    //const addTable = (tableNo) => {
+      //setTables(prev => {
+        //  if (prev.includes(tableNo)) return prev;
+          //return [...prev, tableNo];
+      //});
+  //};
   
-  const removeTable = (tableNo) => {
-      setTables(prev => prev.filter(t => t !== tableNo));
-  };
-  
+  //const removeTable = (tableNo) => {
+    //  setTables(prev => prev.filter(t => t !== tableNo));
+  //};
+  const [tables, setTables] = useState([]);
+
 
     const [user, setUser] = useState(null); // { name, id, role }
 
@@ -28,11 +47,12 @@ export function AppProvider({ children }) {
         { id: 5, name: 'Sushi Roll', price: 350, category: 'Japanese', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400', available: true, benefits: 'Fresh catch' },
         { id: 6, name: 'Butter Chicken', price: 280, category: 'North Indian', image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=400', available: true, benefits: 'Creamy goodness' },
     ];
+    const [menuItems, setMenuItems] = useState([]);
 
-    const [menuItems, setMenuItems] = useState(() => {
-        const saved = localStorage.getItem('menuItems');
-        return saved ? JSON.parse(saved) : initialMenu;
-    });
+    //const [menuItems, setMenuItems] = useState(() => {
+      //  const saved = localStorage.getItem('menuItems');
+        //return saved ? JSON.parse(saved) : initialMenu;
+    //});
 
     const [orders, setOrders] = useState(() => {
         const saved = localStorage.getItem('orders');
@@ -47,18 +67,26 @@ export function AppProvider({ children }) {
     });
 
     // Waiters and Kitchen Staff Management
-    const [waiters, setWaiters] = useState(() => {
-        const saved = localStorage.getItem('waiters');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [waiters, setWaiters] = useState([]);
+    // const [waiters, setWaiters] = useState(() => {
+     //   const saved = localStorage.getItem('waiters');
+       // return saved ? JSON.parse(saved) : [];
+    //});
 
-    const [kitchenStaff, setKitchenStaff] = useState(() => {
-        const saved = localStorage.getItem('kitchenStaff');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [kitchenStaff, setKitchenStaff] = useState([]);
+
+    //const [kitchenStaff, setKitchenStaff] = useState(() => {
+      //  const saved = localStorage.getItem('kitchenStaff');
+        //return saved ? JSON.parse(saved) : [];
+    //});
 
     // --- EFFECT: PERSISTENCE ---
+    
     useEffect(() => {
+        const unsubscribe = listenToMenu(setMenuItems);
+        return () => unsubscribe();
+      }, []);
+      useEffect(() => {
         localStorage.setItem('menuItems', JSON.stringify(menuItems));
     }, [menuItems]);
 
@@ -71,26 +99,39 @@ export function AppProvider({ children }) {
     }, [feedbacks]);
 
     useEffect(() => {
-        localStorage.setItem('waiters', JSON.stringify(waiters));
-    }, [waiters]);
+        const unsubscribe = listenToWaiters(setWaiters);
+        return () => unsubscribe();
+      }, []);
+      // useEffect(() => {
+     //   localStorage.setItem('waiters', JSON.stringify(waiters));
+    //}, [waiters]);
 
     useEffect(() => {
-        localStorage.setItem('kitchenStaff', JSON.stringify(kitchenStaff));
-    }, [kitchenStaff]);
+        const unsubscribe = listenToKitchenStaff(setKitchenStaff);
+        return () => unsubscribe();
+      }, []);
+      
+    //useEffect(() => {
+      //  localStorage.setItem('kitchenStaff', JSON.stringify(kitchenStaff));
+    //}, [kitchenStaff]);
 
     // --- ACTIONS ---
-    const login = (userData) => {
-        // Check if manager is already logged in
-        if (userData.role === 'MANAGER') {
-            const activeManager = localStorage.getItem('activeManager');
-            if (activeManager && activeManager !== userData.id) {
-                throw new Error('Another manager is already logged in. Only one manager can use the dashboard at a time.');
-            }
-            localStorage.setItem('activeManager', userData.id);
+    const login = async (userData) => {
+        if (userData.role === "MANAGER") {
+          const activeManager = localStorage.getItem("activeManager");
+          if (activeManager && activeManager !== userData.id) {
+            throw new Error("Another manager is already logged in");
+          }
+          localStorage.setItem("activeManager", userData.id);
+      
+          // 🔥 SAVE MANAGER TO FIRESTORE
+          await saveManagerToDB(userData);
         }
+      
         setUser(userData);
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-    };
+        localStorage.setItem("currentUser", JSON.stringify(userData));
+      };
+      
 
     const logout = () => {
         // Clear manager session if manager is logging out
@@ -116,11 +157,15 @@ export function AppProvider({ children }) {
             localStorage.removeItem('activeManager');
         }
     }, []);
+    const addMenuItem = async (item) => {
+        await addMenuItemToDB(item);
+      };
+      
 
-    const addMenuItem = (item) => {
-        const newItem = { ...item, id: Date.now(), available: true };
-        setMenuItems([...menuItems, newItem]);
-    };
+    //const addMenuItem = (item) => {
+      //  const newItem = { ...item, id: Date.now(), available: true };
+        //setMenuItems([...menuItems, newItem]);
+    //};
 
     const updateMenuItem = (id, updatedItem) => {
         setMenuItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
@@ -187,39 +232,81 @@ export function AppProvider({ children }) {
         return secret;
     };
 
-    // Waiter Management
-    const addWaiter = (name) => {
+    const addWaiter = async (name) => {
         const secretID = generateSecretID();
-        const newWaiter = {
-            id: `WAITER-${Date.now()}`,
-            name: name.trim(),
-            secretID,
-            createdAt: new Date().toISOString()
+        const waiter = {
+          id: `WAITER-${Date.now()}`,
+          name: name.trim(),
+          secretID
         };
-        setWaiters(prev => [...prev, newWaiter]);
-        return secretID; // Return secret ID to display immediately
-    };
+        await addWaiterToDB(waiter);
+        return secretID;
+      };
+      // Waiter Management
+    //const addWaiter = (name) => {
+      //  const secretID = generateSecretID();
+        //const newWaiter = {
+          //  id: `WAITER-${Date.now()}`,
+            //name: name.trim(),
+            //secretID,
+            //createdAt: new Date().toISOString()
+        //};
+        //setWaiters(prev => [...prev, newWaiter]);
+        //return secretID; // Return secret ID to display immediately
+    //};
 
-    const removeWaiter = (id) => {
-        setWaiters(prev => prev.filter(waiter => waiter.id !== id));
-    };
+    const removeWaiter = async (docId) => {
+        await removeWaiterFromDB(docId);
+      };
+      
+    //const removeWaiter = (id) => {
+      //  setWaiters(prev => prev.filter(waiter => waiter.id !== id));
+    //};
 
+    const addKitchenStaff = async (name) => {
+        const secretID = generateSecretID();
+        const staff = {
+          id: `KITCHEN-${Date.now()}`,
+          name: name.trim(),
+          secretID
+        };
+        await addKitchenStaffToDB(staff);
+        return secretID;
+      };
+      
     // Kitchen Staff Management
-    const addKitchenStaff = (name) => {
-        const secretID = generateSecretID();
-        const newStaff = {
-            id: `KITCHEN-${Date.now()}`,
-            name: name.trim(),
-            secretID,
-            createdAt: new Date().toISOString()
-        };
-        setKitchenStaff(prev => [...prev, newStaff]);
-        return secretID; // Return secret ID to display immediately
-    };
+    //const addKitchenStaff = (name) => {
+      //  const secretID = generateSecretID();
+        //const newStaff = {
+          //  id: `KITCHEN-${Date.now()}`,
+            //name: name.trim(),
+            //secretID,
+            //createdAt: new Date().toISOString()
+        //};
+        //setKitchenStaff(prev => [...prev, newStaff]);
+        //return secretID; // Return secret ID to display immediately
+    //};
 
-    const removeKitchenStaff = (id) => {
-        setKitchenStaff(prev => prev.filter(staff => staff.id !== id));
-    };
+    //const removeKitchenStaff = (id) => {
+      //  setKitchenStaff(prev => prev.filter(staff => staff.id !== id));
+    //};
+
+    const removeKitchenStaff = async (docId) => {
+        await removeKitchenStaffFromDB(docId);
+      };
+      useEffect(() => {
+        const unsubscribe = listenToTables(setTables);
+        return () => unsubscribe();
+      }, []);
+      const addTable = async (tableNo) => {
+        if (!tableNo) return;
+        await addTableToDB(tableNo);
+      };
+      
+      const removeTable = async (docId) => {
+        await removeTableFromDB(docId);
+      };
+      
 
     // Validate secret ID for login
     const validateSecretID = (role, id, secretID) => {

@@ -592,53 +592,60 @@ export default function ManagerDashboard() {
                 </div>
             )}
 {activeTab === 'tables' && (
-    <div>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '1rem' }}>
-            🪑 Table Management
-        </h2>
+  <div>
+    <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '1rem' }}>
+      🪑 Table Management
+    </h2>
 
-        <button
-            className="btn btn-primary"
-            onClick={() => {
-                const num = prompt('Enter Table Number');
-                if (!num) return;
-                addTable(Number(num));
-            }}
-        >
-            ➕ Add Table
-        </button>
+    <button
+      className="btn btn-primary"
+      onClick={() => {
+        const num = prompt('Enter Table Number');
+        if (!num) return;
+        addTable(Number(num));
+      }}
+    >
+      ➕ Add Table
+    </button>
 
-        <div style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
-            {tables.length === 0 ? (
-                <div className="glass-panel" style={{ padding: '30px', textAlign: 'center' }}>
-                    No tables added yet
-                </div>
-            ) : (
-                tables.map(table => (
-                    <div
-                        key={table}
-                        className="glass-panel"
-                        style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between' }}
-                    >
-                        <strong>Table {table}</strong>
-                        <button
-                            onClick={() => removeTable(table)}
-                            style={{
-                                background: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                padding: '6px 10px',
-                                borderRadius: '6px'
-                            }}
-                        >
-                            ❌
-                        </button>
-                    </div>
-                ))
-            )}
+    <div style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
+      {tables.length === 0 ? (
+        <div className="glass-panel" style={{ padding: '30px', textAlign: 'center' }}>
+          No tables added yet
         </div>
+      ) : (
+        tables.map(table => (
+          <div
+            key={table.docId}
+            className="glass-panel"
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <strong>Table {table.tableNo}</strong>
+
+            <button
+              onClick={() => removeTable(table.docId)}
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                padding: '6px 10px',
+                borderRadius: '6px'
+              }}
+            >
+              ❌
+            </button>
+          </div>
+        ))
+      )}
     </div>
+  </div>
 )}
+
 
             {activeTab === 'feedback' && (
                 <div className="glass-panel" style={{ padding: '20px' }}>
@@ -741,7 +748,8 @@ export default function ManagerDashboard() {
                                         <button
                                             onClick={() => {
                                                 if (window.confirm(`Are you sure you want to remove "${waiter.name}"?`)) {
-                                                    removeWaiter(waiter.id);
+                                                    removeWaiter(waiter.docId);
+
                                                 }
                                             }}
                                             style={{
@@ -873,7 +881,8 @@ export default function ManagerDashboard() {
                                         <button
                                             onClick={() => {
                                                 if (window.confirm(`Are you sure you want to remove "${staff.name}"?`)) {
-                                                    removeKitchenStaff(staff.id);
+                                                    removeKitchenStaff(staff.docId);
+
                                                 }
                                             }}
                                             style={{
