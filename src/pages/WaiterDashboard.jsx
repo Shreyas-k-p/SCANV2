@@ -2,8 +2,10 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 
+import LanguageSwitcher from '../components/LanguageSwitcher';
+
 export default function WaiterDashboard() {
-    const { tables, orders, updateOrderStatus } = useApp();
+    const { tables, orders, updateOrderStatus, t, user } = useApp();
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
 
@@ -21,23 +23,42 @@ export default function WaiterDashboard() {
     return (
         <div style={{ padding: '2rem' }}>
             <div style={{
-                display: 'inline-block',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '1rem',
                 padding: '0.75rem 1.5rem',
                 background: 'var(--gradient-accent)',
                 borderRadius: '16px',
                 marginBottom: '2rem',
                 boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
             }}>
-                <h1 style={{ 
+                {user?.profilePhoto && (
+                    <img
+                        src={user.profilePhoto}
+                        alt="Profile"
+                        style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '3px solid white',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                        }}
+                    />
+                )}
+                <h1 style={{
                     margin: 0,
-                    fontSize: '2.5rem', 
+                    fontSize: '2.5rem',
                     fontWeight: '800',
                     color: '#ffffff',
                     letterSpacing: '-1px',
                     textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
                 }}>
-                    👨‍🍳 Waiter Dashboard
+                    👨‍🍳 {t('waiter')} {t('dashboard')}
                 </h1>
+            </div>
+            <div style={{ float: 'right' }}>
+                <LanguageSwitcher />
             </div>
             <div className="card-grid" style={{ marginTop: '20px', gap: '1.5rem' }}>
                 {tables.map((table, idx) => {
@@ -46,23 +67,23 @@ export default function WaiterDashboard() {
                     const tableColor = tableColors[idx % tableColors.length];
 
                     return (
-                        <div 
-                            key={table} 
-                            className="glass-panel" 
-                            style={{ 
-                                padding: '1.5rem', 
+                        <div
+                            key={table}
+                            className="glass-panel"
+                            style={{
+                                padding: '1.5rem',
                                 border: hasOrders ? `3px solid` : '2px solid var(--border-color)',
                                 borderImage: hasOrders ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}) 1` : 'none',
-                                background: hasOrders 
+                                background: hasOrders
                                     ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}15, rgba(255, 255, 255, 0.95))`
                                     : 'var(--glass-bg)',
                                 position: 'relative',
                                 overflow: 'visible'
                             }}
                         >
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
                                 alignItems: 'center',
                                 marginBottom: '1rem',
                                 paddingBottom: '1rem',
@@ -104,19 +125,19 @@ export default function WaiterDashboard() {
                             {hasOrders ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {tableOrders.map(order => (
-                                        <div 
-                                            key={order.id} 
-                                            style={{ 
+                                        <div
+                                            key={order.id}
+                                            style={{
                                                 background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                                                padding: '1rem', 
+                                                padding: '1rem',
                                                 borderRadius: '12px',
                                                 border: '2px solid var(--accent-light)',
                                                 transition: 'all 0.3s ease'
                                             }}
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                <span style={{ 
-                                                    fontWeight: '700', 
+                                                <span style={{
+                                                    fontWeight: '700',
                                                     fontSize: '1rem',
                                                     color: 'var(--accent)'
                                                 }}>
@@ -124,9 +145,9 @@ export default function WaiterDashboard() {
                                                 </span>
                                                 <BadgeStatus status={order.status} />
                                             </div>
-                                            <ul style={{ 
-                                                margin: '0.5rem 0', 
-                                                paddingLeft: '20px', 
+                                            <ul style={{
+                                                margin: '0.5rem 0',
+                                                paddingLeft: '20px',
                                                 color: 'var(--text-light)',
                                                 listStyle: 'none'
                                             }}>
@@ -144,18 +165,18 @@ export default function WaiterDashboard() {
                                                 ))}
                                             </ul>
                                             {order.status === 'ready' && (
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    style={{ 
-                                                        width: '100%', 
+                                                <button
+                                                    className="btn btn-primary"
+                                                    style={{
+                                                        width: '100%',
                                                         padding: '0.75rem',
                                                         marginTop: '0.75rem',
                                                         fontSize: '1rem',
                                                         fontWeight: '700'
-                                                    }} 
+                                                    }}
                                                     onClick={() => updateOrderStatus(order.id, 'completed')}
                                                 >
-                                                    ✅ Mark Served
+                                                    ✅ {t('markServed')}
                                                 </button>
                                             )}
                                         </div>

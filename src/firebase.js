@@ -1,14 +1,16 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBQmCcOe_zMOXQapwuX_m2pCIjpd_1SZwE",
-  authDomain: "scan4serve.firebaseapp.com",
-  projectId: "scan4serve",
-  storageBucket: "scan4serve.firebasestorage.app",
-  messagingSenderId: "588220465690",
-  appId: "1:588220465690:web:e05b066f084dbbd0fe87a3"
+  apiKey: "AIzaSyChh60RN1rHtU4m34K0ritAeizBKfnc6gA",
+  authDomain: "scan4serve-v2.firebaseapp.com",
+  projectId: "scan4serve-v2",
+  storageBucket: "scan4serve-v2.firebasestorage.app",
+  messagingSenderId: "266510887170",
+  appId: "1:266510887170:web:caa8c0d753d98b8e99ba1b"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);

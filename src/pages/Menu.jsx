@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ShoppingCart, Filter, X, Info, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus } from 'lucide-react';
 import { extractGradientColor } from '../utils/gradientUtils';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import MenuBot from '../components/MenuBot';
+import './Menu.css';
 
 export default function Menu() {
-    const { menuItems, placeOrder, addFeedback } = useApp();
+    const { menuItems, placeOrder, addFeedback, t } = useApp();
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null); // For detail modal
     const [showCart, setShowCart] = useState(false);
-    const [showFeedback, setShowFeedback] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [robotMessage, setRobotMessage] = useState("");
+    const [robotJumpTrigger, setRobotJumpTrigger] = useState(0);
+    const [scrolled, setScrolled] = useState(false);
     const [tableNumber, setTableNumber] = useState('');
     const [instructions, setInstructions] = useState('');
 
@@ -19,6 +25,45 @@ export default function Menu() {
         ? menuItems
         : menuItems.filter(item => item.category === activeCategory);
 
+    // Scroll handler
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Clear robot message after 5 seconds to let it go back to idle
+    useEffect(() => {
+        if (robotMessage) {
+            const timer = setTimeout(() => {
+                setRobotMessage("");
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [robotMessage]);
+
+    const handleItemClick = (item) => {
+        if (item.available) {
+            setSelectedItem(item);
+            const positiveAdjectives = ["Yummy!", "Delicious!", "Great choice!", "Chef's Kiss!", "Tasty!", "Mmmm!"];
+            const randomAdj = positiveAdjectives[Math.floor(Math.random() * positiveAdjectives.length)];
+            setRobotMessage(`${t(item.name)}? ${randomAdj} 😋`);
+            setRobotJumpTrigger(prev => prev + 1);
+        } else {
+            const funnySoldOutMessages = [
+                "Oh no! The chef got hungry and ate it all! 😱",
+                "Sold out! Try the pixels instead? 👾",
+                "Gone faster than my battery life! 🔋",
+                "Even I couldn't get one in time! 🤖",
+                "That was too delicious to survive! 🛑"
+            ];
+            const randomMsg = funnySoldOutMessages[Math.floor(Math.random() * funnySoldOutMessages.length)];
+            setRobotMessage(randomMsg);
+        }
+    };
+
     const addToCart = (item, quantity, notes) => {
         const existing = cart.find(i => i.id === item.id);
         if (existing) {
@@ -27,6 +72,21 @@ export default function Menu() {
             setCart([...cart, { ...item, quantity, notes }]);
         }
         setSelectedItem(null);
+    };
+
+    const updateQuantity = (index, newQuantity) => {
+        if (newQuantity < 1) {
+            removeItem(index);
+            return;
+        }
+        const newCart = [...cart];
+        newCart[index].quantity = newQuantity;
+        setCart(newCart);
+    };
+
+    const removeItem = (index) => {
+        const newCart = cart.filter((_, i) => i !== index);
+        setCart(newCart);
     };
 
     const submitOrder = () => {
@@ -39,17 +99,19 @@ export default function Menu() {
             alert('Your cart is empty');
             return;
         }
-        
+
         // Place the order
         placeOrder(trimmedTableNumber, cart, { instructions: instructions.trim() || '' });
-        
+
         // Clear form
         setCart([]);
         setShowCart(false);
         setTableNumber('');
         setInstructions('');
-        
-        alert(`Order Placed Successfully for Table ${trimmedTableNumber}!`);
+
+        setInstructions('');
+
+        alert(`${t('orderPlaced')} ${trimmedTableNumber} !`);
     };
 
     const submitFeedback = (feedbackData) => {
@@ -57,16 +119,15 @@ export default function Menu() {
             ...feedbackData,
             tableNo: tableNumber || null
         });
-        setShowFeedback(false);
+        setShowFeedbackModal(false);
         alert('Thank you for your feedback!');
     };
 
     return (
-        <div style={{ padding: '2rem', paddingBottom: '100px' }}>
-            <header style={{ 
-                marginBottom: '2.5rem', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+        <div className="menu-page-container">
+            <header className="sticky-header" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: '1rem'
@@ -74,73 +135,72 @@ export default function Menu() {
                 <div>
                     <div style={{
                         display: 'inline-block',
-                        padding: '0.75rem 1.5rem',
+                        padding: '0.5rem 1rem',
                         background: 'var(--gradient-accent)',
-                        borderRadius: '16px',
-                        marginBottom: '1rem',
-                        boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
+                        borderRadius: '12px',
+                        marginBottom: '0.5rem',
+                        boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
                     }}>
-                        <h1 style={{ 
-                            fontSize: '2.5rem', 
+                        <h1 style={{
+                            fontSize: '1.8rem',
                             fontWeight: '800',
                             margin: 0,
                             color: '#ffffff',
                             letterSpacing: '-1px',
                             textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
                         }}>
-                            🍽️ Our Menu
+                            🍽️ {t('ourMenu')}
                         </h1>
                     </div>
-                    <p style={{ 
-                        color: 'var(--text-dim)', 
-                        fontSize: '0.95rem',
-                        marginTop: '0.5rem',
+                    <p style={{
+                        color: 'var(--text-dim)',
+                        fontSize: '0.9rem',
+                        marginTop: '0.2rem',
                         fontWeight: '500'
                     }}>
-                        {filteredItems.length} {filteredItems.length === 1 ? 'delicious item' : 'delicious items'} available
+                        {filteredItems.length} {t('items')}
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button 
-                        className="btn btn-secondary" 
-                        onClick={() => setShowFeedback(true)}
-                        style={{ 
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <LanguageSwitcher />
+                    <button
+                        className="btn btn-secondary interactive-btn"
+                        onClick={() => setShowFeedbackModal(true)}
+                        style={{
                             borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-                            color: 'white',
-                            border: 'none'
+                            background: 'white',
+                            color: 'var(--text-light)',
+                            border: '1px solid var(--border-color)'
                         }}
                     >
                         <MessageSquare size={18} />
-                        Feedback
                     </button>
-                    <button 
-                        className="btn btn-primary" 
+                    <button
+                        className="btn btn-primary interactive-btn cart-float-btn"
                         onClick={() => setShowCart(true)}
-                        style={{ 
+                        style={{
                             borderRadius: '12px',
-                            position: 'relative'
+                            position: 'relative',
+                            padding: '0.75rem 1.25rem'
                         }}
                     >
                         <ShoppingCart size={20} />
-                        <span style={{ marginLeft: '8px' }}>Cart</span>
+                        <span style={{ marginLeft: '8px' }}>{t('cart')}</span>
                         {cart.length > 0 && (
-                            <span style={{
+                            <span className="cart-count-badge" style={{
                                 position: 'absolute',
                                 top: '-8px',
                                 right: '-8px',
-                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                background: '#ef4444',
                                 color: 'white',
                                 borderRadius: '50%',
-                                width: '28px',
-                                height: '28px',
+                                width: '24px',
+                                height: '24px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.8rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 'bold',
-                                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5)',
-                                animation: 'bounce 1s ease-in-out infinite',
                                 border: '2px solid white'
                             }}>
                                 {cart.length}
@@ -151,22 +211,7 @@ export default function Menu() {
             </header>
 
             {/* Categories */}
-            <div 
-                className="category-buttons-container"
-                style={{ 
-                    display: 'flex', 
-                    gap: '12px', 
-                    overflowX: 'auto', 
-                    overflowY: 'hidden',
-                    padding: '1rem 1.5rem',
-                    marginBottom: '2rem',
-                    scrollbarWidth: 'thin',
-                    WebkitOverflowScrolling: 'touch',
-                    scrollBehavior: 'smooth',
-                    width: '100%',
-                    maxWidth: '100%'
-                }}
-            >
+            <div className="category-scroll-container">
                 {categories.map((cat, idx) => {
                     const gradients = [
                         'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
@@ -181,33 +226,22 @@ export default function Menu() {
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
-                            className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ 
+                            className={`btn interactive - btn ${isActive ? 'btn-primary' : 'btn-secondary'} `}
+                            style={{
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
-                                minWidth: 'fit-content',
-                                borderRadius: '16px',
-                                padding: '0.875rem 1.75rem',
-                                animation: `fadeIn 0.4s ease-out ${idx * 0.1}s both`,
-                                background: isActive 
+                                borderRadius: '30px',
+                                padding: '0.7rem 1.5rem',
+                                animation: `fadeIn 0.4s ease - out ${idx * 0.1}s both`,
+                                background: isActive
                                     ? gradients[idx % gradients.length]
-                                    : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                    : 'rgba(255, 255, 255, 0.8)',
                                 color: isActive ? 'white' : 'var(--text-light)',
-                                border: isActive ? 'none' : '2px solid var(--border-color)',
-                                boxShadow: isActive 
-                                    ? `0 4px 20px ${extractGradientColor(gradients[idx % gradients.length])}40`
-                                    : 'var(--shadow-sm)',
-                                transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                                transition: 'all 0.3s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                                fontWeight: '600',
-                                fontSize: '0.95rem'
+                                border: isActive ? 'none' : '1px solid rgba(0,0,0,0.05)',
+                                fontSize: '0.9rem'
                             }}
                         >
-                            {cat}
+                            {cat === 'All' ? t('all') : cat}
                         </button>
                     );
                 })}
@@ -216,9 +250,9 @@ export default function Menu() {
             {/* Grid */}
             <div className="card-grid" style={{ gap: '2rem' }}>
                 {filteredItems.length === 0 ? (
-                    <div style={{ 
-                        gridColumn: '1 / -1', 
-                        textAlign: 'center', 
+                    <div style={{
+                        gridColumn: '1 / -1',
+                        textAlign: 'center',
                         padding: '4rem 2rem',
                         color: 'var(--text-dim)'
                     }}>
@@ -227,49 +261,24 @@ export default function Menu() {
                     </div>
                 ) : (
                     filteredItems.map((item, idx) => (
-                        <div 
-                            key={item.id} 
-                            className="glass-panel fade-in" 
-                            onClick={() => item.available && setSelectedItem(item)} 
-                            style={{ 
-                                cursor: item.available ? 'pointer' : 'not-allowed', 
-                                overflow: 'hidden',
-                                opacity: item.available ? 1 : 0.6,
-                                position: 'relative',
-                                animation: `fadeIn 0.5s ease-out ${idx * 0.05}s both`,
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                            }}
-                            onMouseEnter={(e) => {
-                                if (item.available) {
-                                    e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                        <div
+                            key={item.id}
+                            className="dynamic-card fade-in"
+                            onClick={() => handleItemClick(item)}
+                            style={{
+                                cursor: item.available ? 'pointer' : 'not-allowed',
+                                opacity: item.available ? 1 : 0.7,
+                                animationDelay: `${idx * 0.05} s`
                             }}
                         >
-                            <div style={{ 
-                                height: '220px', 
-                                width: '100%', 
-                                overflow: 'hidden',
-                                position: 'relative'
-                            }}>
-                                <img 
-                                    src={item.image} 
-                                    alt={item.name} 
-                                    style={{ 
-                                        width: '100%', 
-                                        height: '100%', 
-                                        objectFit: 'cover', 
-                                        transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (item.available) {
-                                            e.target.style.transform = 'scale(1.1)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.transform = 'scale(1)';
+                            <div className="card-image-container">
+                                <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover'
                                     }}
                                 />
                                 {!item.available && (
@@ -285,12 +294,12 @@ export default function Menu() {
                                         justifyContent: 'center',
                                         backdropFilter: 'blur(2px)'
                                     }}>
-                                        <span className="badge badge-error" style={{ 
-                                            fontSize: '1rem', 
+                                        <span className="badge badge-error" style={{
+                                            fontSize: '1rem',
                                             padding: '12px 24px',
                                             boxShadow: '0 4px 15px rgba(231, 76, 60, 0.4)'
                                         }}>
-                                            Sold Out
+                                            {t('soldOut')}
                                         </span>
                                     </div>
                                 )}
@@ -315,28 +324,28 @@ export default function Menu() {
                                 )}
                             </div>
                             <div style={{ padding: '1.25rem' }}>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'flex-start',
                                     marginBottom: '0.5rem'
                                 }}>
-                                    <h3 style={{ 
-                                        margin: 0, 
+                                    <h3 style={{
+                                        margin: 0,
                                         fontSize: '1.25rem',
                                         fontWeight: '700',
                                         lineHeight: '1.3'
                                     }}>
-                                        {item.name}
+                                        {t(item.name)}
                                     </h3>
                                 </div>
-                                <p style={{ 
-                                    color: 'var(--text-dim)', 
+                                <p style={{
+                                    color: 'var(--text-dim)',
                                     fontSize: '0.9rem',
                                     lineHeight: '1.5',
                                     margin: 0
                                 }}>
-                                    {item.benefits}
+                                    {t(item.benefits)}
                                 </p>
                                 {item.available && (
                                     <div style={{
@@ -351,7 +360,7 @@ export default function Menu() {
                                         padding: '1rem 1.25rem',
                                         borderRadius: '0 0 16px 16px'
                                     }}>
-                                        <span style={{ 
+                                        <span style={{
                                             background: 'var(--gradient-accent)',
                                             WebkitBackgroundClip: 'text',
                                             WebkitTextFillColor: 'transparent',
@@ -380,62 +389,52 @@ export default function Menu() {
                 )}
             </div>
 
-            {/* Item Detail Modal */}
-            {selectedItem && (
-                <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} onAdd={addToCart} />
-            )}
+
 
             {/* Cart Modal */}
             {showCart && (
-                <div style={{ 
-                    position: 'fixed', 
-                    inset: 0, 
-                    background: 'rgba(0,0,0,0.7)', 
-                    backdropFilter: 'blur(5px)',
-                    zIndex: 100, 
-                    display: 'flex', 
+                <div className="glass-modal-overlay" style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 100,
+                    display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '20px',
-                    animation: 'fadeIn 0.3s ease-out'
+                    padding: '20px'
                 }}>
-                    <div className="glass-panel" style={{ 
-                        width: '100%', 
-                        maxWidth: '500px', 
+                    <div className="glass-modal-content" style={{
+                        width: '100%',
+                        maxWidth: '500px',
                         maxHeight: '90vh',
-                        borderRadius: '20px', 
+                        borderRadius: '24px',
                         padding: '0',
-                        display: 'flex', 
+                        display: 'flex',
                         flexDirection: 'column',
-                        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
-                        border: '3px solid var(--accent-light)',
-                        overflow: 'hidden',
-                        animation: 'scaleIn 0.3s ease-out'
+                        overflow: 'hidden'
                     }}>
-                        <div style={{ 
+                        <div style={{
                             padding: '1.5rem',
                             background: 'var(--gradient-accent)',
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
+                            display: 'flex',
+                            justifyContent: 'space-between',
                             alignItems: 'center',
                             boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
                         }}>
-                            <h2 style={{ 
+                            <h2 style={{
                                 margin: 0,
                                 color: '#ffffff',
                                 fontSize: '1.75rem',
                                 fontWeight: '800',
                                 textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
                             }}>
-                                🛒 Your Order
+                                🛒 {t('yourOrder')}
                             </h2>
-                            <button 
-                                onClick={() => setShowCart(false)} 
-                                style={{ 
+                            <button
+                                onClick={() => setShowCart(false)}
+                                style={{
                                     background: 'rgba(255, 255, 255, 0.2)',
-                                    border: 'none', 
-                                    color: 'white', 
+                                    border: 'none',
+                                    color: 'white',
                                     cursor: 'pointer',
                                     width: '36px',
                                     height: '36px',
@@ -460,8 +459,8 @@ export default function Menu() {
 
                         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', minHeight: 0 }}>
                             {cart.length === 0 ? (
-                                <div style={{ 
-                                    textAlign: 'center', 
+                                <div style={{
+                                    textAlign: 'center',
                                     padding: '4rem 2rem',
                                     color: 'var(--text-dim)'
                                 }}>
@@ -473,33 +472,35 @@ export default function Menu() {
                                 </div>
                             ) : (
                                 cart.map((item, idx) => (
-                                    <div 
-                                        key={idx} 
-                                        style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'space-between', 
+                                    <div
+                                        key={idx}
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
                                             alignItems: 'center',
-                                            marginBottom: '1rem', 
+                                            marginBottom: '1rem',
                                             padding: '1rem',
                                             background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
                                             borderRadius: '12px',
                                             border: '2px solid var(--accent-light)',
-                                            animation: `fadeInUp 0.4s ease-out ${idx * 0.1}s both`
+                                            animation: `fadeInUp 0.4s ease - out ${idx * 0.1}s both`,
+                                            flexWrap: 'wrap',
+                                            gap: '10px'
                                         }}
                                     >
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ 
+                                        <div style={{ flex: 1, minWidth: '150px' }}>
+                                            <h4 style={{
                                                 margin: 0,
                                                 marginBottom: '0.5rem',
                                                 fontSize: '1.1rem',
                                                 fontWeight: '700',
                                                 color: 'var(--text-light)'
                                             }}>
-                                                🍽️ {item.name} x {item.quantity}
+                                                {t(item.name)}
                                             </h4>
                                             {item.notes && (
-                                                <small style={{ 
-                                                    color: 'var(--accent)', 
+                                                <small style={{
+                                                    color: 'var(--accent)',
                                                     fontSize: '0.85rem',
                                                     fontStyle: 'italic',
                                                     display: 'block',
@@ -509,17 +510,98 @@ export default function Menu() {
                                                 </small>
                                             )}
                                         </div>
-                                        <span style={{
-                                            fontSize: '1.1rem',
-                                            fontWeight: '800',
-                                            background: 'var(--gradient-accent)',
-                                            WebkitBackgroundClip: 'text',
-                                            WebkitTextFillColor: 'transparent',
-                                            backgroundClip: 'text',
-                                            marginLeft: '1rem'
+
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            padding: '4px',
+                                            borderRadius: '8px'
                                         }}>
-                                            ₹{item.price * item.quantity}
-                                        </span>
+                                            <button
+                                                onClick={() => updateQuantity(idx, item.quantity - 1)}
+                                                style={{
+                                                    width: '28px',
+                                                    height: '28px',
+                                                    borderRadius: '6px',
+                                                    border: 'none',
+                                                    background: 'rgba(255, 255, 255, 0.2)',
+                                                    color: 'var(--text-light)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <Minus size={14} />
+                                            </button>
+                                            <span style={{
+                                                fontWeight: '700',
+                                                minWidth: '20px',
+                                                textAlign: 'center',
+                                                color: 'var(--text-light)'
+                                            }}>
+                                                {item.quantity}
+                                            </span>
+                                            <button
+                                                onClick={() => updateQuantity(idx, item.quantity + 1)}
+                                                style={{
+                                                    width: '28px',
+                                                    height: '28px',
+                                                    borderRadius: '6px',
+                                                    border: 'none',
+                                                    background: 'var(--gradient-accent)',
+                                                    color: 'white',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-end',
+                                            gap: '4px',
+                                            marginLeft: '8px'
+                                        }}>
+                                            <span style={{
+                                                fontSize: '1.1rem',
+                                                fontWeight: '800',
+                                                background: 'var(--gradient-accent)',
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent',
+                                                backgroundClip: 'text',
+                                            }}>
+                                                ₹{item.price * item.quantity}
+                                            </span>
+                                            <button
+                                                onClick={() => removeItem(idx)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#ef4444',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    fontSize: '0.8rem',
+                                                    padding: '4px',
+                                                    borderRadius: '4px'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}
@@ -528,16 +610,16 @@ export default function Menu() {
                         <div style={{ marginTop: 'auto', padding: '1.5rem', paddingTop: '20px', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                                    Table Number <span style={{ color: 'var(--accent)' }}>*</span>
+                                    {t('tableNumber')} <span style={{ color: 'var(--accent)' }}>*</span>
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Enter Table Number (e.g., 1, 2, 3...)"
+                                    placeholder={t('tableNumber')}
                                     className="input-field"
                                     value={tableNumber}
                                     onChange={e => setTableNumber(e.target.value)}
                                     required
-                                    style={{ 
+                                    style={{
                                         border: tableNumber ? '1px solid var(--glass-border)' : '2px solid var(--accent)',
                                         fontSize: '1rem'
                                     }}
@@ -555,11 +637,11 @@ export default function Menu() {
                                     rows="3"
                                 ></textarea>
                             </div>
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                fontSize: '1.5rem', 
-                                fontWeight: '800', 
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: '1.5rem',
+                                fontWeight: '800',
                                 margin: '1.5rem 0',
                                 padding: '1.25rem',
                                 background: 'var(--gradient-accent)',
@@ -568,83 +650,94 @@ export default function Menu() {
                                 boxShadow: '0 4px 20px rgba(233, 69, 96, 0.4)',
                                 textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
                             }}>
-                                <span>Total:</span>
+                                <span>{t('total')}:</span>
                                 <span>₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
                             </div>
-                            <button 
-                                className="btn btn-primary" 
-                                style={{ 
-                                    width: '100%', 
+                            <button
+                                className="btn btn-primary"
+                                style={{
+                                    width: '100%',
                                     justifyContent: 'center',
                                     padding: '1.25rem',
                                     fontSize: '1.1rem',
                                     fontWeight: '800',
                                     borderRadius: '16px',
-                                    boxShadow: cart.length > 0 && tableNumber.trim() 
-                                        ? '0 6px 25px rgba(233, 69, 96, 0.5)' 
+                                    boxShadow: cart.length > 0 && tableNumber.trim()
+                                        ? '0 6px 25px rgba(233, 69, 96, 0.5)'
                                         : 'none',
                                     opacity: cart.length === 0 || !tableNumber.trim() ? 0.6 : 1
-                                }} 
-                                onClick={submitOrder} 
+                                }}
+                                onClick={submitOrder}
                                 disabled={cart.length === 0 || !tableNumber.trim()}
                             >
-                                {cart.length === 0 ? '🛒 Cart is Empty' : !tableNumber.trim() ? '📝 Enter Table Number' : '✅ Place Order'}
+                                {cart.length === 0 ? `🛒 ${t('cartEmpty')} ` : !tableNumber.trim() ? `📝 ${t('tableNumber')} ` : `✅ ${t('placeOrder')} `}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Feedback Modal */}
-            {showFeedback && (
-                <FeedbackModal 
-                    onClose={() => setShowFeedback(false)} 
-                    onSubmit={submitFeedback}
-                    tableNumber={tableNumber}
+            {/* Item Modal */}
+            {selectedItem && (
+                <ItemModal
+                    item={selectedItem}
+                    onClose={() => setSelectedItem(null)}
+                    onAdd={addToCart}
                 />
             )}
+
+            {/* Feedback Modal */}
+            {showFeedbackModal && (
+                <FeedbackModal
+                    onClose={() => setShowFeedbackModal(false)}
+                    onSubmit={submitFeedback}
+                    t={t}
+                />
+            )}
+
+            <MenuBot
+                activeMessage={robotMessage}
+                menuItems={menuItems}
+                t={t}
+                jumpTrigger={robotJumpTrigger}
+            />
         </div>
     );
 }
 
 function ItemModal({ item, onClose, onAdd }) {
+    const { t } = useApp();
     const [qty, setQty] = useState(1);
     const [note, setNote] = useState('');
 
     if (!item.available) return null;
 
     return (
-        <div style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            background: 'rgba(0,0,0,0.7)', 
-            backdropFilter: 'blur(5px)',
-            zIndex: 100, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '20px',
-            animation: 'fadeIn 0.3s ease-out'
+        <div className="glass-modal-overlay" style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
         }}>
-            <div className="glass-panel" style={{ 
-                width: '100%', 
-                maxWidth: '550px', 
-                padding: '0', 
+            <div className="glass-modal-content" style={{
+                width: '100%',
+                maxWidth: '550px',
+                padding: '0',
                 overflow: 'hidden',
-                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                border: '3px solid var(--accent-light)',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-                animation: 'scaleIn 0.3s ease-out'
+                borderRadius: '24px'
             }}>
                 <div style={{ position: 'relative' }}>
-                    <img 
-                        src={item.image} 
-                        style={{ 
-                            width: '100%', 
-                            height: '280px', 
+                    <img
+                        src={item.image}
+                        style={{
+                            width: '100%',
+                            height: '280px',
                             objectFit: 'cover',
                             display: 'block'
-                        }} 
+                        }}
                     />
                     <div style={{
                         position: 'absolute',
@@ -695,7 +788,7 @@ function ItemModal({ item, onClose, onAdd }) {
                 </div>
                 <div style={{ padding: '2rem' }}>
                     <div style={{ marginBottom: '1rem' }}>
-                        <h2 style={{ 
+                        <h2 style={{
                             margin: 0,
                             marginBottom: '0.5rem',
                             fontSize: '2rem',
@@ -705,15 +798,15 @@ function ItemModal({ item, onClose, onAdd }) {
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text'
                         }}>
-                            {item.name}
+                            {t(item.name)}
                         </h2>
-                        <p style={{ 
-                            color: 'var(--text-dim)', 
+                        <p style={{
+                            color: 'var(--text-dim)',
                             fontSize: '1rem',
                             lineHeight: '1.6',
                             margin: 0
                         }}>
-                            {item.benefits}
+                            {t(item.benefits)}
                         </p>
                     </div>
                     <div style={{ margin: '1.5rem 0' }}>
@@ -725,16 +818,16 @@ function ItemModal({ item, onClose, onAdd }) {
                             fontSize: '1rem',
                             textAlign: 'left'
                         }}>
-                            Quantity
+                            {t('quantity') || 'Quantity'}
                         </label>
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
                             justifyContent: 'flex-start',
                             gap: '1rem',
                             width: '100%'
                         }}>
-                            <button 
+                            <button
                                 onClick={() => setQty(Math.max(1, qty - 1))}
                                 disabled={qty <= 1}
                                 style={{
@@ -744,7 +837,7 @@ function ItemModal({ item, onClose, onAdd }) {
                                     padding: 0,
                                     fontSize: '1.75rem',
                                     fontWeight: '700',
-                                    background: qty <= 1 
+                                    background: qty <= 1
                                         ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
                                         : 'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
                                     color: qty <= 1 ? '#9ca3af' : 'white',
@@ -753,7 +846,7 @@ function ItemModal({ item, onClose, onAdd }) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    boxShadow: qty <= 1 
+                                    boxShadow: qty <= 1
                                         ? '0 2px 8px rgba(0, 0, 0, 0.1)'
                                         : '0 4px 15px rgba(233, 69, 96, 0.4)',
                                     transition: 'all 0.3s ease',
@@ -774,7 +867,7 @@ function ItemModal({ item, onClose, onAdd }) {
                             >
                                 −
                             </button>
-                            <div style={{ 
+                            <div style={{
                                 minWidth: '80px',
                                 height: '48px',
                                 display: 'flex',
@@ -785,8 +878,8 @@ function ItemModal({ item, onClose, onAdd }) {
                                 border: '2px solid var(--accent-light)',
                                 padding: '0 1rem'
                             }}>
-                                <span style={{ 
-                                    fontSize: '1.75rem', 
+                                <span style={{
+                                    fontSize: '1.75rem',
                                     fontWeight: '800',
                                     background: 'var(--gradient-accent)',
                                     WebkitBackgroundClip: 'text',
@@ -798,7 +891,7 @@ function ItemModal({ item, onClose, onAdd }) {
                                     {qty}
                                 </span>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setQty(qty + 1)}
                                 style={{
                                     width: '48px',
@@ -831,27 +924,27 @@ function ItemModal({ item, onClose, onAdd }) {
                             </button>
                         </div>
                     </div>
-                    <input 
-                        className="input-field" 
-                        placeholder="📝 Special instructions (optional)" 
-                        value={note} 
+                    <input
+                        className="input-field"
+                        placeholder={`📝 ${t('specialInstructions')} `}
+                        value={note}
                         onChange={e => setNote(e.target.value)}
                         style={{ marginBottom: '1.5rem' }}
                     />
-                    <button 
-                        className="btn btn-primary" 
-                        style={{ 
-                            width: '100%', 
-                            marginTop: '0.5rem', 
+                    <button
+                        className="btn btn-primary"
+                        style={{
+                            width: '100%',
+                            marginTop: '0.5rem',
                             justifyContent: 'center',
                             padding: '1.25rem',
                             fontSize: '1.1rem',
                             fontWeight: '800',
                             borderRadius: '16px'
-                        }} 
+                        }}
                         onClick={() => onAdd(item, qty, note)}
                     >
-                        🛒 Add to Order - ₹{item.price * qty}
+                        🛒 {t('addToOrder')} - ₹{item.price * qty}
                     </button>
                 </div>
             </div>
@@ -860,6 +953,7 @@ function ItemModal({ item, onClose, onAdd }) {
 }
 
 function FeedbackModal({ onClose, onSubmit, tableNumber }) {
+    const { t } = useApp();
     const [formData, setFormData] = useState({
         customerName: '',
         message: '',
@@ -881,25 +975,25 @@ function FeedbackModal({ onClose, onSubmit, tableNumber }) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
             <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '30px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2>Share Your Feedback</h2>
+                    <h2>{t('shareFeedback')}</h2>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X /></button>
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <input
                         className="input-field"
-                        placeholder="Your Name (optional)"
+                        placeholder={`${t('name')} (${t('optional') || 'Optional'})`}
                         value={formData.customerName}
                         onChange={e => setFormData({ ...formData, customerName: e.target.value })}
                     />
                     <input
                         className="input-field"
-                        placeholder="Table Number (optional)"
+                        placeholder={`${t('tableNumber')} (${t('optional') || 'Optional'})`}
                         value={formData.tableNo}
                         onChange={e => setFormData({ ...formData, tableNo: e.target.value })}
                     />
                     <div>
-                        <label style={{ display: 'block', marginBottom: '10px' }}>Rating</label>
+                        <label style={{ display: 'block', marginBottom: '10px' }}>{t('rating') || 'Rating'}</label>
                         <div style={{ display: 'flex', gap: '5px', fontSize: '1.5rem' }}>
                             {[1, 2, 3, 4, 5].map(rating => (
                                 <span
@@ -918,14 +1012,14 @@ function FeedbackModal({ onClose, onSubmit, tableNumber }) {
                     </div>
                     <textarea
                         className="input-field"
-                        placeholder="Your feedback..."
+                        placeholder={t('feedback')}
                         rows="5"
                         required
                         value={formData.message}
                         onChange={e => setFormData({ ...formData, message: e.target.value })}
                     />
                     <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} type="submit">
-                        Submit Feedback
+                        {t('submitFeedback')}
                     </button>
                 </form>
             </div>

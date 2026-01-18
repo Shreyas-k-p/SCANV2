@@ -6,7 +6,9 @@ import Login from './pages/Login';
 import Menu from './pages/Menu';
 import WaiterDashboard from './pages/WaiterDashboard';
 import KitchenDashboard from './pages/KitchenDashboard';
+
 import ManagerDashboard from './pages/ManagerDashboard';
+import SubManagerDashboard from './pages/SubManagerDashboard';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -17,6 +19,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     // Redirect based on their actual role to a safe place
     if (user.role === 'WAITER') return <Navigate to="/waiter" />;
     if (user.role === 'KITCHEN') return <Navigate to="/kitchen" />;
+    if (user.role === 'SUB_MANAGER') return <Navigate to="/sub-manager" />;
     if (user.role === 'MANAGER') return <Navigate to="/manager" />;
     return <Navigate to="/menu" />;
   }
@@ -41,6 +44,12 @@ function App() {
             <Route path="/kitchen" element={
               <ProtectedRoute allowedRoles={['KITCHEN', 'WAITER']}>
                 <KitchenDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/sub-manager" element={
+              <ProtectedRoute allowedRoles={['SUB_MANAGER']}>
+                <SubManagerDashboard />
               </ProtectedRoute>
             } />
 

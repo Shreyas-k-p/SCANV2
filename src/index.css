@@ -53,7 +53,7 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, rgba(233, 69, 96, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
@@ -63,15 +63,33 @@ body::before {
 }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(30px, -30px) rotate(120deg); }
-  66% { transform: translate(-20px, 20px) rotate(240deg); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  33% {
+    transform: translate(30px, -30px) rotate(120deg);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) rotate(240deg);
+  }
 }
 
 /* Scrollbar */
@@ -113,29 +131,32 @@ body::before {
 }
 
 .category-buttons-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, 
-    rgba(233, 69, 96, 0.6) 0%, 
-    rgba(139, 92, 246, 0.6) 50%, 
-    rgba(233, 69, 96, 0.6) 100%);
+  background: linear-gradient(90deg,
+      rgba(233, 69, 96, 0.6) 0%,
+      rgba(139, 92, 246, 0.6) 50%,
+      rgba(233, 69, 96, 0.6) 100%);
   border-radius: 10px;
   transition: all 0.3s ease;
 }
 
 .category-buttons-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, 
-    rgba(233, 69, 96, 0.9) 0%, 
-    rgba(139, 92, 246, 0.9) 50%, 
-    rgba(233, 69, 96, 0.9) 100%);
+  background: linear-gradient(90deg,
+      rgba(233, 69, 96, 0.9) 0%,
+      rgba(139, 92, 246, 0.9) 50%,
+      rgba(233, 69, 96, 0.9) 100%);
 }
 
 /* Hide scrollbar for AddMenuModal form */
 .add-menu-form {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 .add-menu-form::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* Utilities */
@@ -262,9 +283,12 @@ body::before {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 8px 30px rgba(233, 69, 96, 0.5), 0 0 0 4px rgba(233, 69, 96, 0.2);
   }
+
   50% {
     box-shadow: 0 8px 40px rgba(233, 69, 96, 0.6), 0 0 0 6px rgba(233, 69, 96, 0.3);
   }
@@ -364,22 +388,40 @@ body::before {
   animation: fadeIn 0.6s ease-out;
 }
 
-.card-grid > * {
+.card-grid>* {
   animation: cardEntrance 0.6s ease-out backwards;
 }
 
-.card-grid > *:nth-child(1) { animation-delay: 0.1s; }
-.card-grid > *:nth-child(2) { animation-delay: 0.2s; }
-.card-grid > *:nth-child(3) { animation-delay: 0.3s; }
-.card-grid > *:nth-child(4) { animation-delay: 0.4s; }
-.card-grid > *:nth-child(5) { animation-delay: 0.5s; }
-.card-grid > *:nth-child(6) { animation-delay: 0.6s; }
+.card-grid>*:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.card-grid>*:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.card-grid>*:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.card-grid>*:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.card-grid>*:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.card-grid>*:nth-child(6) {
+  animation-delay: 0.6s;
+}
 
 @keyframes cardEntrance {
   from {
     opacity: 0;
     transform: translateY(40px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -395,6 +437,7 @@ body::before {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -406,6 +449,7 @@ body::before {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -417,6 +461,7 @@ body::before {
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -424,10 +469,13 @@ body::before {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.9;
     transform: scale(1.05);
@@ -435,18 +483,24 @@ body::before {
 }
 
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-5px);
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -492,10 +546,13 @@ body::before {
 }
 
 @keyframes badge-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
+
   50% {
     transform: scale(1.05);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -519,7 +576,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 10% 20%, rgba(233, 69, 96, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
@@ -577,7 +634,7 @@ body::before {
   z-index: 1;
 }
 
-.main-content > * {
+.main-content>* {
   position: relative;
   z-index: 1;
   animation: fadeInUp 0.6s ease-out;
@@ -588,6 +645,7 @@ body::before {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -665,12 +723,12 @@ body::before {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
   }
-  
+
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
   }
-  
+
   .main-content {
     padding: 1rem;
   }

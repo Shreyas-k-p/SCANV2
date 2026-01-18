@@ -3,24 +3,30 @@ import { useApp } from '../context/AppContext';
 import { BarChart, TrendingUp, Users, Plus, X, MessageSquare, Calendar, Edit, Settings, UserPlus, ChefHat, Copy, Trash2 } from 'lucide-react';
 import { extractGradientColor, extractGradientContent } from '../utils/gradientUtils';
 
+import LanguageSwitcher from '../components/LanguageSwitcher';
+
 export default function ManagerDashboard() {
-  const {
-    menuItems,
-    addMenuItem,
-    updateMenuItem,
-    deleteMenuItem,
-    orders,
-    feedbacks,
-    waiters,
-    addWaiter,
-    removeWaiter,
-    kitchenStaff,
-    addKitchenStaff,
-    removeKitchenStaff,
-    tables,
-    addTable,
-    removeTable
-} = useApp();
+    const {
+        menuItems,
+        addMenuItem,
+        updateMenuItem,
+        deleteMenuItem,
+        orders,
+        feedbacks,
+        waiters,
+        addWaiter,
+        removeWaiter,
+        kitchenStaff,
+        addKitchenStaff,
+        removeKitchenStaff,
+        tables,
+        addTable,
+        removeTable,
+        t,
+        subManagers,
+        addSubManager,
+        removeSubManager
+    } = useApp();
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -28,7 +34,7 @@ export default function ManagerDashboard() {
 
     // Get today's date
     const today = new Date().toDateString();
-    
+
     // Daily Stats
     const todayOrders = orders.filter(o => {
         const orderDate = new Date(o.timestamp).toDateString();
@@ -59,15 +65,37 @@ export default function ManagerDashboard() {
 
     const [showAddWaiterModal, setShowAddWaiterModal] = useState(false);
     const [showAddKitchenModal, setShowAddKitchenModal] = useState(false);
+    const [showAddSubManagerModal, setShowAddSubManagerModal] = useState(false);
     const [newSecretID, setNewSecretID] = useState(null);
     const [newKitchenSecretID, setNewKitchenSecretID] = useState(null);
+    const [newSubManagerSecretID, setNewSubManagerSecretID] = useState(null);
+    const [subManagerPhoto, setSubManagerPhoto] = useState('');
+
+    const handleSubManagerImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            if (file.size > 800 * 1024) {
+                alert('Image size should be less than 800KB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSubManagerPhoto(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     return (
         <div style={{ padding: '2rem' }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '2rem',
                 flexWrap: 'wrap',
                 gap: '1rem'
@@ -79,9 +107,9 @@ export default function ManagerDashboard() {
                     borderRadius: '16px',
                     boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
                 }}>
-                    <h1 style={{ 
+                    <h1 style={{
                         margin: 0,
-                        fontSize: '2.5rem', 
+                        fontSize: '2.5rem',
                         fontWeight: '800',
                         color: '#ffffff',
                         letterSpacing: '-1px',
@@ -91,8 +119,9 @@ export default function ManagerDashboard() {
                     </h1>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <button 
-                        className="btn btn-primary" 
+                    <LanguageSwitcher />
+                    <button
+                        className="btn btn-primary"
                         onClick={() => setShowAddModal(true)}
                         style={{
                             borderRadius: '12px',
@@ -104,10 +133,10 @@ export default function ManagerDashboard() {
                             gap: '8px'
                         }}
                     >
-                        <Plus size={18} /> Add Menu Item
+                        <Plus size={18} /> {t('addItem')}
                     </button>
-                    <button 
-                        className="btn btn-secondary" 
+                    <button
+                        className="btn btn-secondary"
                         onClick={() => setActiveTab('menu')}
                         style={{
                             borderRadius: '12px',
@@ -134,22 +163,23 @@ export default function ManagerDashboard() {
                             e.currentTarget.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.4)';
                         }}
                     >
-                        <Edit size={18} /> Edit Menu
+                        <Edit size={18} /> {t('manageMenu')}
                     </button>
                 </div>
             </div>
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '2rem', flexWrap: 'wrap' }}>
-            {[
-    { key: 'overview', label: '📊 Overview', gradient: tabGradients.overview },
-    { key: 'orders', label: '📋 Orders', gradient: tabGradients.orders },
-    { key: 'menu', label: '🍽️ Menu', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-    { key: 'tables', label: '🪑 Tables', gradient: 'linear-gradient(135deg, #06b6d4 0%, #67e8f9 100%)' },
-    { key: 'waiters', label: `👨‍🍳 Manage Waiters (${waiters.length})`, gradient: tabGradients.waiters },
-    { key: 'kitchen', label: `🍳 Manage Kitchen (${kitchenStaff.length})`, gradient: tabGradients.kitchen },
-    { key: 'feedback', label: `💬 Feedback (${feedbacks.length})`, gradient: tabGradients.feedback }
-].map(tab => (
+                {[
+                    { key: 'overview', label: `📊 ${t('dashboard')}`, gradient: tabGradients.overview },
+                    { key: 'orders', label: `📋 ${t('activeOrders')}`, gradient: tabGradients.orders },
+                    { key: 'menu', label: `🍽️ ${t('manageMenu')}`, gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+                    { key: 'tables', label: `🪑 ${t('tables')}`, gradient: 'linear-gradient(135deg, #06b6d4 0%, #67e8f9 100%)' },
+                    { key: 'waiters', label: `👨‍🍳 ${t('manageStaff')} (${waiters.length})`, gradient: tabGradients.waiters },
+                    { key: 'kitchen', label: `🍳 ${t('kitchenStaff')} (${kitchenStaff.length})`, gradient: tabGradients.kitchen },
+                    { key: 'subManagers', label: `🤵 Sub Managers (${subManagers.length})`, gradient: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' },
+                    { key: 'feedback', label: `💬 ${t('feedback')} (${feedbacks.length})`, gradient: tabGradients.feedback }
+                ].map(tab => (
 
                     <button
                         key={tab.key}
@@ -174,33 +204,33 @@ export default function ManagerDashboard() {
                 <>
                     {/* Daily Stats Cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                        <StatCard 
-                            icon={<Calendar color="#10b981" />} 
-                            title="Today's Revenue" 
+                        <StatCard
+                            icon={<Calendar color="#10b981" />}
+                            title="Today's Revenue"
                             value={`₹ ${dailyRevenue}`}
                             gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)"
                         />
-                        <StatCard 
-                            icon={<Users color="#3b82f6" />} 
-                            title="Today's Customers" 
+                        <StatCard
+                            icon={<Users color="#3b82f6" />}
+                            title="Today's Customers"
                             value={dailyCustomers}
                             gradient="linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)"
                         />
-                        <StatCard 
-                            icon={<TrendingUp color="#f59e0b" />} 
-                            title="Total Revenue" 
+                        <StatCard
+                            icon={<TrendingUp color="#f59e0b" />}
+                            title="Total Revenue"
                             value={`₹ ${totalRevenue}`}
                             gradient="linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)"
                         />
-                        <StatCard 
-                            icon={<Users color="#8b5cf6" />} 
-                            title="Total Customers" 
+                        <StatCard
+                            icon={<Users color="#8b5cf6" />}
+                            title="Total Customers"
                             value={totalCustomers}
                             gradient="linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)"
                         />
-                        <StatCard 
-                            icon={<BarChart color="#e94560" />} 
-                            title="Most Ordered Item" 
+                        <StatCard
+                            icon={<BarChart color="#e94560" />}
+                            title="Most Ordered Item"
                             value={topItem}
                             gradient="var(--gradient-accent)"
                         />
@@ -208,7 +238,7 @@ export default function ManagerDashboard() {
 
                     {/* Active Orders & Waiters */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                        <div className="glass-panel" style={{ 
+                        <div className="glass-panel" style={{
                             padding: '1.5rem',
                             background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
                             border: '2px solid rgba(233, 69, 96, 0.2)',
@@ -226,10 +256,10 @@ export default function ManagerDashboard() {
                                 transform: 'translate(30%, -30%)'
                             }} />
                             <h3 style={{ margin: 0, marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-light)' }}>
-                                🔔 Active Orders
+                                🔔 {t('activeOrders')}
                             </h3>
-                            <h2 style={{ 
-                                fontSize: '3rem', 
+                            <h2 style={{
+                                fontSize: '3rem',
                                 margin: '0.5rem 0',
                                 background: 'var(--gradient-accent)',
                                 WebkitBackgroundClip: 'text',
@@ -241,7 +271,7 @@ export default function ManagerDashboard() {
                             </h2>
                             <p style={{ color: 'var(--text-dim)', fontWeight: '500', margin: 0 }}>Pending & Ready</p>
                         </div>
-                        <div className="glass-panel" style={{ 
+                        <div className="glass-panel" style={{
                             padding: '1.5rem',
                             background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
                             border: '2px solid rgba(16, 185, 129, 0.2)',
@@ -259,10 +289,10 @@ export default function ManagerDashboard() {
                                 transform: 'translate(30%, -30%)'
                             }} />
                             <h3 style={{ margin: 0, marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-light)' }}>
-                                ✅ Completed Today
+                                ✅ {t('completedOrders')}
                             </h3>
-                            <h2 style={{ 
-                                fontSize: '3rem', 
+                            <h2 style={{
+                                fontSize: '3rem',
                                 margin: '0.5rem 0',
                                 background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
                                 WebkitBackgroundClip: 'text',
@@ -280,9 +310,9 @@ export default function ManagerDashboard() {
 
             {activeTab === 'orders' && (
                 <div>
-                    <h2 style={{ 
-                        marginBottom: '1.5rem', 
-                        fontSize: '1.75rem', 
+                    <h2 style={{
+                        marginBottom: '1.5rem',
+                        fontSize: '1.75rem',
                         fontWeight: '700',
                         background: 'var(--gradient-accent)',
                         WebkitBackgroundClip: 'text',
@@ -312,11 +342,11 @@ export default function ManagerDashboard() {
                                         top: 0,
                                         right: 0,
                                         padding: '0.5rem 1rem',
-                                        background: order.status === 'completed' 
+                                        background: order.status === 'completed'
                                             ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
                                             : order.status === 'ready'
-                                            ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
-                                            : 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
+                                                ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                                                : 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
                                         color: 'white',
                                         fontSize: '0.75rem',
                                         fontWeight: '700',
@@ -328,16 +358,16 @@ export default function ManagerDashboard() {
                                     </div>
                                     <div style={{ marginBottom: '1rem', paddingRight: '100px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <span style={{ 
-                                                fontSize: '0.85rem', 
-                                                color: 'var(--text-dim)', 
+                                            <span style={{
+                                                fontSize: '0.85rem',
+                                                color: 'var(--text-dim)',
                                                 fontWeight: '600',
                                                 letterSpacing: '0.5px'
                                             }}>
                                                 ORDER #{order.id.slice(-6).toUpperCase()}
                                             </span>
-                                            <span style={{ 
-                                                fontSize: '1.5rem', 
+                                            <span style={{
+                                                fontSize: '1.5rem',
                                                 fontWeight: '800',
                                                 background: 'var(--gradient-accent)',
                                                 WebkitBackgroundClip: 'text',
@@ -349,9 +379,9 @@ export default function ManagerDashboard() {
                                         </div>
                                         <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>
                                             <span style={{ marginRight: '1rem' }}>🪑 Table {order.tableNo}</span>
-                                            <span>🕐 {new Date(order.timestamp).toLocaleString('en-IN', { 
-                                                day: 'numeric', 
-                                                month: 'short', 
+                                            <span>🕐 {new Date(order.timestamp).toLocaleString('en-IN', {
+                                                day: 'numeric',
+                                                month: 'short',
                                                 year: 'numeric',
                                                 hour: '2-digit',
                                                 minute: '2-digit'
@@ -378,8 +408,8 @@ export default function ManagerDashboard() {
                                                     <span style={{ color: 'var(--text-light)', fontWeight: '500' }}>
                                                         {item.name}
                                                     </span>
-                                                    <span style={{ 
-                                                        color: 'var(--accent)', 
+                                                    <span style={{
+                                                        color: 'var(--accent)',
                                                         fontWeight: '700',
                                                         fontSize: '0.9rem'
                                                     }}>
@@ -398,17 +428,17 @@ export default function ManagerDashboard() {
 
             {activeTab === 'menu' && (
                 <div>
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: '1.5rem',
                         flexWrap: 'wrap',
                         gap: '1rem'
                     }}>
-                        <h2 style={{ 
+                        <h2 style={{
                             margin: 0,
-                            fontSize: '1.75rem', 
+                            fontSize: '1.75rem',
                             fontWeight: '700',
                             background: 'var(--gradient-accent)',
                             WebkitBackgroundClip: 'text',
@@ -417,8 +447,8 @@ export default function ManagerDashboard() {
                         }}>
                             🍽️ Menu Management
                         </h2>
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={() => setShowAddModal(true)}
                             style={{
                                 borderRadius: '12px',
@@ -427,7 +457,7 @@ export default function ManagerDashboard() {
                                 fontWeight: '600'
                             }}
                         >
-                            <Plus size={18} style={{ marginRight: '8px' }} /> Add New Item
+                            <Plus size={18} style={{ marginRight: '8px' }} /> {t('addItem')}
                         </button>
                     </div>
                     {menuItems.length === 0 ? (
@@ -439,10 +469,10 @@ export default function ManagerDashboard() {
                             {menuItems.map(item => (
                                 <div key={item.id} className="glass-panel" style={{
                                     padding: '1.25rem',
-                                    background: item.available 
+                                    background: item.available
                                         ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
                                         : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                                    border: item.available 
+                                    border: item.available
                                         ? '2px solid rgba(16, 185, 129, 0.3)'
                                         : '2px solid rgba(239, 68, 68, 0.3)',
                                     borderRadius: '16px',
@@ -454,7 +484,7 @@ export default function ManagerDashboard() {
                                         position: 'absolute',
                                         top: '1rem',
                                         right: '1rem',
-                                        background: item.available 
+                                        background: item.available
                                             ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
                                             : 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
                                         color: 'white',
@@ -468,8 +498,8 @@ export default function ManagerDashboard() {
                                         {item.available ? 'Available' : 'Unavailable'}
                                     </div>
                                     <div style={{ marginBottom: '1rem' }}>
-                                        <img 
-                                            src={item.image} 
+                                        <img
+                                            src={item.image}
                                             alt={item.name}
                                             style={{
                                                 width: '100%',
@@ -480,8 +510,8 @@ export default function ManagerDashboard() {
                                                 border: '2px solid var(--glass-border)'
                                             }}
                                         />
-                                        <h3 style={{ 
-                                            margin: 0, 
+                                        <h3 style={{
+                                            margin: 0,
                                             marginBottom: '0.5rem',
                                             fontSize: '1.25rem',
                                             fontWeight: '700',
@@ -489,8 +519,8 @@ export default function ManagerDashboard() {
                                         }}>
                                             {item.name}
                                         </h3>
-                                        <div style={{ 
-                                            fontSize: '1.5rem', 
+                                        <div style={{
+                                            fontSize: '1.5rem',
                                             fontWeight: '800',
                                             marginBottom: '0.5rem',
                                             background: 'var(--gradient-accent)',
@@ -591,60 +621,60 @@ export default function ManagerDashboard() {
                     )}
                 </div>
             )}
-{activeTab === 'tables' && (
-  <div>
-    <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '1rem' }}>
-      🪑 Table Management
-    </h2>
+            {activeTab === 'tables' && (
+                <div>
+                    <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '1rem' }}>
+                        🪑 Table Management
+                    </h2>
 
-    <button
-      className="btn btn-primary"
-      onClick={() => {
-        const num = prompt('Enter Table Number');
-        if (!num) return;
-        addTable(Number(num));
-      }}
-    >
-      ➕ Add Table
-    </button>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                            const num = prompt(t('tableNumber'));
+                            if (!num) return;
+                            addTable(Number(num));
+                        }}
+                    >
+                        ➕ {t('addTable')}
+                    </button>
 
-    <div style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
-      {tables.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '30px', textAlign: 'center' }}>
-          No tables added yet
-        </div>
-      ) : (
-        tables.map(table => (
-          <div
-            key={table.docId}
-            className="glass-panel"
-            style={{
-              padding: '1rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <strong>Table {table.tableNo}</strong>
+                    <div style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
+                        {tables.length === 0 ? (
+                            <div className="glass-panel" style={{ padding: '30px', textAlign: 'center' }}>
+                                No tables added yet
+                            </div>
+                        ) : (
+                            tables.map(table => (
+                                <div
+                                    key={table.docId}
+                                    className="glass-panel"
+                                    style={{
+                                        padding: '1rem',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <strong>Table {table.tableNo}</strong>
 
-            <button
-              onClick={() => removeTable(table.docId)}
-              style={{
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                padding: '6px 10px',
-                borderRadius: '6px'
-              }}
-            >
-              ❌
-            </button>
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-)}
+                                    <button
+                                        onClick={() => removeTable(table.docId)}
+                                        style={{
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '6px 10px',
+                                            borderRadius: '6px'
+                                        }}
+                                    >
+                                        ❌
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
 
             {activeTab === 'feedback' && (
@@ -655,9 +685,9 @@ export default function ManagerDashboard() {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
                             {feedbacks.slice().reverse().map(feedback => (
-                                <div key={feedback.id} style={{ 
-                                    background: 'rgba(0,0,0,0.2)', 
-                                    padding: '15px', 
+                                <div key={feedback.id} style={{
+                                    background: 'rgba(0,0,0,0.2)',
+                                    padding: '15px',
                                     borderRadius: '8px',
                                     borderLeft: '4px solid var(--accent)'
                                 }}>
@@ -687,17 +717,17 @@ export default function ManagerDashboard() {
 
             {activeTab === 'waiters' && (
                 <div>
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: '1.5rem',
                         flexWrap: 'wrap',
                         gap: '1rem'
                     }}>
-                        <h2 style={{ 
+                        <h2 style={{
                             margin: 0,
-                            fontSize: '1.75rem', 
+                            fontSize: '1.75rem',
                             fontWeight: '700',
                             background: 'var(--gradient-accent)',
                             WebkitBackgroundClip: 'text',
@@ -706,8 +736,8 @@ export default function ManagerDashboard() {
                         }}>
                             👨‍🍳 Waiter Management
                         </h2>
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={() => setShowAddWaiterModal(true)}
                             style={{
                                 borderRadius: '12px',
@@ -738,7 +768,8 @@ export default function ManagerDashboard() {
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                         <div>
-                                            <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)' }}>
+                                            <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {waiter.profilePhoto && <img src={waiter.profilePhoto} alt={waiter.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />}
                                                 {waiter.name}
                                             </h3>
                                             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
@@ -820,17 +851,17 @@ export default function ManagerDashboard() {
 
             {activeTab === 'kitchen' && (
                 <div>
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: '1.5rem',
                         flexWrap: 'wrap',
                         gap: '1rem'
                     }}>
-                        <h2 style={{ 
+                        <h2 style={{
                             margin: 0,
-                            fontSize: '1.75rem', 
+                            fontSize: '1.75rem',
                             fontWeight: '700',
                             background: 'var(--gradient-accent)',
                             WebkitBackgroundClip: 'text',
@@ -839,8 +870,8 @@ export default function ManagerDashboard() {
                         }}>
                             🍳 Kitchen Staff Management
                         </h2>
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={() => setShowAddKitchenModal(true)}
                             style={{
                                 borderRadius: '12px',
@@ -871,7 +902,8 @@ export default function ManagerDashboard() {
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                         <div>
-                                            <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)' }}>
+                                            <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {staff.profilePhoto && <img src={staff.profilePhoto} alt={staff.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />}
                                                 {staff.name}
                                             </h3>
                                             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
@@ -951,19 +983,144 @@ export default function ManagerDashboard() {
                 </div>
             )}
 
+            {activeTab === 'subManagers' && (
+                <div>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1.5rem',
+                        flexWrap: 'wrap',
+                        gap: '1rem'
+                    }}>
+                        <h2 style={{
+                            margin: 0,
+                            fontSize: '1.75rem',
+                            fontWeight: '700',
+                            background: 'var(--gradient-accent)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}>
+                            🤵 Sub Manager Management
+                        </h2>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setShowAddSubManagerModal(true)}
+                            style={{
+                                borderRadius: '12px',
+                                padding: '0.75rem 1.5rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <UserPlus size={18} /> Add Sub Manager
+                        </button>
+                    </div>
+                    {subManagers.length === 0 ? (
+                        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '1.1rem' }}>No Sub Managers added yet.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                            {subManagers.map(sm => (
+                                <div key={sm.id} className="glass-panel" style={{
+                                    padding: '1.5rem',
+                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                    border: '2px solid rgba(99, 102, 241, 0.3)',
+                                    borderRadius: '16px',
+                                    position: 'relative'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div>
+                                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {sm.profilePhoto && <img src={sm.profilePhoto} alt={sm.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />}
+                                                {sm.name}
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+                                                ID: {sm.id}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm(`Are you sure you want to remove "${sm.name}"?`)) {
+                                                    removeSubManager(sm.docId);
+
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '0.5rem',
+                                                background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                    <div style={{
+                                        padding: '1rem',
+                                        background: 'rgba(0, 0, 0, 0.05)',
+                                        borderRadius: '12px',
+                                        border: '2px dashed rgba(99, 102, 241, 0.3)'
+                                    }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
+                                            Secret ID:
+                                        </label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <code style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                borderRadius: '8px',
+                                                fontSize: '1.1rem',
+                                                fontWeight: '700',
+                                                letterSpacing: '2px',
+                                                color: 'var(--accent)',
+                                                border: '2px solid var(--accent-light)'
+                                            }}>
+                                                {sm.secretID}
+                                            </code>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(sm.secretID);
+                                                    alert('Secret ID copied to clipboard!');
+                                                }}
+                                                className="btn btn-secondary"
+                                                style={{ padding: '0.75rem' }}
+                                            >
+                                                <Copy size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {showAddModal && (
-                <AddMenuModal 
+                <AddMenuModal
                     onClose={() => {
                         setShowAddModal(false);
                         setEditingItem(null);
-                    }} 
+                    }}
                     onSave={addMenuItem}
                 />
             )}
             {editingItem && (
-                <AddMenuModal 
+                <AddMenuModal
                     item={editingItem}
-                    onClose={() => setEditingItem(null)} 
+                    onClose={() => setEditingItem(null)}
                     onSave={(updatedItem) => {
                         updateMenuItem(editingItem.id, updatedItem);
                         setEditingItem(null);
@@ -971,30 +1128,123 @@ export default function ManagerDashboard() {
                 />
             )}
             {showAddWaiterModal && (
-                <AddWaiterModal 
+                <AddWaiterModal
                     onClose={() => {
                         setShowAddWaiterModal(false);
                         setNewSecretID(null);
-                    }} 
-                    onAdd={(name) => {
-                        const secretID = addWaiter(name);
+                    }}
+                    onAdd={async (name, photo) => {
+                        const secretID = await addWaiter(name, photo);
                         setNewSecretID(secretID);
                     }}
                     secretID={newSecretID}
                 />
             )}
             {showAddKitchenModal && (
-                <AddKitchenModal 
+                <AddKitchenModal
                     onClose={() => {
                         setShowAddKitchenModal(false);
                         setNewKitchenSecretID(null);
-                    }} 
-                    onAdd={(name) => {
-                        const secretID = addKitchenStaff(name);
+                    }}
+                    onAdd={async (name, photo) => {
+                        const secretID = await addKitchenStaff(name, photo);
                         setNewKitchenSecretID(secretID);
                     }}
                     secretID={newKitchenSecretID}
                 />
+            )}
+            {showAddSubManagerModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div className="glass-panel" style={{ padding: '2rem', width: '90%', maxWidth: '400px' }}>
+                        {!newSubManagerSecretID ? (
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                    <h3 style={{ margin: 0 }}>Add Sub Manager</h3>
+                                    <button onClick={() => setShowAddSubManagerModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const name = e.target.elements.name.value;
+                                    if (!name.trim()) return;
+                                    const secret = await addSubManager(name, subManagerPhoto);
+                                    setNewSubManagerSecretID(secret);
+                                    setSubManagerPhoto('');
+                                    e.target.reset();
+                                }}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Name</label>
+                                        <input
+                                            name="name"
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="Enter Name"
+                                            required
+                                        />
+                                    </div>
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Profile Photo</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleSubManagerImageChange}
+                                            className="input-field"
+                                            style={{ padding: '0.5rem' }}
+                                        />
+                                        {subManagerPhoto && (
+                                            <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                                                <img src={subManagerPhoto} alt="Preview" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                                        Create Account
+                                    </button>
+                                </form>
+                            </>
+                        ) : (
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{
+                                    width: '60px', height: '60px', background: '#10b981', borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto'
+                                }}>
+                                    <span style={{ fontSize: '30px', color: 'white' }}>✓</span>
+                                </div>
+                                <h3 style={{ marginBottom: '0.5rem' }}>Sub Manager Added!</h3>
+                                <p style={{ color: 'var(--text-dim)', marginBottom: '1.5rem' }}>Share these credentials containing the Secret ID.</p>
+
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px border var(--border-color)' }}>
+                                    <div style={{ fontSize: '2rem', fontWeight: '800', letterSpacing: '4px', color: '#6366f1' }}>
+                                        {newSubManagerSecretID}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>SECRET ID</div>
+                                </div>
+
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        setNewSubManagerSecretID(null);
+                                        setShowAddSubManagerModal(false);
+                                    }}
+                                    style={{ width: '100%', justifyContent: 'center' }}
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -1002,12 +1252,12 @@ export default function ManagerDashboard() {
 
 function StatCard({ icon, title, value, gradient }) {
     return (
-        <div className="glass-panel" style={{ 
-            padding: '1.5rem', 
-            display: 'flex', 
-            alignItems: 'center', 
+        <div className="glass-panel" style={{
+            padding: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
             gap: '1.25rem',
-            background: gradient 
+            background: gradient
                 ? `linear-gradient(135deg, ${extractGradientContent(gradient)}15, rgba(255, 255, 255, 0.95))`
                 : 'var(--glass-bg)',
             border: gradient ? `2px solid ${extractGradientContent(gradient)}30` : '2px solid var(--glass-border)',
@@ -1015,9 +1265,9 @@ function StatCard({ icon, title, value, gradient }) {
             overflow: 'hidden',
             transition: 'all 0.3s ease'
         }}>
-            <div style={{ 
+            <div style={{
                 background: gradient || 'var(--gradient-accent)',
-                padding: '1rem', 
+                padding: '1rem',
                 borderRadius: '16px',
                 boxShadow: `0 4px 15px ${gradient ? extractGradientContent(gradient) : 'rgba(233, 69, 96, 0.3)'}40`,
                 display: 'flex',
@@ -1029,10 +1279,10 @@ function StatCard({ icon, title, value, gradient }) {
                 {icon}
             </div>
             <div style={{ flex: 1 }}>
-                <h4 style={{ 
-                    margin: 0, 
+                <h4 style={{
+                    margin: 0,
                     marginBottom: '0.5rem',
-                    color: 'var(--text-dim)', 
+                    color: 'var(--text-dim)',
                     fontSize: '0.9rem',
                     fontWeight: '600',
                     textTransform: 'uppercase',
@@ -1040,7 +1290,7 @@ function StatCard({ icon, title, value, gradient }) {
                 }}>
                     {title}
                 </h4>
-                <h2 style={{ 
+                <h2 style={{
                     margin: 0,
                     fontSize: '1.75rem',
                     fontWeight: '800',
@@ -1061,7 +1311,7 @@ function AddMenuModal({ onClose, onSave, item }) {
     const standardCategories = ['South Indian', 'Chinese', 'Japanese', 'North Indian'];
     const itemCategory = item?.category || 'South Indian';
     const isCustomCategory = item && !standardCategories.includes(itemCategory);
-    
+
     const [formData, setFormData] = useState({
         name: item?.name || '',
         price: item?.price || '',
@@ -1082,7 +1332,7 @@ function AddMenuModal({ onClose, onSave, item }) {
                 alert('Please select an image file');
                 return;
             }
-            
+
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert('Image size should be less than 5MB');
@@ -1090,7 +1340,7 @@ function AddMenuModal({ onClose, onSave, item }) {
             }
 
             setImageFile(file);
-            
+
             // Create preview
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -1125,9 +1375,9 @@ function AddMenuModal({ onClose, onSave, item }) {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="glass-panel" style={{ 
-                width: '100%', 
-                maxWidth: '500px', 
+            <div className="glass-panel" style={{
+                width: '100%',
+                maxWidth: '500px',
                 maxHeight: '90vh',
                 padding: '30px',
                 display: 'flex',
@@ -1135,23 +1385,23 @@ function AddMenuModal({ onClose, onSave, item }) {
                 overflow: 'hidden',
                 boxSizing: 'border-box'
             }}>
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: '20px', 
+                    marginBottom: '20px',
                     flexShrink: 0,
                     width: '100%'
                 }}>
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
                         {isEditMode ? '✏️ Edit Menu Item' : '➕ Add New Item'}
                     </h2>
-                    <button 
-                        onClick={onClose} 
-                        style={{ 
-                            background: 'rgba(255, 255, 255, 0.1)', 
-                            border: 'none', 
-                            color: 'var(--text-light)', 
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: 'none',
+                            color: 'var(--text-light)',
                             cursor: 'pointer',
                             borderRadius: '50%',
                             width: '32px',
@@ -1174,12 +1424,12 @@ function AddMenuModal({ onClose, onSave, item }) {
                     </button>
                 </div>
 
-                <form 
-                    onSubmit={handleSubmit} 
+                <form
+                    onSubmit={handleSubmit}
                     className="add-menu-form"
-                    style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
                         gap: '15px',
                         flex: 1,
                         overflowY: 'auto',
@@ -1189,29 +1439,29 @@ function AddMenuModal({ onClose, onSave, item }) {
                         boxSizing: 'border-box'
                     }}
                 >
-                    <input 
-                        className="input-field" 
-                        placeholder="Food Name" 
-                        required 
-                        value={formData.name} 
+                    <input
+                        className="input-field"
+                        placeholder="Food Name"
+                        required
+                        value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                         style={{ width: '100%', boxSizing: 'border-box' }}
                     />
-                    <input 
-                        className="input-field" 
-                        type="number" 
-                        placeholder="Price" 
-                        required 
+                    <input
+                        className="input-field"
+                        type="number"
+                        placeholder="Price"
+                        required
                         min="0"
                         step="0.01"
-                        value={formData.price} 
+                        value={formData.price}
                         onChange={e => setFormData({ ...formData, price: e.target.value })}
                         style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                     <div style={{ width: '100%', boxSizing: 'border-box' }}>
-                        <select 
-                            className="input-field" 
-                            value={formData.category} 
+                        <select
+                            className="input-field"
+                            value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
                             style={{ width: '100%', boxSizing: 'border-box' }}
                         >
@@ -1222,37 +1472,37 @@ function AddMenuModal({ onClose, onSave, item }) {
                             <option>Other</option>
                         </select>
                         {isOtherCategory && (
-                            <input 
-                                className="input-field" 
-                                placeholder="Enter custom category" 
+                            <input
+                                className="input-field"
+                                placeholder="Enter custom category"
                                 required
                                 value={customCategory}
                                 onChange={e => setCustomCategory(e.target.value)}
-                                style={{ 
-                                    width: '100%', 
+                                style={{
+                                    width: '100%',
                                     boxSizing: 'border-box',
                                     marginTop: '10px'
                                 }}
                             />
                         )}
                     </div>
-                    
+
                     {/* Image Upload Section */}
                     <div style={{ width: '100%', boxSizing: 'border-box' }}>
-                        <label style={{ 
-                            display: 'block', 
-                            marginBottom: '8px', 
-                            color: 'var(--text-light)', 
+                        <label style={{
+                            display: 'block',
+                            marginBottom: '8px',
+                            color: 'var(--text-light)',
                             fontSize: '0.9rem',
                             fontWeight: '600'
                         }}>
                             Food Image
                         </label>
-                        <input 
-                            type="file" 
+                        <input
+                            type="file"
                             accept="image/*"
                             onChange={handleImageChange}
-                            style={{ 
+                            style={{
                                 width: '100%',
                                 padding: '0.8rem',
                                 background: 'rgba(0,0,0,0.2)',
@@ -1265,9 +1515,9 @@ function AddMenuModal({ onClose, onSave, item }) {
                             required={!isEditMode}
                         />
                         {isEditMode && imagePreview && (
-                            <p style={{ 
-                                marginTop: '8px', 
-                                fontSize: '0.85rem', 
+                            <p style={{
+                                marginTop: '8px',
+                                fontSize: '0.85rem',
                                 color: 'var(--text-dim)',
                                 fontStyle: 'italic'
                             }}>
@@ -1276,16 +1526,16 @@ function AddMenuModal({ onClose, onSave, item }) {
                         )}
                         {imagePreview && (
                             <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                                <img 
-                                    src={imagePreview} 
-                                    alt="Preview" 
-                                    style={{ 
-                                        maxWidth: '100%', 
-                                        maxHeight: '200px', 
+                                <img
+                                    src={imagePreview}
+                                    alt="Preview"
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '200px',
                                         borderRadius: '8px',
                                         objectFit: 'cover',
                                         border: '1px solid var(--glass-border)'
-                                    }} 
+                                    }}
                                 />
                                 <p style={{ marginTop: '5px', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                                     {imageFile?.name}
@@ -1293,32 +1543,32 @@ function AddMenuModal({ onClose, onSave, item }) {
                             </div>
                         )}
                     </div>
-                    
-                    <textarea 
-                        className="input-field" 
-                        placeholder="Benefits / Description" 
-                        required 
+
+                    <textarea
+                        className="input-field"
+                        placeholder="Benefits / Description"
+                        required
                         rows="6"
-                        value={formData.benefits} 
+                        value={formData.benefits}
                         onChange={e => setFormData({ ...formData, benefits: e.target.value })}
-                        style={{ 
-                            width: '100%', 
-                            boxSizing: 'border-box', 
+                        style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
                             resize: 'vertical',
                             minHeight: '120px',
                             lineHeight: '1.5'
                         }}
                     />
 
-                    <button 
-                        className="btn btn-primary" 
-                        style={{ 
+                    <button
+                        className="btn btn-primary"
+                        style={{
                             justifyContent: 'center',
                             marginTop: '10px',
                             flexShrink: 0,
                             width: '100%',
                             boxSizing: 'border-box'
-                        }} 
+                        }}
                         type="submit"
                     >
                         {isEditMode ? '💾 Update Item' : '💾 Save Item'}
@@ -1331,6 +1581,26 @@ function AddMenuModal({ onClose, onSave, item }) {
 
 function AddWaiterModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
+    const [image, setImage] = useState('');
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            if (file.size > 800 * 1024) {
+                alert('Image size should be less than 800KB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -1338,15 +1608,16 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
             alert('Please enter waiter name');
             return;
         }
-        onAdd(name);
+        onAdd(name, image);
         setName('');
+        setImage('');
     };
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="glass-panel" style={{ 
-                width: '100%', 
-                maxWidth: '500px', 
+            <div className="glass-panel" style={{
+                width: '100%',
+                maxWidth: '500px',
                 padding: '30px',
                 position: 'relative'
             }}>
@@ -1354,12 +1625,12 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
                         {secretID ? '✅ Waiter Added!' : '👨‍🍳 Add New Waiter'}
                     </h2>
-                    <button 
-                        onClick={onClose} 
-                        style={{ 
-                            background: 'rgba(255, 255, 255, 0.1)', 
-                            border: 'none', 
-                            color: 'var(--text-light)', 
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: 'none',
+                            color: 'var(--text-light)',
                             cursor: 'pointer',
                             borderRadius: '50%',
                             width: '32px',
@@ -1422,8 +1693,8 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                                 </button>
                             </div>
                         </div>
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={onClose}
                             style={{ width: '100%', justifyContent: 'center' }}
                         >
@@ -1432,17 +1703,28 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <input 
-                            className="input-field" 
-                            placeholder="Waiter Name" 
-                            required 
-                            value={name} 
+                        <input
+                            className="input-field"
+                            placeholder="Waiter Name"
+                            required
+                            value={name}
                             onChange={e => setName(e.target.value)}
                             autoFocus
                         />
-                        <button 
-                            className="btn btn-primary" 
-                            style={{ width: '100%', justifyContent: 'center' }} 
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="input-field"
+                                style={{ padding: '0.5rem' }}
+                            />
+                            {image && <img src={image} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '50%', marginTop: '10px', objectFit: 'cover' }} />}
+                        </div>
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
                             type="submit"
                         >
                             Add Waiter
@@ -1456,6 +1738,26 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
 
 function AddKitchenModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
+    const [image, setImage] = useState('');
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            if (file.size > 800 * 1024) {
+                alert('Image size should be less than 800KB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -1463,15 +1765,16 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
             alert('Please enter kitchen staff name');
             return;
         }
-        onAdd(name);
+        onAdd(name, image);
         setName('');
+        setImage('');
     };
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="glass-panel" style={{ 
-                width: '100%', 
-                maxWidth: '500px', 
+            <div className="glass-panel" style={{
+                width: '100%',
+                maxWidth: '500px',
                 padding: '30px',
                 position: 'relative'
             }}>
@@ -1479,12 +1782,12 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
                         {secretID ? '✅ Kitchen Staff Added!' : '🍳 Add Kitchen Staff'}
                     </h2>
-                    <button 
-                        onClick={onClose} 
-                        style={{ 
-                            background: 'rgba(255, 255, 255, 0.1)', 
-                            border: 'none', 
-                            color: 'var(--text-light)', 
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: 'none',
+                            color: 'var(--text-light)',
                             cursor: 'pointer',
                             borderRadius: '50%',
                             width: '32px',
@@ -1547,8 +1850,8 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                                 </button>
                             </div>
                         </div>
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={onClose}
                             style={{ width: '100%', justifyContent: 'center' }}
                         >
@@ -1557,17 +1860,28 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <input 
-                            className="input-field" 
-                            placeholder="Kitchen Staff Name" 
-                            required 
-                            value={name} 
+                        <input
+                            className="input-field"
+                            placeholder="Kitchen Staff Name"
+                            required
+                            value={name}
                             onChange={e => setName(e.target.value)}
                             autoFocus
                         />
-                        <button 
-                            className="btn btn-primary" 
-                            style={{ width: '100%', justifyContent: 'center' }} 
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="input-field"
+                                style={{ padding: '0.5rem' }}
+                            />
+                            {image && <img src={image} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '50%', marginTop: '10px', objectFit: 'cover' }} />}
+                        </div>
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
                             type="submit"
                         >
                             Add Kitchen Staff
@@ -1576,5 +1890,7 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                 )}
             </div>
         </div>
-    );
+    )
 }
+
+

@@ -2,66 +2,87 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 
+import LanguageSwitcher from '../components/LanguageSwitcher';
+
 export default function KitchenDashboard() {
-    const { orders, updateOrderStatus, menuItems, updateMenuItemStatus } = useApp();
+    const { orders, updateOrderStatus, menuItems, updateMenuItemStatus, t, user } = useApp();
     const [activeTab, setActiveTab] = useState('orders'); // orders | menu
 
     const activeOrders = orders.filter(o => o.status !== 'completed').sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     return (
         <div style={{ padding: '2rem' }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '2rem',
                 flexWrap: 'wrap',
                 gap: '1rem'
             }}>
                 <div style={{
-                    display: 'inline-block',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '1rem',
                     padding: '0.75rem 1.5rem',
                     background: 'var(--gradient-accent)',
                     borderRadius: '16px',
                     boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
                 }}>
-                    <h1 style={{ 
+                    {user?.profilePhoto && (
+                        <img
+                            src={user.profilePhoto}
+                            alt="Profile"
+                            style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '3px solid white',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                            }}
+                        />
+                    )}
+                    <h1 style={{
                         margin: 0,
-                        fontSize: '2.5rem', 
+                        fontSize: '2.5rem',
                         fontWeight: '800',
                         color: '#ffffff',
                         letterSpacing: '-1px',
                         textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
                     }}>
-                        🍳 Kitchen Dashboard
+                        🍳 {t('kitchen')} {t('dashboard')}
                     </h1>
                 </div>
+                <div style={{ float: 'right' }}>
+                    <LanguageSwitcher />
+                </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button 
-                        className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-secondary'}`} 
+                    <button
+                        className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('orders')}
-                        style={{ 
+                        style={{
                             borderRadius: '12px',
-                            background: activeTab === 'orders' 
-                                ? 'var(--gradient-accent)' 
+                            background: activeTab === 'orders'
+                                ? 'var(--gradient-accent)'
                                 : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                             color: activeTab === 'orders' ? 'white' : 'var(--text-light)'
                         }}
                     >
-                        📋 Orders Queue
+                        📋 {t('activeOrders')}
                     </button>
-                    <button 
-                        className={`btn ${activeTab === 'menu' ? 'btn-primary' : 'btn-secondary'}`} 
+                    <button
+                        className={`btn ${activeTab === 'menu' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('menu')}
-                        style={{ 
+                        style={{
                             borderRadius: '12px',
-                            background: activeTab === 'menu' 
-                                ? 'var(--gradient-accent)' 
+                            background: activeTab === 'menu'
+                                ? 'var(--gradient-accent)'
                                 : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                             color: activeTab === 'menu' ? 'white' : 'var(--text-light)'
                         }}
                     >
-                        🍽️ Manage Menu
+                        🍽️ {t('manageMenu')}
                     </button>
                 </div>
             </div>
@@ -76,7 +97,7 @@ export default function KitchenDashboard() {
                             color: 'var(--text-dim)'
                         }}>
                             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🍽️</div>
-                            <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No active orders</p>
+                            <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{t('noOrders')}</p>
                             <p>All caught up! 🎉</p>
                         </div>
                     ) : (
@@ -88,13 +109,13 @@ export default function KitchenDashboard() {
                                 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
                             ];
                             const orderColor = colors[idx % colors.length];
-                            
+
                             return (
-                                <div 
-                                    key={order.id} 
-                                    className="glass-panel" 
-                                    style={{ 
-                                        padding: '1.5rem', 
+                                <div
+                                    key={order.id}
+                                    className="glass-panel"
+                                    style={{
+                                        padding: '1.5rem',
                                         borderLeft: `5px solid`,
                                         borderImage: `${orderColor} 1`,
                                         background: `linear-gradient(135deg, ${extractGradientContent(orderColor)}10, rgba(255, 255, 255, 0.95))`,
@@ -102,9 +123,9 @@ export default function KitchenDashboard() {
                                         animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s both`
                                     }}
                                 >
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between', 
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
                                         alignItems: 'center',
                                         marginBottom: '1rem',
                                         paddingBottom: '1rem',
@@ -143,12 +164,12 @@ export default function KitchenDashboard() {
                                         </span>
                                     </div>
                                     {order.customerInfo?.instructions && (
-                                        <div style={{ 
+                                        <div style={{
                                             background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-                                            padding: '0.75rem 1rem', 
-                                            borderRadius: '10px', 
-                                            marginBottom: '1rem', 
-                                            fontSize: '0.9rem', 
+                                            padding: '0.75rem 1rem',
+                                            borderRadius: '10px',
+                                            marginBottom: '1rem',
+                                            fontSize: '0.9rem',
                                             color: '#fff',
                                             fontWeight: '600',
                                             boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
@@ -158,11 +179,11 @@ export default function KitchenDashboard() {
                                     )}
                                     <div style={{ marginBottom: '1.25rem' }}>
                                         {order.items.map((item, itemIdx) => (
-                                            <div 
-                                                key={itemIdx} 
-                                                style={{ 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
+                                            <div
+                                                key={itemIdx}
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
                                                     alignItems: 'center',
                                                     margin: '0.75rem 0',
                                                     padding: '0.75rem',
@@ -175,8 +196,8 @@ export default function KitchenDashboard() {
                                                     🍽️ {item.quantity}x {item.name}
                                                 </span>
                                                 {item.notes && (
-                                                    <span style={{ 
-                                                        color: 'var(--accent)', 
+                                                    <span style={{
+                                                        color: 'var(--accent)',
                                                         fontSize: '0.8rem',
                                                         fontStyle: 'italic'
                                                     }}>
@@ -187,27 +208,27 @@ export default function KitchenDashboard() {
                                         ))}
                                     </div>
                                     {order.status === 'pending' ? (
-                                        <button 
-                                            className="btn btn-primary" 
-                                            style={{ 
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{
                                                 width: '100%',
                                                 padding: '0.875rem',
                                                 fontSize: '1rem',
                                                 fontWeight: '700'
-                                            }} 
+                                            }}
                                             onClick={() => updateOrderStatus(order.id, 'ready')}
                                         >
-                                            ✅ Mark Ready
+                                            ✅ {t('markReady')}
                                         </button>
                                     ) : (
-                                        <button 
-                                            className="btn btn-secondary" 
-                                            style={{ 
+                                        <button
+                                            className="btn btn-secondary"
+                                            style={{
                                                 width: '100%',
                                                 background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
                                                 color: 'white',
                                                 border: 'none'
-                                            }} 
+                                            }}
                                             disabled
                                         >
                                             ✓ Ready & Notified
@@ -221,42 +242,42 @@ export default function KitchenDashboard() {
             ) : (
                 <div className="card-grid">
                     {menuItems.map((item, idx) => (
-                        <div 
-                            key={item.id} 
-                            className="glass-panel" 
-                            style={{ 
-                                padding: '1.25rem', 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center', 
+                        <div
+                            key={item.id}
+                            className="glass-panel"
+                            style={{
+                                padding: '1.25rem',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
                                 opacity: item.available ? 1 : 0.7,
-                                background: item.available 
+                                background: item.available
                                     ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)'
                                     : 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                                border: item.available 
+                                border: item.available
                                     ? '2px solid rgba(16, 185, 129, 0.2)'
                                     : '2px solid rgba(239, 68, 68, 0.2)',
                                 animation: `fadeInUp 0.5s ease-out ${idx * 0.05}s both`
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
-                                <img 
-                                    src={item.image} 
-                                    style={{ 
-                                        width: '70px', 
-                                        height: '70px', 
-                                        borderRadius: '12px', 
+                                <img
+                                    src={item.image}
+                                    style={{
+                                        width: '70px',
+                                        height: '70px',
+                                        borderRadius: '12px',
                                         objectFit: 'cover',
                                         boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
                                         border: '2px solid var(--accent-light)'
-                                    }} 
+                                    }}
                                 />
                                 <div>
                                     <h4 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: '700' }}>
                                         {item.name}
                                     </h4>
-                                    <p style={{ 
-                                        margin: 0, 
+                                    <p style={{
+                                        margin: 0,
                                         fontSize: '0.95rem',
                                         fontWeight: '600',
                                         background: 'var(--gradient-accent)',
@@ -279,7 +300,7 @@ export default function KitchenDashboard() {
                                     whiteSpace: 'nowrap'
                                 }}
                             >
-                                {item.available ? '❌ Mark Sold Out' : '✅ Mark Available'}
+                                {item.available ? `❌ ${t('soldOut')}` : `✅ ${t('available')}`}
                             </button>
                         </div>
                     ))}
