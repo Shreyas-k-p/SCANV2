@@ -191,14 +191,14 @@ const Login = () => {
                         Continue as Customer
                     </button>
 
-                    {/* Language and Theme Switcher - Placed at bottom of card */}
+                    {/* Integrated Footer Tools */}
                     <div className="login-footer-tools">
                         <LanguageSwitcher />
                     </div>
                 </div>
 
-                {/* Mascot - Positioned relative to the card */}
-                <div className="mascot-card-position">
+                {/* Mascot - Absolute positioned relative to card now */}
+                <div className="mascot-card-decoration">
                     <LoginMascot focusedField={focusedField} />
                 </div>
             </div>

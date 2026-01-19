@@ -1,4 +1,4 @@
-/* Global Page Container */
+/* ... existing background styles ... */
 .login-wrapper {
   min-height: 100vh;
   width: 100%;
@@ -16,10 +16,9 @@
   padding: 1rem;
 }
 
-/* Main Card */
 .login-card-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   background: var(--card-bg);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -28,24 +27,21 @@
   box-shadow:
     0 20px 40px -10px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1);
-  /* overflow: hidden; Removed to allow mascot to peek out if needed, or keep hidden if we want it clipped */
-  /* For the "peek" effect described in the image, the mascot is usually outside-ish.
-     Let's try overflow: visible so it can overlap the corner. */
   overflow: visible;
+  /* Changed to visible for mascot overflow */
   animation: cardFloat 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 10;
-  margin-bottom: 2rem;
-  /* Space for mascot if it's below */
 }
 
-/* Brand Section */
+/* ... Brand, Content, Form Styles remain same ... */
 .login-brand {
   padding: 2.5rem 2rem 1.5rem;
   text-align: center;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+  border-radius: 24px 24px 0 0;
 }
 
 .brand-logo {
@@ -85,9 +81,8 @@
   font-weight: 500;
 }
 
-/* Content Section */
 .login-content {
-  padding: 0 2rem 2.5rem;
+  padding: 0 2rem 2rem;
 }
 
 .form-welcome {
@@ -106,7 +101,6 @@
   font-size: 0.9rem;
 }
 
-/* Role Pills */
 .role-selector-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -141,7 +135,6 @@
   box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
 }
 
-/* Floating Inputs */
 .inputs-container {
   display: flex;
   flex-direction: column;
@@ -188,6 +181,7 @@
   font-weight: 500;
   outline: none;
   z-index: 2;
+  font-family: inherit;
 }
 
 .floating-input-group label {
@@ -209,7 +203,6 @@
   font-weight: 700;
 }
 
-/* Button & Links */
 .login-submit-btn {
   width: 100%;
   padding: 16px;
@@ -240,6 +233,7 @@
   border: none;
   color: var(--text-dim);
   margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s;
@@ -263,23 +257,24 @@
   animation: shake 0.4s;
 }
 
+/* Footer Tools (Languages) */
 .login-footer-tools {
-  margin-top: 1.5rem;
   display: flex;
   justify-content: center;
-  width: 100%;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
-/* Mascot - Positioned Relative to Card */
-.mascot-card-position {
+/* Mascot - Decorative Absolute Position */
+.mascot-card-decoration {
   position: absolute;
-  bottom: -40px;
-  right: -80px;
-  /* Poke out to the right */
-  z-index: 20;
+  bottom: 60px;
+  /* Raised up to sit near the Dashboard button */
+  right: -90px;
+  /* Moved closer to the card */
   pointer-events: none;
-  transform: scale(0.85);
-  /* Slightly smaller to fit nicely */
+  z-index: 5;
+  width: 180px;
 }
 
 /* Spinner */
@@ -304,6 +299,22 @@
   }
 }
 
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -311,65 +322,23 @@
 }
 
 /* Mobile */
-@media (max-width: 600px) {
-  .login-wrapper {
-    align-items: flex-start;
-    padding: 1rem;
-    padding-top: 2rem;
-    padding-bottom: 8rem;
-    /* Add space for bottom tools */
-  }
-
+@media (max-width: 900px) {
   .login-card-container {
-    box-shadow: none;
-    background: var(--card-bg);
-    border: none;
+    margin-bottom: 120px;
+    /* Space for mascot */
   }
 
-  .login-tools {
-    top: auto;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: max-content;
-    position: fixed;
-    /* Fix to viewport on mobile */
+  .mascot-card-decoration {
+    bottom: -150px;
+    /* Shift below card on mobile */
+    right: 50%;
+    transform: translateX(50%);
+    width: 150px;
+    z-index: 20;
   }
 
-  /* Keep mascot slightly smaller and to the right on mobile too, or hide if it's too obstructive */
-  .mascot-container-fixed {
-    right: 10px;
-    bottom: 60px;
-    /* Above the tools */
-    width: 160px;
-  }
-}
-
-/* Mobile specific for mascot poking */
-@media (max-width: 768px) {
-  .login-card-container {
-    max-width: 100%;
-    margin: 1rem;
-    overflow: hidden;
-    /* Clip everything on mobile to prevent horizontal overflow */
-    padding-bottom: 2rem;
-  }
-
+  /* Ensure footer tools wrap nicely if needed */
   .login-footer-tools {
     flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  /* Mascot sits nicely inside at the bottom or peeks up */
-  .mascot-card-position {
-    position: relative;
-    bottom: auto;
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%) scale(0.9);
-    margin-top: 1rem;
-    width: 100%;
-    display: flex;
-    justify-content: center;
   }
 }
