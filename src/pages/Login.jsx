@@ -90,11 +90,6 @@ const Login = () => {
 
     return (
         <div className="login-wrapper">
-            {/* Header Tools */}
-            <div className="login-tools">
-                <LanguageSwitcher />
-            </div>
-
             <div className="login-card-container">
                 {/* Brand Header */}
                 <div className="login-brand">
@@ -195,12 +190,17 @@ const Login = () => {
                     <button onClick={() => navigate('/menu')} className="customer-link">
                         Continue as Customer
                     </button>
-                </div>
-            </div>
 
-            {/* Mascot Fixed at Bottom Right - "Bottom Positive" */}
-            <div className="mascot-container-fixed">
-                <LoginMascot focusedField={focusedField} />
+                    {/* Language and Theme Switcher - Placed at bottom of card */}
+                    <div className="login-footer-tools">
+                        <LanguageSwitcher />
+                    </div>
+                </div>
+
+                {/* Mascot - Positioned relative to the card */}
+                <div className="mascot-card-position">
+                    <LoginMascot focusedField={focusedField} />
+                </div>
             </div>
         </div>
     );

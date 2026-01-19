@@ -16,20 +16,10 @@
   padding: 1rem;
 }
 
-/* Header Tools (Theme Toggle) */
-.login-tools {
-  position: absolute;
-  top: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  width: max-content;
-}
-
 /* Main Card */
 .login-card-container {
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   background: var(--card-bg);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -38,12 +28,17 @@
   box-shadow:
     0 20px 40px -10px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1);
-  overflow: hidden;
+  /* overflow: hidden; Removed to allow mascot to peek out if needed, or keep hidden if we want it clipped */
+  /* For the "peek" effect described in the image, the mascot is usually outside-ish.
+     Let's try overflow: visible so it can overlap the corner. */
+  overflow: visible;
   animation: cardFloat 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 10;
+  margin-bottom: 2rem;
+  /* Space for mascot if it's below */
 }
 
 /* Brand Section */
@@ -268,16 +263,23 @@
   animation: shake 0.4s;
 }
 
-/* Mascot - Bottom Right (Fixed) */
-.mascot-container-fixed {
-  position: fixed;
-  bottom: 0px;
-  right: 5%;
-  /* Moved slightly right as requested */
-  left: auto;
-  transform: none;
-  z-index: 100;
+.login-footer-tools {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Mascot - Positioned Relative to Card */
+.mascot-card-position {
+  position: absolute;
+  bottom: -40px;
+  right: -80px;
+  /* Poke out to the right */
+  z-index: 20;
   pointer-events: none;
+  transform: scale(0.85);
+  /* Slightly smaller to fit nicely */
 }
 
 /* Spinner */
@@ -340,5 +342,34 @@
     bottom: 60px;
     /* Above the tools */
     width: 160px;
+  }
+}
+
+/* Mobile specific for mascot poking */
+@media (max-width: 768px) {
+  .login-card-container {
+    max-width: 100%;
+    margin: 1rem;
+    overflow: hidden;
+    /* Clip everything on mobile to prevent horizontal overflow */
+    padding-bottom: 2rem;
+  }
+
+  .login-footer-tools {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Mascot sits nicely inside at the bottom or peeks up */
+  .mascot-card-position {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 }
