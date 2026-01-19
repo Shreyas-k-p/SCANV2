@@ -21,6 +21,7 @@ import {
   listenToSubManagers,
   removeSubManagerFromDB
 } from "../services/subManagerService";
+import { addOrderToDB, listenToOrders, updateOrderInDB } from "../services/orderService";
 import { translations } from '../utils/translations';
 
 
@@ -45,7 +46,8 @@ export function AppProvider({ children }) {
 
   // Translation helper
   const t = (key) => {
-    return translations[language][key] || key;
+    // console.log(`Translating ${key} to ${language}:`, translations[language]?.[key]);
+    return translations[language]?.[key] || translations['en']?.[key] || key;
   };
 
   useEffect(() => {
@@ -90,10 +92,7 @@ export function AppProvider({ children }) {
   //return saved ? JSON.parse(saved) : initialMenu;
   //});
 
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('orders');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [orders, setOrders] = useState([]);
 
   //    const [tables] = useState([1, 2, 3, 4, 5, 6, 7, 8]); // Mock tables
 
@@ -141,8 +140,32 @@ export function AppProvider({ children }) {
   }, [menuItems]);
 
   useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(orders));
-  }, [orders]);
+    const unsubscribe = listenToOrders(setOrders);
+    return () => unsubscribe();
+  }, []);
+
+  // One-time migration of local orders to Firestore
+  useEffect(() => {
+    const localOrders = localStorage.getItem('orders');
+    if (localOrders) {
+      try {
+        const parsedOrders = JSON.parse(localOrders);
+        if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log("Migrating " + parsedOrders.length + " orders to Firestore...");
+          parsedOrders.forEach((order) => {
+            // Only add if it doesn't look like it has a firestore ID yet (though local ones definitely won't)
+            addOrderToDB(order);
+          });
+          // Clear local storage to prevent re-migration
+          localStorage.removeItem('orders');
+        }
+      } catch (e) {
+        console.error("Migration failed", e);
+      }
+    }
+  }, []);
+
 
   useEffect(() => {
     localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
@@ -271,12 +294,14 @@ export function AppProvider({ children }) {
       }, 0)
     };
 
-    // Use functional update to avoid stale closure
-    setOrders(prev => [...prev, newOrder]);
+    addOrderToDB(newOrder);
   };
 
-  const updateOrderStatus = (orderId, status) => {
-    setOrders(prev => prev.map(order => order.id === orderId ? { ...order, status } : order));
+  const updateOrderStatus = async (orderId, status) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order && order.docId) {
+      await updateOrderInDB(order.docId, { status });
+    }
   };
 
   const addFeedback = (feedback) => {

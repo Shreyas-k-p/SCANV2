@@ -77,9 +77,16 @@ export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, j
     }, [activeMessage, isAway]);
 
     // Jump logic
+    const [horizontalOffset, setHorizontalOffset] = useState(0);
+
     useEffect(() => {
         if (jumpTrigger > 0 && !isAway) {
             setIsJumping(true);
+
+            // Move randomly left or right when triggered
+            const randomOffset = Math.floor(Math.random() * 60) - 30; // -30px to 30px
+            setHorizontalOffset(prev => prev + randomOffset);
+
             setTimeout(() => setIsJumping(false), 1000); // Jump duration
         }
     }, [jumpTrigger, isAway]);
@@ -143,7 +150,8 @@ export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, j
                 pointerEvents: isAway ? 'none' : 'auto',
                 width: 'auto',
                 cursor: 'pointer',
-                transition: 'right 0.8s ease-in-out', // Smooth run away
+                transition: 'right 0.8s ease-in-out, transform 0.8s ease-in-out', // Smooth run away
+                transform: `translateX(${horizontalOffset}px)`,
                 filter: 'drop-shadow(0 5px 15px rgba(0,0,0,0.2))'
             }}>
             {/* Speech Bubble */}

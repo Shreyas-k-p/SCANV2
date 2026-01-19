@@ -16,34 +16,26 @@ export default function LanguageSwitcher() {
     ];
 
     return (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="language-switcher-container">
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button
                     onClick={toggleTheme}
                     title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                    className="theme-toggle-btn"
                     style={{
-                        background: 'var(--glass-bg)',
-                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
+                        width: '36px',
+                        height: '36px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '1.2rem',
-                        transition: 'all 0.3s ease',
-                        color: 'var(--text-light)',
-                        marginRight: '12px',
-                        boxShadow: 'var(--shadow-sm)'
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'scale(1.1)';
-                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                        transition: 'all 0.2s ease',
+                        color: 'var(--text-main)',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
                     }}
                 >
                     {theme === 'light' ? '🌙' : '☀️'}
@@ -53,27 +45,28 @@ export default function LanguageSwitcher() {
                         key={lang.code}
                         onClick={() => setLanguage(lang.code)}
                         title={lang.label}
+                        className={`lang-btn ${language === lang.code ? 'active' : ''}`}
                         style={{
                             background: language === lang.code
-                                ? 'var(--gradient-accent)'
-                                : 'rgba(255, 255, 255, 0.2)',
+                                ? 'var(--primary, #4f46e5)'
+                                : 'rgba(255, 255, 255, 0.05)',
                             border: language === lang.code
-                                ? 'none'
-                                : '1px solid var(--glass-border)',
-                            borderRadius: '50%',
-                            width: '40px',
-                            height: '40px',
+                                ? `1px solid var(--primary, #4f46e5)`
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            padding: '6px 10px',
+                            minWidth: '36px',
+                            height: '36px',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: '1.2rem',
-                            transition: 'all 0.3s ease',
-                            color: language === lang.code ? 'white' : 'inherit',
-                            boxShadow: language === lang.code
-                                ? '0 4px 15px rgba(0,0,0,0.2)'
-                                : 'none',
-                            transform: language === lang.code ? 'scale(1.1)' : 'scale(1)'
+                            transition: 'all 0.2s ease',
+                            color: 'white',
+                            opacity: language === lang.code ? 1 : 0.7,
+                            transform: language === lang.code ? 'scale(1.05)' : 'scale(1)',
+                            boxShadow: language === lang.code ? '0 4px 12px rgba(79, 70, 229, 0.3)' : 'none'
                         }}
                     >
                         {lang.flag}

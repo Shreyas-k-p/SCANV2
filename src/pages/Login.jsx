@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { User, Utensils, Shield, Users, Lock, ChevronRight, ScanLine } from 'lucide-react';
+import { User, Utensils, Shield, Users, Lock, ChevronRight } from 'lucide-react';
 import LoginMascot from '../components/LoginMascot';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useApp();
+    const { login, t, language } = useApp();
 
     const [formData, setFormData] = useState({
         role: 'WAITER',
@@ -22,10 +22,10 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const roles = [
-        { id: 'WAITER', label: 'Waiter', icon: User },
-        { id: 'KITCHEN', label: 'Kitchen', icon: Utensils },
-        { id: 'MANAGER', label: 'Manager', icon: Shield },
-        { id: 'SUB_MANAGER', label: 'Sub Manager', icon: Users }
+        { id: 'WAITER', label: t('waiter'), icon: User },
+        { id: 'KITCHEN', label: t('kitchen'), icon: Utensils },
+        { id: 'MANAGER', label: t('manager'), icon: Shield },
+        { id: 'SUB_MANAGER', label: t('subManager'), icon: Users }
     ];
 
     const SECRET_IDS = {
@@ -68,7 +68,7 @@ const Login = () => {
             else if (upperRole === 'MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
                 if (secretId !== SECRET_IDS['MANAGER']) throw new Error("Invalid Secret ID");
-                login({ name: 'Manager', id: upperId, role: 'MANAGER' });
+                login({ name: name.trim() || 'Manager', id: upperId, role: 'MANAGER' });
                 navigate('/manager');
             }
             else if (upperRole === 'KITCHEN') {
@@ -94,16 +94,16 @@ const Login = () => {
                 {/* Brand Header */}
                 <div className="login-brand">
                     <div className="brand-logo">
-                        <ScanLine size={40} color="#FF2E63" />
+                        <Utensils size={40} color="#fff" />
                     </div>
                     <h1>Scan<span>4</span>Serve</h1>
-                    <p>Smart Restaurant OS</p>
+                    <p>{t('smartRestaurantOS')}</p>
                 </div>
 
                 <div className="login-content">
                     <div className="form-welcome">
-                        <h2>Welcome Back</h2>
-                        <p>Select your workspace role to continue</p>
+                        <h2>{t('welcome')}</h2>
+                        <p>{t('selectRoleMessage')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="modern-form">
@@ -138,10 +138,11 @@ const Login = () => {
                                     onBlur={handleBlur}
                                     className="floating-input"
                                 />
-                                <label>Staff ID</label>
+                                <label>{t('staffId')}</label>
                             </div>
 
-                            {(formData.role === 'WAITER' || formData.role === 'SUB_MANAGER') && (
+
+                            {(formData.role === 'WAITER' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
                                 <div className="floating-input-group">
                                     <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
                                     <input
@@ -154,7 +155,7 @@ const Login = () => {
                                         onBlur={handleBlur}
                                         className="floating-input"
                                     />
-                                    <label>Full Name</label>
+                                    <label>{t('fullName')}</label>
                                 </div>
                             )}
 
@@ -171,7 +172,7 @@ const Login = () => {
                                         onBlur={handleBlur}
                                         className="floating-input"
                                     />
-                                    <label>Secret Key</label>
+                                    <label>{t('secretKey')}</label>
                                 </div>
                             )}
                         </div>
@@ -182,13 +183,13 @@ const Login = () => {
                             {isLoading ? (
                                 <div className="spinner-sm"></div>
                             ) : (
-                                <>Access Dashboard <ChevronRight size={20} /></>
+                                <>{t('accessDashboard')} <ChevronRight size={20} /></>
                             )}
                         </button>
                     </form>
 
                     <button onClick={() => navigate('/menu')} className="customer-link">
-                        Continue as Customer
+                        {t('continueAsCustomer')}
                     </button>
 
                     {/* Integrated Footer Tools */}

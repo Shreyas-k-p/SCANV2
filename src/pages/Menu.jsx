@@ -931,21 +931,37 @@ function ItemModal({ item, onClose, onAdd }) {
                         onChange={e => setNote(e.target.value)}
                         style={{ marginBottom: '1.5rem' }}
                     />
-                    <button
-                        className="btn btn-primary"
-                        style={{
-                            width: '100%',
-                            marginTop: '0.5rem',
-                            justifyContent: 'center',
-                            padding: '1.25rem',
-                            fontSize: '1.1rem',
-                            fontWeight: '800',
-                            borderRadius: '16px'
-                        }}
-                        onClick={() => onAdd(item, qty, note)}
-                    >
-                        🛒 {t('addToOrder')} - ₹{item.price * qty}
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                        <button
+                            className="btn btn-secondary"
+                            style={{
+                                flex: 1,
+                                justifyContent: 'center',
+                                padding: '1.25rem',
+                                fontSize: '1.1rem',
+                                fontWeight: '800',
+                                borderRadius: '16px',
+                                border: '2px solid var(--border-color)'
+                            }}
+                            onClick={onClose}
+                        >
+                            ← {t('back') || 'Back'}
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={{
+                                flex: 2,
+                                justifyContent: 'center',
+                                padding: '1.25rem',
+                                fontSize: '1.1rem',
+                                fontWeight: '800',
+                                borderRadius: '16px'
+                            }}
+                            onClick={() => onAdd(item, qty, note)}
+                        >
+                            🛒 {t('addToOrder')} - ₹{item.price * qty}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
