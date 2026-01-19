@@ -16,9 +16,26 @@ export default function WaiterDashboard() {
         'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
         'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
         'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)',
-        'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)',
         'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
     ];
+
+    const handleServeOrder = async (orderId) => {
+        if (confirm("Confirm this order has been served?")) {
+            await updateOrderStatus(orderId, 'completed');
+        }
+    };
+
+    const handleBillTable = async (table) => {
+        if (confirm(`Generate bill for Table ${table.tableNo}? This will lock the table for customers.`)) {
+            await useApp().updateTableStatus(table.docId, 'billed');
+        }
+    };
+
+    const handleClearTable = async (table) => {
+        if (confirm(`Clear Table ${table.tableNo} and make it available?`)) {
+            await useApp().updateTableStatus(table.docId, 'active');
+        }
+    };
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -30,7 +47,7 @@ export default function WaiterDashboard() {
                 background: 'var(--gradient-accent)',
                 borderRadius: '16px',
                 marginBottom: '2rem',
-                boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
+                boxShadow: 'var(--shadow-glow)'
             }}>
                 {user?.profilePhoto && (
                     <img
@@ -61,24 +78,32 @@ export default function WaiterDashboard() {
                 <LanguageSwitcher />
             </div>
             <div className="card-grid" style={{ marginTop: '20px', gap: '1.5rem' }}>
-                {tables.map((table, idx) => {
-                    const tableOrders = getTableOrders(table);
+                {tables.map((tableObj, idx) => {
+                    const tableNo = tableObj.tableNo;
+                    const tableOrders = getTableOrders(tableNo);
                     const hasOrders = tableOrders.length > 0;
                     const tableColor = tableColors[idx % tableColors.length];
 
                     return (
                         <div
-                            key={table}
-                            className="glass-panel"
+                            key={tableObj.docId || idx}
+                            className=""
                             style={{
                                 padding: '1.5rem',
                                 border: hasOrders ? `3px solid` : '2px solid var(--border-color)',
                                 borderImage: hasOrders ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}) 1` : 'none',
                                 background: hasOrders
-                                    ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}15, rgba(255, 255, 255, 0.95))`
+                                    ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}15, var(--card-bg))`
                                     : 'var(--glass-bg)',
                                 position: 'relative',
-                                overflow: 'visible'
+                                overflow: 'visible',
+                                backdropFilter: 'blur(15px) saturate(180%)',
+                                WebkitBackdropFilter: 'blur(15px) saturate(180%)',
+                                boxShadow: 'var(--shadow-md)',
+                                borderRadius: '20px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
                             }}
                         >
                             <div style={{
@@ -107,17 +132,20 @@ export default function WaiterDashboard() {
                                         fontSize: '1.25rem',
                                         boxShadow: `0 4px 15px ${extractGradientContent(tableColor)}40`
                                     }}>
-                                        {table}
+                                        {tableNo}
                                     </div>
                                     <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700' }}>
-                                        Table {table}
+                                        Table {tableNo}
                                     </h2>
                                 </div>
-                                {hasOrders && (
-                                    <span className="badge badge-warning" style={{
-                                        animation: 'pulse 2s ease-in-out infinite'
-                                    }}>
+                                {hasOrders && tableObj.status !== 'billed' && (
+                                    <span className="badge badge-warning" style={{ animation: 'pulse 2s ease-in-out infinite' }}>
                                         🔔 Active
+                                    </span>
+                                )}
+                                {tableObj.status === 'billed' && (
+                                    <span className="badge" style={{ background: 'var(--accent)', color: 'white' }}>
+                                        💰 Billed
                                     </span>
                                 )}
                             </div>
@@ -155,29 +183,33 @@ export default function WaiterDashboard() {
                                                     <li key={idx} style={{
                                                         marginBottom: '0.5rem',
                                                         padding: '0.5rem',
-                                                        background: 'rgba(255, 255, 255, 0.5)',
+                                                        background: 'var(--glass-bg)',
                                                         borderRadius: '8px',
                                                         fontSize: '0.9rem',
-                                                        fontWeight: '500'
+                                                        fontWeight: '500',
+                                                        color: 'var(--text-light)'
                                                     }}>
                                                         🍽️ {it.name} x{it.quantity}
                                                     </li>
                                                 ))}
                                             </ul>
-                                            {order.status === 'ready' && (
-                                                <button
-                                                    className="btn btn-primary"
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.75rem',
-                                                        marginTop: '0.75rem',
-                                                        fontSize: '1rem',
-                                                        fontWeight: '700'
-                                                    }}
-                                                    onClick={() => updateOrderStatus(order.id, 'completed')}
-                                                >
-                                                    ✅ {t('markServed')}
-                                                </button>
+                                            <button
+                                                className="btn "
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    marginTop: '0.75rem',
+                                                    fontSize: '1rem',
+                                                    fontWeight: '700',
+                                                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '12px'
+                                                }}
+                                                onClick={() => handleServeOrder(order.id)}
+                                            >
+                                                ✅ {t('markServed')}
+                                            </button>
                                             )}
                                         </div>
                                     ))}
@@ -190,14 +222,52 @@ export default function WaiterDashboard() {
                                     fontStyle: 'italic',
                                     fontSize: '1.1rem'
                                 }}>
-                                    🪑 Table Available
+                                    {tableObj.status === 'billed' ? '💰 Payment Pending' : '🪑 Table Available'}
                                 </div>
                             )}
+
+                            {/* Table Actions */}
+                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                {tableObj.status !== 'billed' && hasOrders && (
+                                    <button
+                                        className="btn"
+                                        style={{
+                                            flex: 1,
+                                            background: 'var(--accent)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            padding: '10px',
+                                            fontWeight: '700'
+                                        }}
+                                        onClick={() => handleBillTable(tableObj)}
+                                    >
+                                        🧾 Bill
+                                    </button>
+                                )}
+                                {tableObj.status === 'billed' && (
+                                    <button
+                                        className="btn"
+                                        style={{
+                                            flex: 1,
+                                            background: '#10b981', // Green for cleared/paid
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            padding: '10px',
+                                            fontWeight: '700'
+                                        }}
+                                        onClick={() => handleClearTable(tableObj)}
+                                    >
+                                        ✅ Paid & Clear
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
             </div>
-        </div>
+        </div >
     );
 }
 

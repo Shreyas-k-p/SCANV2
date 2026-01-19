@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { User, Utensils, Shield, Users, Lock, ChevronRight } from 'lucide-react';
-import LoginMascot from '../components/LoginMascot';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import './Login.css';
 
@@ -33,6 +32,8 @@ const Login = () => {
         'sub_manager': 'SUB2024',
         'SUB_MANAGER': 'SUB2024'
     };
+
+
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -196,11 +197,7 @@ const Login = () => {
                     <div className="login-footer-tools">
                         <LanguageSwitcher />
                     </div>
-                </div>
 
-                {/* Mascot - Absolute positioned relative to card now */}
-                <div className="mascot-card-decoration">
-                    <LoginMascot focusedField={focusedField} />
                 </div>
             </div>
         </div>

@@ -14,7 +14,8 @@ import {
 import {
   addTableToDB,
   listenToTables,
-  removeTableFromDB
+  removeTableFromDB,
+  updateTableStatusInDB
 } from "../services/tableService";
 import {
   addSubManagerToDB,
@@ -269,11 +270,11 @@ export function AppProvider({ children }) {
     setMenuItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const placeOrder = (tableNo, items, customerInfo) => {
+  const placeOrder = async (tableNo, items, customerInfo) => {
     // Validate inputs
     if (!tableNo || !items || items.length === 0) {
       console.error('Invalid order data');
-      return;
+      throw new Error("Invalid order data");
     }
 
     const newOrder = {
@@ -294,7 +295,13 @@ export function AppProvider({ children }) {
       }, 0)
     };
 
-    addOrderToDB(newOrder);
+    try {
+      await addOrderToDB(newOrder);
+      return newOrder;
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      throw error;
+    }
   };
 
   const updateOrderStatus = async (orderId, status) => {
@@ -406,6 +413,10 @@ export function AppProvider({ children }) {
     await removeTableFromDB(docId);
   };
 
+  const updateTableStatus = async (docId, status) => {
+    await updateTableStatusInDB(docId, status);
+  };
+
 
   // Validate secret ID for login
   const validateSecretID = (role, id, secretID) => {
@@ -442,6 +453,7 @@ export function AppProvider({ children }) {
       tables,
       addTable,
       removeTable,
+      updateTableStatus,
 
       feedbacks, addFeedback,
       waiters, addWaiter, removeWaiter,

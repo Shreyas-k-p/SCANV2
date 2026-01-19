@@ -27,7 +27,7 @@ export default function Layout({ children }) {
                         background: 'var(--gradient-accent)',
                         borderRadius: '12px',
                         marginBottom: '1rem',
-                        boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
+                        boxShadow: 'var(--shadow-glow)'
                     }}>
                         <h2 style={{
                             fontSize: '1.75rem',
@@ -45,7 +45,7 @@ export default function Layout({ children }) {
                         width: '80px',
                         background: 'var(--gradient-accent)',
                         borderRadius: '2px',
-                        boxShadow: '0 2px 8px rgba(233, 69, 96, 0.4)'
+                        boxShadow: 'var(--shadow-glow)'
                     }} />
                 </div>
 
@@ -56,8 +56,8 @@ export default function Layout({ children }) {
                         alignItems: 'center',
                         gap: '12px',
                         cursor: 'default',
-                        background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                        border: '2px solid rgba(233, 69, 96, 0.2)'
+                        background: 'var(--glass-bg)',
+                        border: '2px solid var(--glass-border)'
                     }}>
                         <div style={{
                             width: '50px',
@@ -69,7 +69,7 @@ export default function Layout({ children }) {
                             justifyContent: 'center',
                             fontWeight: 'bold',
                             fontSize: '1.2rem',
-                            boxShadow: '0 4px 20px rgba(233, 69, 96, 0.4)',
+                            boxShadow: 'var(--shadow-glow)',
                             color: '#fff',
                             border: '3px solid rgba(255, 255, 255, 0.3)',
                             animation: 'pulse 2s ease-in-out infinite'

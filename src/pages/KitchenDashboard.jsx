@@ -27,7 +27,7 @@ export default function KitchenDashboard() {
                     padding: '0.75rem 1.5rem',
                     background: 'var(--gradient-accent)',
                     borderRadius: '16px',
-                    boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
+                    boxShadow: 'var(--shadow-glow)'
                 }}>
                     {user?.profilePhoto && (
                         <img
@@ -65,7 +65,7 @@ export default function KitchenDashboard() {
                             borderRadius: '12px',
                             background: activeTab === 'orders'
                                 ? 'var(--gradient-accent)'
-                                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                : 'var(--card-bg)',
                             color: activeTab === 'orders' ? 'white' : 'var(--text-light)'
                         }}
                     >
@@ -78,7 +78,7 @@ export default function KitchenDashboard() {
                             borderRadius: '12px',
                             background: activeTab === 'menu'
                                 ? 'var(--gradient-accent)'
-                                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                : 'var(--card-bg)',
                             color: activeTab === 'menu' ? 'white' : 'var(--text-light)'
                         }}
                     >
@@ -118,7 +118,7 @@ export default function KitchenDashboard() {
                                         padding: '1.5rem',
                                         borderLeft: `5px solid`,
                                         borderImage: `${orderColor} 1`,
-                                        background: `linear-gradient(135deg, ${extractGradientContent(orderColor)}10, rgba(255, 255, 255, 0.95))`,
+                                        background: `linear-gradient(135deg, ${extractGradientContent(orderColor)}10, var(--card-bg))`,
                                         position: 'relative',
                                         animation: `fadeInUp 0.5s ease-out ${idx * 0.1}s both`
                                     }}
@@ -252,8 +252,8 @@ export default function KitchenDashboard() {
                                 alignItems: 'center',
                                 opacity: item.available ? 1 : 0.7,
                                 background: item.available
-                                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)'
-                                    : 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                    ? `linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, var(--card-bg) 100%)`
+                                    : `linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--card-bg) 100%)`,
                                 border: item.available
                                     ? '2px solid rgba(16, 185, 129, 0.2)'
                                     : '2px solid rgba(239, 68, 68, 0.2)',

@@ -116,9 +116,9 @@ export default function SubManagerDashboard() {
                     alignItems: 'center',
                     gap: '12px',
                     padding: '0.75rem 1.5rem',
-                    background: 'var(--gradient-primary)',
+                    background: 'var(--gradient-accent)',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-lg)'
+                    boxShadow: 'var(--shadow-glow)'
                 }}>
                     {user?.profilePhoto && (
                         <img

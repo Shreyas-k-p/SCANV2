@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 import { extractGradientColor } from '../utils/gradientUtils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import MenuBot from '../components/MenuBot';
+
 import './Menu.css';
 
 export default function Menu() {
-    const { menuItems, placeOrder, addFeedback, t } = useApp();
+    const { menuItems, placeOrder, addFeedback, t, tables, orders } = useApp();
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null); // For detail modal
     const [showCart, setShowCart] = useState(false);
+    const [showOrders, setShowOrders] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [robotMessage, setRobotMessage] = useState("");
-    const [robotJumpTrigger, setRobotJumpTrigger] = useState(0);
+
     const [scrolled, setScrolled] = useState(false);
-    const [tableNumber, setTableNumber] = useState('');
+    const [tableNumber, setTableNumber] = useState(() => localStorage.getItem('customerTableNumber') || '');
+    const [myOrderIds, setMyOrderIds] = useState(() => {
+        const saved = localStorage.getItem('myOrderIds');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [instructions, setInstructions] = useState('');
 
     const categories = ['All', ...new Set(menuItems.map(item => item.category))];
@@ -34,33 +38,11 @@ export default function Menu() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Clear robot message after 5 seconds to let it go back to idle
-    useEffect(() => {
-        if (robotMessage) {
-            const timer = setTimeout(() => {
-                setRobotMessage("");
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [robotMessage]);
+
 
     const handleItemClick = (item) => {
         if (item.available) {
             setSelectedItem(item);
-            const positiveAdjectives = ["Yummy!", "Delicious!", "Great choice!", "Chef's Kiss!", "Tasty!", "Mmmm!"];
-            const randomAdj = positiveAdjectives[Math.floor(Math.random() * positiveAdjectives.length)];
-            setRobotMessage(`${t(item.name)}? ${randomAdj} 😋`);
-            setRobotJumpTrigger(prev => prev + 1);
-        } else {
-            const funnySoldOutMessages = [
-                "Oh no! The chef got hungry and ate it all! 😱",
-                "Sold out! Try the pixels instead? 👾",
-                "Gone faster than my battery life! 🔋",
-                "Even I couldn't get one in time! 🤖",
-                "That was too delicious to survive! 🛑"
-            ];
-            const randomMsg = funnySoldOutMessages[Math.floor(Math.random() * funnySoldOutMessages.length)];
-            setRobotMessage(randomMsg);
         }
     };
 
@@ -89,10 +71,21 @@ export default function Menu() {
         setCart(newCart);
     };
 
-    const submitOrder = () => {
+    const submitOrder = async () => {
         const trimmedTableNumber = tableNumber.trim();
         if (!trimmedTableNumber) {
             alert('Please enter your table number');
+            return;
+        }
+
+        // Validate table number against active tables
+        const validTable = tables.find(t => String(t.tableNo) === trimmedTableNumber);
+        if (!validTable) {
+            alert(`Invalid Table Number: ${trimmedTableNumber}. Please check the number on your table.`);
+            return;
+        }
+        if (validTable.status === 'billed') {
+            alert(`This table has already been billed. Please ask the waiter to clear the table or start a new session.`);
             return;
         }
         if (cart.length === 0) {
@@ -100,19 +93,28 @@ export default function Menu() {
             return;
         }
 
-        // Place the order
-        placeOrder(trimmedTableNumber, cart, { instructions: instructions.trim() || '' });
+        try {
+            // Place the order
+            const newOrder = await placeOrder(trimmedTableNumber, cart, { instructions: instructions.trim() || '' });
 
-        // Clear form
-        setCart([]);
-        setShowCart(false);
-        setTableNumber('');
-        setInstructions('');
+            // Clear form only on success
+            setCart([]);
+            setShowCart(false);
+            setInstructions('');
 
-        setInstructions('');
+            // Persist table number and order ID
+            localStorage.setItem('customerTableNumber', trimmedTableNumber);
 
-        alert(`${t('orderPlaced')} ${trimmedTableNumber} !`);
+            const updatedOrderIds = [...myOrderIds, newOrder.id];
+            setMyOrderIds(updatedOrderIds);
+            localStorage.setItem('myOrderIds', JSON.stringify(updatedOrderIds));
+
+            alert(`${t('orderPlaced')} ${trimmedTableNumber} !`);
+        } catch (error) {
+            alert('Failed to place order. Please try again.');
+        }
     };
+
 
     const submitFeedback = (feedbackData) => {
         addFeedback({
@@ -145,7 +147,7 @@ export default function Menu() {
                             fontSize: '1.8rem',
                             fontWeight: '800',
                             margin: 0,
-                            color: '#ffffff',
+                            color: '#000000ff',
                             letterSpacing: '-1px',
                             textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
                         }}>
@@ -164,11 +166,29 @@ export default function Menu() {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <LanguageSwitcher />
                     <button
+                        className="btn interactive-btn"
+                        onClick={() => setShowOrders(true)}
+                        style={{
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.75rem 1.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        <ClipboardList size={20} />
+                        <span style={{ marginLeft: '8px' }}>My Orders</span>
+                    </button>
+                    <button
                         className="btn btn-secondary interactive-btn"
                         onClick={() => setShowFeedbackModal(true)}
                         style={{
                             borderRadius: '12px',
-                            background: 'white',
+                            background: 'var(--card-bg)',
                             color: 'var(--text-light)',
                             border: '1px solid var(--border-color)'
                         }}
@@ -235,7 +255,7 @@ export default function Menu() {
                                 animation: `fadeIn 0.4s ease - out ${idx * 0.1}s both`,
                                 background: isActive
                                     ? gradients[idx % gradients.length]
-                                    : 'rgba(255, 255, 255, 0.8)',
+                                    : 'var(--card-bg)',
                                 color: isActive ? 'white' : 'var(--text-light)',
                                 border: isActive ? 'none' : '1px solid rgba(0,0,0,0.05)',
                                 fontSize: '0.9rem'
@@ -695,13 +715,154 @@ export default function Menu() {
                 />
             )}
 
-            <MenuBot
-                activeMessage={robotMessage}
-                menuItems={menuItems}
-                t={t}
-                jumpTrigger={robotJumpTrigger}
-            />
-        </div>
+            {/* Order Summary Modal */}
+            {showOrders && (
+                <div className="glass-modal-overlay" style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div className="glass-modal-content" style={{
+                        width: '100%',
+                        maxWidth: '500px',
+                        maxHeight: '90vh',
+                        borderRadius: '24px',
+                        padding: '0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            padding: '1.5rem',
+                            background: 'var(--gradient-accent)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
+                        }}>
+                            <h2 style={{
+                                margin: 0,
+                                color: '#ffffff',
+                                fontSize: '1.5rem',
+                                fontWeight: '800',
+                                textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                            }}>
+                                🧾 Order Summary
+                            </h2>
+                            <button
+                                onClick={() => setShowOrders(false)}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    border: 'none',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', minHeight: '300px' }}>
+                            {myOrderIds.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
+                                    <Info size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                                    <p>You haven't placed any orders yet.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {(() => {
+                                        // Stricter filter: Match myOrderIds AND the current table number
+                                        const myOrders = orders
+                                            .filter(o =>
+                                                myOrderIds.includes(o.id) &&
+                                                String(o.tableNo) === String(tableNumber).trim()
+                                            )
+                                            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                                        if (myOrders.length === 0) {
+                                            return (
+                                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
+                                                    <p>No orders found for Table {tableNumber}.</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        const grandTotal = myOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+                                        return (
+                                            <>
+                                                <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontWeight: '600', color: 'var(--text-dim)' }}>Session Total:</span>
+                                                    <span style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--accent)' }}>₹{grandTotal}</span>
+                                                </div>
+
+                                                {myOrders.map(order => (
+                                                    <div key={order.id} style={{
+                                                        marginBottom: '1rem',
+                                                        padding: '1rem',
+                                                        borderRadius: '16px',
+                                                        background: 'var(--glass-bg)',
+                                                        border: '1px solid var(--border-color)',
+                                                        position: 'relative',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            top: 0,
+                                                            bottom: 0,
+                                                            width: '4px',
+                                                            background: order.status === 'ready' ? '#f59e0b' : order.status === 'completed' ? '#10b981' : '#3b82f6'
+                                                        }} />
+
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', paddingLeft: '10px' }}>
+                                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+                                                                {new Date(order.timestamp).toLocaleTimeString()}
+                                                            </span>
+                                                            <span className={`badge ${order.status === 'ready' ? 'badge-warning' : order.status === 'completed' ? 'badge-success' : 'badge-primary'}`} style={{ fontSize: '0.75rem' }}>
+                                                                {order.status.toUpperCase()}
+                                                            </span>
+                                                        </div>
+
+                                                        <div style={{ paddingLeft: '10px' }}>
+                                                            {order.items.map((item, idx) => (
+                                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.95rem' }}>
+                                                                    <span>{item.quantity}x {t(item.name)}</span>
+                                                                    <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
+                                                                </div>
+                                                            ))}
+                                                            {order.customerInfo?.instructions && (
+                                                                <div style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--accent)', fontStyle: 'italic' }}>
+                                                                    " {order.customerInfo.instructions} "
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        );
+                                    })()}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+        </div >
     );
 }
 

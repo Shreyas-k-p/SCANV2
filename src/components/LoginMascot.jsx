@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-export default function LoginMascot({ focusedField }) {
+export default function LoginMascot({ focusedField, isTyping }) {
     const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 });
     const [isHiding, setIsHiding] = useState(false);
     const [message, setMessage] = useState("Hi! I'm serving you today! 🤖");
     const [isBlinking, setIsBlinking] = useState(false);
     const [isCrying, setIsCrying] = useState(false);
+    const [isJumping, setIsJumping] = useState(false);
 
     // Fun & Witty Robot Messages
     const robotMessages = [
@@ -35,7 +36,20 @@ export default function LoginMascot({ focusedField }) {
     useEffect(() => {
         if (isCrying) return; // Don't interrupt crying logic
 
-        if (focusedField === 'secret') {
+        if (isTyping) {
+            setIsHiding(false);
+            // Scanning effect - eyes move left/right rapidly
+            // We use standard interval for this or CSS class. 
+            // Better to use state updates here for simple left/right
+            const scanInterval = setInterval(() => {
+                setEyePosition(prev => ({ x: prev.x === -6 ? 6 : -6, y: 5 }));
+            }, 150);
+
+            setMessage("Processing input... ⚡");
+
+            return () => clearInterval(scanInterval);
+
+        } else if (focusedField === 'secret') {
             setIsHiding(true);
             setMessage("I won't peek! My sensors are covered! 🙈");
         } else if (focusedField) {
@@ -55,24 +69,42 @@ export default function LoginMascot({ focusedField }) {
                 setMessage(randomMsg);
             }
         }
-    }, [focusedField, isCrying]);
+    }, [focusedField, isCrying, isTyping]);
 
-    // Random Look Around when Idle
+    // Random Look Aside and Jump when Idle
     useEffect(() => {
-        if (focusedField || isCrying) return;
+        if (focusedField || isCrying || isTyping) return;
 
-        const lookInterval = setInterval(() => {
-            const randomX = Math.floor(Math.random() * 20) - 10;
-            const randomY = Math.floor(Math.random() * 10) - 5;
-            setEyePosition({ x: randomX, y: randomY });
+        const activityInterval = setInterval(() => {
+            const action = Math.random();
 
-            setTimeout(() => {
-                if (!focusedField && !isCrying) setEyePosition({ x: 0, y: 0 });
-            }, 1000 + Math.random() * 2000);
+            if (action > 0.7) {
+                // Look around
+                const randomX = Math.floor(Math.random() * 20) - 10;
+                const randomY = Math.floor(Math.random() * 10) - 5;
+                setEyePosition({ x: randomX, y: randomY });
+                setTimeout(() => setEyePosition({ x: 0, y: 0 }), 1500);
 
-        }, 4000);
+            } else if (action > 0.4) {
+                // PHYSICAL JUMP
+                setIsJumping(true);
+                setTimeout(() => setIsJumping(false), 600); // 0.6s jump
 
-        return () => clearInterval(lookInterval);
+                // Also blink happy
+                setIsBlinking(true);
+                setEyePosition({ x: 0, y: -5 });
+                setTimeout(() => {
+                    setIsBlinking(false);
+                    setEyePosition({ x: 0, y: 0 });
+                }, 600);
+
+            } else {
+                // Do nothing, just breathe/hover
+            }
+
+        }, 3000);
+
+        return () => clearInterval(activityInterval);
     }, [focusedField, isCrying]);
 
     const handlePoke = () => {
@@ -139,7 +171,7 @@ export default function LoginMascot({ focusedField }) {
                 height: '160px',
                 position: 'relative',
                 filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.25))',
-                animation: isCrying ? 'shake 0.5s ease-in-out infinite' : 'hover 4s ease-in-out infinite'
+                animation: isCrying ? 'shake 0.5s ease-in-out infinite' : (isJumping ? 'jump 0.6s ease-in-out' : 'hover 4s ease-in-out infinite')
             }}>
                 <svg viewBox="0 0 200 180" width="100%" height="100%">
                     <defs>
@@ -251,6 +283,11 @@ export default function LoginMascot({ focusedField }) {
                 @keyframes float {
                     0%, 100% { transform: translateY(0); }
                     50% { transform: translateY(-5px); }
+                }
+                @keyframes jump {
+                    0% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-40px) scale(1.1); }
+                    100% { transform: translateY(0) scale(1); }
                 }
                 @keyframes shake {
                     0%, 100% { transform: translate(0, 0) rotate(0deg); }

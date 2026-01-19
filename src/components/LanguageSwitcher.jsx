@@ -1,77 +1,93 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { Globe } from 'lucide-react';
 
 export default function LanguageSwitcher() {
     const { language, setLanguage, theme, toggleTheme } = useApp();
 
     const languages = [
-        { code: 'en', label: 'English', flag: '🇬🇧' },
-        { code: 'hi', label: 'हिंदी', flag: '🇮🇳' },
-        { code: 'es', label: 'Español', flag: '🇪🇸' },
-        { code: 'fr', label: 'Français', flag: '🇫🇷' },
-        { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-        { code: 'zh', label: '中文', flag: '🇨🇳' },
-        { code: 'ja', label: '日本語', flag: '🇯🇵' },
-        { code: 'ar', label: 'العربية', flag: '🇸🇦' }
+        { code: 'en', label: 'English' },
+        { code: 'hi', label: 'हिंदी (Hindi)' },
+        { code: 'es', label: 'Español (Spanish)' },
+        { code: 'fr', label: 'Français (French)' },
+        { code: 'de', label: 'Deutsch (German)' },
+        { code: 'zh', label: '中文 (Chinese)' },
+        { code: 'ja', label: '日本語 (Japanese)' },
+        { code: 'ar', label: 'العربية (Arabic)' }
     ];
 
     return (
         <div className="language-switcher-container">
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <button
                     onClick={toggleTheme}
                     title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                     className="theme-toggle-btn"
                     style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '50%',
-                        width: '36px',
-                        height: '36px',
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        width: '42px',
+                        height: '42px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '1.2rem',
                         transition: 'all 0.2s ease',
-                        color: 'var(--text-main)',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                        color: 'var(--text-light)',
+                        boxShadow: 'var(--shadow-sm)'
                     }}
                 >
                     {theme === 'light' ? '🌙' : '☀️'}
                 </button>
-                {languages.map(lang => (
-                    <button
-                        key={lang.code}
-                        onClick={() => setLanguage(lang.code)}
-                        title={lang.label}
-                        className={`lang-btn ${language === lang.code ? 'active' : ''}`}
+
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div style={{
+                        position: 'absolute',
+                        left: '12px',
+                        pointerEvents: 'none',
+                        color: 'var(--text-dim)',
+                        display: 'flex',
+                        alignItems: 'center'
+                    }}>
+                        <Globe size={16} />
+                    </div>
+                    <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
                         style={{
-                            background: language === lang.code
-                                ? 'var(--primary, #4f46e5)'
-                                : 'rgba(255, 255, 255, 0.05)',
-                            border: language === lang.code
-                                ? `1px solid var(--primary, #4f46e5)`
-                                : '1px solid rgba(255, 255, 255, 0.1)',
+                            appearance: 'none',
+                            background: 'var(--card-bg)',
+                            color: 'var(--text-light)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '12px',
-                            padding: '6px 10px',
-                            minWidth: '36px',
-                            height: '36px',
+                            padding: '0.6rem 2.5rem 0.6rem 2.5rem',
+                            fontSize: '0.95rem',
+                            fontWeight: '500',
                             cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.2rem',
-                            transition: 'all 0.2s ease',
-                            color: 'white',
-                            opacity: language === lang.code ? 1 : 0.7,
-                            transform: language === lang.code ? 'scale(1.05)' : 'scale(1)',
-                            boxShadow: language === lang.code ? '0 4px 12px rgba(79, 70, 229, 0.3)' : 'none'
+                            outline: 'none',
+                            minWidth: '140px',
+                            boxShadow: 'var(--shadow-sm)',
+                            fontFamily: 'inherit'
                         }}
                     >
-                        {lang.flag}
-                    </button>
-                ))}
+                        {languages.map(lang => (
+                            <option key={lang.code} value={lang.code} style={{ background: 'var(--card-bg)', color: 'var(--text-light)' }}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                    <div style={{
+                        position: 'absolute',
+                        right: '12px',
+                        pointerEvents: 'none',
+                        color: 'var(--text-dim)',
+                        fontSize: '0.8rem'
+                    }}>
+                        ▼
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -4,7 +4,8 @@ import {
   addDoc,
   onSnapshot,
   deleteDoc,
-  doc
+  doc,
+  updateDoc
 } from "firebase/firestore";
 
 const tableRef = collection(db, "tables");
@@ -14,6 +15,7 @@ export const addTableToDB = async (tableNo) => {
   await addDoc(tableRef, {
     tableNo: Number(tableNo),
     active: true,
+    status: 'active', // Default status
     createdAt: new Date()
   });
 };
@@ -27,6 +29,12 @@ export const listenToTables = (setTables) => {
     }));
     setTables(data);
   });
+};
+
+// UPDATE TABLE STATUS
+export const updateTableStatusInDB = async (docId, status) => {
+  const ref = doc(db, "tables", docId);
+  await updateDoc(ref, { status });
 };
 
 // REMOVE TABLE

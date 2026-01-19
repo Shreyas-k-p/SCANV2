@@ -105,7 +105,7 @@ export default function ManagerDashboard() {
                     padding: '0.75rem 1.5rem',
                     background: 'var(--gradient-accent)',
                     borderRadius: '16px',
-                    boxShadow: '0 6px 25px rgba(233, 69, 96, 0.3)'
+                    boxShadow: 'var(--shadow-glow)'
                 }}>
                     <h1 style={{
                         margin: 0,
@@ -188,7 +188,7 @@ export default function ManagerDashboard() {
                         style={{
                             borderRadius: '12px',
                             padding: '0.875rem 1.5rem',
-                            background: activeTab === tab.key ? tab.gradient : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                            background: activeTab === tab.key ? tab.gradient : 'var(--card-bg)',
                             color: activeTab === tab.key ? 'white' : 'var(--text-light)',
                             border: activeTab === tab.key ? 'none' : '2px solid var(--border-color)',
                             boxShadow: activeTab === tab.key ? `0 4px 20px ${extractGradientContent(tab.gradient)}40` : 'var(--shadow-sm)',
@@ -240,7 +240,7 @@ export default function ManagerDashboard() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                         <div className="glass-panel" style={{
                             padding: '1.5rem',
-                            background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                            background: 'var(--glass-bg)',
                             border: '2px solid rgba(233, 69, 96, 0.2)',
                             position: 'relative',
                             overflow: 'hidden'
@@ -273,7 +273,7 @@ export default function ManagerDashboard() {
                         </div>
                         <div className="glass-panel" style={{
                             padding: '1.5rem',
-                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                            background: 'var(--glass-bg)',
                             border: '2px solid rgba(16, 185, 129, 0.2)',
                             position: 'relative',
                             overflow: 'hidden'
@@ -330,7 +330,8 @@ export default function ManagerDashboard() {
                             {orders.slice().reverse().map(order => (
                                 <div key={order.id} className="glass-panel" style={{
                                     padding: '1.5rem',
-                                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                    padding: '1.5rem',
+                                    background: 'var(--card-bg)',
                                     border: '2px solid var(--glass-border)',
                                     borderRadius: '16px',
                                     transition: 'all 0.3s ease',
@@ -469,9 +470,7 @@ export default function ManagerDashboard() {
                             {menuItems.map(item => (
                                 <div key={item.id} className="glass-panel" style={{
                                     padding: '1.25rem',
-                                    background: item.available
-                                        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
-                                        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                    background: 'var(--card-bg)',
                                     border: item.available
                                         ? '2px solid rgba(16, 185, 129, 0.3)'
                                         : '2px solid rgba(239, 68, 68, 0.3)',
@@ -761,7 +760,7 @@ export default function ManagerDashboard() {
                             {waiters.map(waiter => (
                                 <div key={waiter.id} className="glass-panel" style={{
                                     padding: '1.5rem',
-                                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                    background: 'var(--card-bg)',
                                     border: '2px solid rgba(16, 185, 129, 0.3)',
                                     borderRadius: '16px',
                                     position: 'relative'
@@ -809,9 +808,8 @@ export default function ManagerDashboard() {
                                         </label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <code style={{
-                                                flex: 1,
                                                 padding: '0.75rem',
-                                                background: 'white',
+                                                background: 'var(--card-bg)',
                                                 borderRadius: '8px',
                                                 fontSize: '1.1rem',
                                                 fontWeight: '700',
@@ -895,7 +893,7 @@ export default function ManagerDashboard() {
                             {kitchenStaff.map(staff => (
                                 <div key={staff.id} className="glass-panel" style={{
                                     padding: '1.5rem',
-                                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                    background: 'var(--card-bg)',
                                     border: '2px solid rgba(245, 158, 11, 0.3)',
                                     borderRadius: '16px',
                                     position: 'relative'
@@ -945,7 +943,7 @@ export default function ManagerDashboard() {
                                             <code style={{
                                                 flex: 1,
                                                 padding: '0.75rem',
-                                                background: 'white',
+                                                background: 'var(--card-bg)',
                                                 borderRadius: '8px',
                                                 fontSize: '1.1rem',
                                                 fontWeight: '700',
@@ -1029,7 +1027,7 @@ export default function ManagerDashboard() {
                             {subManagers.map(sm => (
                                 <div key={sm.id} className="glass-panel" style={{
                                     padding: '1.5rem',
-                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                    background: 'var(--card-bg)',
                                     border: '2px solid rgba(99, 102, 241, 0.3)',
                                     borderRadius: '16px',
                                     position: 'relative'
@@ -1079,7 +1077,7 @@ export default function ManagerDashboard() {
                                             <code style={{
                                                 flex: 1,
                                                 padding: '0.75rem',
-                                                background: 'white',
+                                                background: 'var(--card-bg)',
                                                 borderRadius: '8px',
                                                 fontSize: '1.1rem',
                                                 fontWeight: '700',
@@ -1649,7 +1647,8 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                     <div>
                         <div style={{
                             padding: '1.5rem',
-                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                            padding: '1.5rem',
+                            background: 'var(--card-bg)',
                             borderRadius: '12px',
                             border: '2px solid rgba(16, 185, 129, 0.3)',
                             marginBottom: '1.5rem'
@@ -1806,7 +1805,8 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                     <div>
                         <div style={{
                             padding: '1.5rem',
-                            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                            padding: '1.5rem',
+                            background: 'var(--card-bg)',
                             borderRadius: '12px',
                             border: '2px solid rgba(245, 158, 11, 0.3)',
                             marginBottom: '1.5rem'

@@ -1,59 +1,102 @@
 :root {
-  /* Common Variables */
-  --accent: #ff2e63;
-  --accent-hover: #ff477e;
+  /* Common Variables - Premium Aesthetics V6 */
+
+  /* Shared Gradients & Accents */
+  --accent: #6c5ce7;
+  /* Soft Purple key color */
+  --accent-hover: #8075e5;
   --success: #00b894;
   --warning: #fdcb6e;
   --error: #ff7675;
   --info: #0984e3;
 
-  /* Shared Gradients */
-  --gradient-accent: linear-gradient(135deg, #ff2e63 0%, #ff0844 100%);
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Global Gradients - Refined */
+  --gradient-accent: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  /* Purple Dream */
+  --gradient-primary: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+  /* Fresh Teal-Blue */
+  --gradient-success: linear-gradient(135deg, #00b894 0%, #55efc4 100%);
+  --gradient-warning: linear-gradient(135deg, #fdcb6e 0%, #ffeaa7 100%);
+  --gradient-error: linear-gradient(135deg, #ff7675 0%, #fab1a0 100%);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 [data-theme='light'] {
+  /* Light Mode: "Dreamy Aurora" */
   --primary: #ffffff;
   --secondary: #f8f9fa;
-  --bg-gradient: linear-gradient(125deg, #FFDEE9 0%, #B5FFFC 100%);
-  --text-light: #252a34;
-  --text-dim: #6c757d;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-hover: rgba(255, 255, 255, 0.85);
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --shadow-sm: 0 4px 6px var(--shadow-color);
-  --shadow-md: 0 10px 30px var(--shadow-color);
-  --shadow-lg: 0 20px 50px var(--shadow-color);
-  --shadow-glow: 0 0 20px rgba(255, 46, 99, 0.3);
-  --border-color: rgba(0, 0, 0, 0.1);
+
+  /* Main Background - Soft Violet/Blue Gradient */
+  --bg-gradient: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+
+  /* Text */
+  --text-light: #2d3436;
+  /* Softer black */
+  --text-dim: #636e72;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  /* Frosty white */
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --glass-hover: rgba(255, 255, 255, 0.9);
+
+  --card-bg: rgba(255, 255, 255, 0.85);
+
+  /* Shadows */
+  --shadow-color: rgba(108, 92, 231, 0.15);
+  /* Purple tinted shadow */
+  --shadow-sm: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+  --shadow-md: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
+  --shadow-lg: 0 20px 25px -5px var(--shadow-color), 0 10px 10px -5px var(--shadow-color);
+  --shadow-glow: 0 0 20px rgba(108, 92, 231, 0.25);
+
+  --border-color: rgba(255, 255, 255, 0.6);
 }
 
 [data-theme='dark'] {
-  --primary: #1a1a2e;
-  --secondary: #16213e;
-  --bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-  --text-light: #f1f1f1;
-  --text-dim: #a0a0a0;
-  --glass-bg: rgba(26, 26, 46, 0.7);
+  /* Dark Mode: "Deep Ocean" */
+  --primary: #0f172a;
+  --secondary: #1e293b;
+
+  /* Main Background - Dark Teal/Blue Gradient */
+  --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+
+  /* Text */
+  --text-light: #ecf0f1;
+  --text-dim: #b2bec3;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(16, 24, 40, 0.7);
+  /* Deep dark glass */
   --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-hover: rgba(26, 26, 46, 0.9);
-  --card-bg: rgba(22, 33, 62, 0.8);
-  --shadow-color: rgba(0, 0, 0, 0.3);
+  --glass-hover: rgba(30, 41, 59, 0.8);
+
+  --card-bg: rgba(15, 23, 42, 0.8);
+
+  /* Shadows */
+  --shadow-color: rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 4px 6px var(--shadow-color);
   --shadow-md: 0 10px 30px var(--shadow-color);
   --shadow-lg: 0 20px 50px var(--shadow-color);
-  --shadow-glow: 0 0 20px rgba(255, 46, 99, 0.4);
-  --border-color: rgba(255, 255, 255, 0.1);
+  --shadow-glow: 0 0 25px rgba(0, 206, 201, 0.2);
+
+  --border-color: rgba(255, 255, 255, 0.08);
+
+  /* Override accent for dark mode to Cyan/Teal pops */
+  --accent: #00cec9;
+  --gradient-accent: linear-gradient(135deg, #00cec9 0%, #81ecec 100%);
 }
 
 body {
   margin: 0;
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background: var(--bg-gradient);
-  background-size: 400% 400%;
+  background-size: 200% 200%;
   animation: gradientBG 15s ease infinite;
+  /* Slower, smoother flow */
   color: var(--text-light);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -63,23 +106,12 @@ body {
   transition: background 0.5s ease, color 0.5s ease;
 }
 
+/* Remove the old ::before bubbles, we use a cleaner look now */
 body::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(233, 69, 96, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
-  animation: float 20s ease-in-out infinite;
-  z-index: -1;
-  pointer-events: none;
+  display: none;
 }
 
-@keyframes gradientShift {
+@keyframes gradientBG {
   0% {
     background-position: 0% 50%;
   }

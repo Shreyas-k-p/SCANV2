@@ -221,14 +221,14 @@
 }
 
 .category-btn.active {
-  background: var(--gradient-primary);
+  background: var(--gradient-accent);
   color: white;
   border-color: transparent;
   box-shadow: var(--shadow-md);
 }
 
 .order-success {
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(0, 184, 148, 0.2);
   color: var(--success);
   padding: 15px;
   border-radius: 10px;
@@ -334,7 +334,7 @@
 
 .add-to-cart-btn {
   padding: 10px 20px;
-  background: var(--gradient-primary);
+  background: var(--gradient-accent);
   color: white;
   border-radius: 8px;
   font-weight: 600;
@@ -467,8 +467,8 @@
 }
 
 .cart-item-controls button {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--glass-hover);
+  color: var(--accent);
   padding: 8px;
   border-radius: 5px;
   width: 32px;
@@ -476,10 +476,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--glass-border);
 }
 
 .cart-item-controls button:hover {
-  background: rgba(102, 126, 234, 0.2);
+  background: var(--accent);
+  color: white;
 }
 
 .cart-item-controls span {
@@ -490,22 +492,26 @@
 }
 
 .remove-btn {
-  background: rgba(255, 0, 0, 0.1) !important;
-  color: #ff0000 !important;
+  background: rgba(255, 118, 117, 0.1) !important;
+  color: var(--error) !important;
+  border-color: var(--error) !important;
 }
 
 .remove-btn:hover {
-  background: rgba(255, 0, 0, 0.2) !important;
+  background: var(--error) !important;
+  color: white !important;
 }
 
 .cart-total {
   padding: 20px;
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   text-align: center;
   font-size: 1.5rem;
   color: var(--text-light);
   margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .order-form {
@@ -525,7 +531,7 @@
 
 .place-order-btn {
   padding: 14px;
-  background: var(--gradient-primary);
+  background: var(--gradient-accent);
   color: white;
   border-radius: 10px;
   font-size: 1.1rem;
@@ -584,7 +590,7 @@
 
 .submit-feedback-btn {
   padding: 14px;
-  background: var(--gradient-primary);
+  background: var(--gradient-accent);
   color: white;
   border-radius: 10px;
   font-size: 1.1rem;
