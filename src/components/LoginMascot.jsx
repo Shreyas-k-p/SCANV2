@@ -50,11 +50,29 @@ export default function LoginMascot({ focusedField }) {
             setIsHiding(false);
             setEyePosition({ x: 0, y: 0 });
             // Randomly change message when idle
-            if (Math.random() > 0.6) {
+            if (Math.random() > 0.8) {
                 const randomMsg = robotMessages[Math.floor(Math.random() * robotMessages.length)];
                 setMessage(randomMsg);
             }
         }
+    }, [focusedField, isCrying]);
+
+    // Random Look Around when Idle
+    useEffect(() => {
+        if (focusedField || isCrying) return;
+
+        const lookInterval = setInterval(() => {
+            const randomX = Math.floor(Math.random() * 20) - 10;
+            const randomY = Math.floor(Math.random() * 10) - 5;
+            setEyePosition({ x: randomX, y: randomY });
+
+            setTimeout(() => {
+                if (!focusedField && !isCrying) setEyePosition({ x: 0, y: 0 });
+            }, 1000 + Math.random() * 2000);
+
+        }, 4000);
+
+        return () => clearInterval(lookInterval);
     }, [focusedField, isCrying]);
 
     const handlePoke = () => {
