@@ -20,8 +20,10 @@
 .login-tools {
   position: absolute;
   top: 1.5rem;
-  right: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
+  width: max-content;
 }
 
 /* Main Card */
@@ -266,14 +268,16 @@
   animation: shake 0.4s;
 }
 
-/* Mascot - Bottom Positive */
+/* Mascot - Bottom Right (Fixed) */
 .mascot-container-fixed {
   position: fixed;
   bottom: 0px;
-  right: 20px;
+  right: 5%;
+  /* Moved slightly right as requested */
+  left: auto;
+  transform: none;
   z-index: 100;
   pointer-events: none;
-  /* Let clicks pass through if needed, mascot handles its own pointer-events */
 }
 
 /* Spinner */
@@ -309,7 +313,9 @@
   .login-wrapper {
     align-items: flex-start;
     padding: 1rem;
-    padding-top: 4rem;
+    padding-top: 2rem;
+    padding-bottom: 8rem;
+    /* Add space for bottom tools */
   }
 
   .login-card-container {
@@ -318,11 +324,21 @@
     border: none;
   }
 
+  .login-tools {
+    top: auto;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    position: fixed;
+    /* Fix to viewport on mobile */
+  }
+
+  /* Keep mascot slightly smaller and to the right on mobile too, or hide if it's too obstructive */
   .mascot-container-fixed {
-    right: 50%;
-    transform: translateX(50%);
-    bottom: -30px;
-    /* Peek from bottom */
-    width: 200px;
+    right: 10px;
+    bottom: 60px;
+    /* Above the tools */
+    width: 160px;
   }
 }
