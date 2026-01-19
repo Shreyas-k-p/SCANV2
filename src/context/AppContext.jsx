@@ -41,6 +41,7 @@ export function AppProvider({ children }) {
   //};
   const [tables, setTables] = useState([]);
   const [language, setLanguage] = useState(() => localStorage.getItem('appLanguage') || 'en');
+  const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'light');
 
   // Translation helper
   const t = (key) => {
@@ -50,6 +51,15 @@ export function AppProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('appLanguage', language);
   }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('appTheme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
 
   const [user, setUser] = useState(null); // { name, id, role }
@@ -413,7 +423,8 @@ export function AppProvider({ children }) {
       kitchenStaff, addKitchenStaff, removeKitchenStaff,
       subManagers, addSubManager, removeSubManager,
       validateSecretID,
-      language, setLanguage, t, translations
+      language, setLanguage, t, translations,
+      theme, toggleTheme
     }}>
 
       {children}

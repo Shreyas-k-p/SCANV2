@@ -5,14 +5,14 @@
 }
 
 .layout-header {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   padding: 20px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .header-left {
@@ -23,12 +23,12 @@
 
 .header-left h1 {
   font-size: 1.8rem;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--text-light);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-title {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-dim);
   font-size: 1.2rem;
   font-weight: 500;
 }
@@ -40,11 +40,12 @@
 }
 
 .user-name {
-  color: white;
+  color: var(--text-light);
   font-weight: 500;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
   border-radius: 8px;
+  border: 1px solid var(--glass-border);
 }
 
 .header-button {
@@ -52,27 +53,31 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: var(--glass-bg);
+  color: var(--text-light);
   border-radius: 10px;
   font-weight: 500;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--glass-border);
 }
 
 .header-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--glass-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
 }
 
 .logout-button {
-  background: rgba(255, 0, 0, 0.2);
-  border-color: rgba(255, 0, 0, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
 }
 
 .logout-button:hover {
-  background: rgba(255, 0, 0, 0.3);
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--error);
+  color: var(--error);
 }
 
 .layout-main {
@@ -105,4 +110,3 @@
     padding: 20px 15px;
   }
 }
-

@@ -191,7 +191,7 @@ export default function Menu() {
                                 position: 'absolute',
                                 top: '-8px',
                                 right: '-8px',
-                                background: '#ef4444',
+                                background: 'var(--error)',
                                 color: 'white',
                                 borderRadius: '50%',
                                 width: '24px',
@@ -760,7 +760,7 @@ function ItemModal({ item, onClose, onAdd }) {
                             position: 'absolute',
                             top: '15px',
                             left: '15px',
-                            background: 'rgba(255, 255, 255, 0.9)',
+                            background: 'var(--glass-bg)',
                             border: 'none',
                             borderRadius: '50%',
                             width: '40px',
@@ -778,7 +778,7 @@ function ItemModal({ item, onClose, onAdd }) {
                             e.currentTarget.style.transform = 'rotate(90deg)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                            e.currentTarget.style.background = 'var(--glass-bg)';
                             e.currentTarget.style.color = 'var(--text-light)';
                             e.currentTarget.style.transform = 'rotate(0deg)';
                         }}

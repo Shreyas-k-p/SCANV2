@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function LanguageSwitcher() {
-    const { language, setLanguage } = useApp();
+    const { language, setLanguage, theme, toggleTheme } = useApp();
 
     const languages = [
         { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -17,7 +17,37 @@ export default function LanguageSwitcher() {
 
     return (
         <div style={{ position: 'relative', display: 'inline-block' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                    onClick={toggleTheme}
+                    title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                    style={{
+                        background: 'var(--glass-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        transition: 'all 0.3s ease',
+                        color: 'var(--text-light)',
+                        marginRight: '12px',
+                        boxShadow: 'var(--shadow-sm)'
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    }}
+                >
+                    {theme === 'light' ? '🌙' : '☀️'}
+                </button>
                 {languages.map(lang => (
                     <button
                         key={lang.code}

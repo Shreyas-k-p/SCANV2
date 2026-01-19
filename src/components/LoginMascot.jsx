@@ -72,17 +72,16 @@ export default function LoginMascot({ focusedField }) {
     return (
         <div
             onClick={handlePoke}
+
             style={{
-                position: 'fixed',
-                bottom: '20px',
-                right: '20px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                zIndex: 9999,
-                pointerEvents: 'auto', // Enable clicking
-                width: 'auto',
+                zIndex: 99, // Lower z-index as it is not an overlay anymore
+                width: '100%',
+                maxWidth: '200px',
                 cursor: 'pointer',
+                margin: '0 auto 1rem auto', // Centering logic
                 filter: 'drop-shadow(0 5px 15px rgba(0,0,0,0.2))'
             }}>
             {/* Speech Bubble */}

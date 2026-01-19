@@ -116,9 +116,9 @@ export default function SubManagerDashboard() {
                     alignItems: 'center',
                     gap: '12px',
                     padding: '0.75rem 1.5rem',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
+                    background: 'var(--gradient-primary)',
                     borderRadius: '16px',
-                    boxShadow: '0 6px 25px rgba(99, 102, 241, 0.3)'
+                    boxShadow: 'var(--shadow-lg)'
                 }}>
                     {user?.profilePhoto && (
                         <img
@@ -234,7 +234,7 @@ export default function SubManagerDashboard() {
                                     >Edit</button>
                                     <button
                                         className="btn"
-                                        style={{ flex: 1, padding: '0.5rem', background: '#fee2e2', color: '#ef4444', border: 'none' }}
+                                        style={{ flex: 1, padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid var(--error)' }}
                                         onClick={() => {
                                             if (window.confirm("Delete this item?")) deleteMenuItem(item.id);
                                         }}
@@ -265,13 +265,13 @@ export default function SubManagerDashboard() {
                                         {waiter.name}
                                     </h3>
                                     <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-dim)', fontSize: '0.9rem' }}>ID: {waiter.id}</p>
-                                    <code style={{ display: 'block', marginTop: '0.5rem', background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                    <code style={{ display: 'block', marginTop: '0.5rem', background: 'var(--glass-bg)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid var(--glass-border)' }}>
                                         Secret: {waiter.secretID}
                                     </code>
                                 </div>
                                 <button
                                     onClick={() => { if (window.confirm("Remove waiter?")) removeWaiter(waiter.docId); }}
-                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}
+                                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid var(--error)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}
                                 >
                                     <Trash2 size={18} />
                                 </button>
@@ -300,13 +300,13 @@ export default function SubManagerDashboard() {
                                         {staff.name}
                                     </h3>
                                     <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-dim)', fontSize: '0.9rem' }}>ID: {staff.id}</p>
-                                    <code style={{ display: 'block', marginTop: '0.5rem', background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                    <code style={{ display: 'block', marginTop: '0.5rem', background: 'var(--glass-bg)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid var(--glass-border)' }}>
                                         Secret: {staff.secretID}
                                     </code>
                                 </div>
                                 <button
                                     onClick={() => { if (window.confirm("Remove kitchen staff?")) removeKitchenStaff(staff.docId); }}
-                                    style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}
+                                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid var(--error)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}
                                 >
                                     <Trash2 size={18} />
                                 </button>
