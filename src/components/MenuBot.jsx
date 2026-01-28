@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
+// Random idle messages about food/menu
+const idleMessages = [
+    "I love the smell of digital pixels in the morning! 🍳",
+    "Make sure to check the specials! 🌟",
+    "I'd recommend the Dosa, if I could eat! 🥞",
+    "Is it lunch time yet? 🕛",
+    "Loading deliciousness... 100% 🍲",
+    "Don't click me, click the food! 🍱",
+    "My sensors detect an empty stomach! 📉",
+    "Scan4Serve: Now with 50% more robot! 🤖"
+];
+
 export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, jumpTrigger = 0, positionMode = 'bottom', isAlwaysDancing = false, customStyle = {} }) {
     const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 });
     const [message, setMessage] = useState("Hungry? I'm taking notes! 📝");
@@ -9,9 +21,9 @@ export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, j
     const [isSpinning, setIsSpinning] = useState(false); // New state for return animation
 
     // States for interaction
-    const [pokeCount, setPokeCount] = useState(0);
-    const [isVisible, setIsVisible] = useState(true); // For running away
-    const [isAway, setIsAway] = useState(false); // actually away
+    // const [pokeCount, setPokeCount] = useState(0); // Unused
+    const isVisible = true; // Always visible as setter was unused
+    const isAway = false; // Always present as setter was unused
     const [pose, setPose] = useState('normal'); // normal, coverEyes, salute
 
     // Detect return from top to bottom
@@ -24,19 +36,6 @@ export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, j
         }
         setPrevPositionMode(positionMode);
     }, [positionMode, prevPositionMode]);
-
-
-    // Random idle messages about food/menu
-    const idleMessages = [
-        "I love the smell of digital pixels in the morning! 🍳",
-        "Make sure to check the specials! 🌟",
-        "I'd recommend the Dosa, if I could eat! 🥞",
-        "Is it lunch time yet? 🕛",
-        "Loading deliciousness... 100% 🍲",
-        "Don't click me, click the food! 🍱",
-        "My sensors detect an empty stomach! 📉",
-        "Scan4Serve: Now with 50% more robot! 🤖"
-    ];
 
     // Blinking logic
     useEffect(() => {
@@ -88,7 +87,7 @@ export default function MenuBot({ activeMessage, menuItems = [], t = (s) => s, j
             }, 5000);
             return () => clearInterval(idleInterval);
         }
-    }, [activeMessage, isAway]);
+    }, [activeMessage, isAway, menuItems, t]);
 
     // Jump logic
     const [horizontalOffset, setHorizontalOffset] = useState(0);

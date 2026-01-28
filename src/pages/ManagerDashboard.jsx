@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { BarChart, TrendingUp, Users, Plus, X, MessageSquare, Calendar, Edit, Settings, UserPlus, ChefHat, Copy, Trash2 } from 'lucide-react';
-import { extractGradientColor, extractGradientContent } from '../utils/gradientUtils';
+import { extractGradientContent } from '../utils/gradientUtils';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
@@ -329,7 +329,6 @@ export default function ManagerDashboard() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
                             {orders.slice().reverse().map(order => (
                                 <div key={order.id} className="glass-panel" style={{
-                                    padding: '1.5rem',
                                     padding: '1.5rem',
                                     background: 'var(--card-bg)',
                                     border: '2px solid var(--glass-border)',
@@ -1647,7 +1646,6 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                     <div>
                         <div style={{
                             padding: '1.5rem',
-                            padding: '1.5rem',
                             background: 'var(--card-bg)',
                             borderRadius: '12px',
                             border: '2px solid rgba(16, 185, 129, 0.3)',
@@ -1804,7 +1802,6 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                 {secretID ? (
                     <div>
                         <div style={{
-                            padding: '1.5rem',
                             padding: '1.5rem',
                             background: 'var(--card-bg)',
                             borderRadius: '12px',

@@ -14,10 +14,7 @@ export default function PWAInstall() {
 
         window.addEventListener('beforeinstallprompt', handler);
 
-        // Check if already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setShowInstallPrompt(false);
-        }
+
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
@@ -29,11 +26,11 @@ export default function PWAInstall() {
 
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        
+
         if (outcome === 'accepted') {
             console.log('User accepted the install prompt');
         }
-        
+
         setDeferredPrompt(null);
         setShowInstallPrompt(false);
     };

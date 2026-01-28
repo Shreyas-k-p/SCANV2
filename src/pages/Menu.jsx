@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
-import { extractGradientColor } from '../utils/gradientUtils';
+
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 import './Menu.css';
@@ -15,7 +15,6 @@ export default function Menu() {
     const [showOrders, setShowOrders] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
-    const [scrolled, setScrolled] = useState(false);
     const [tableNumber, setTableNumber] = useState(() => localStorage.getItem('customerTableNumber') || '');
     const [myOrderIds, setMyOrderIds] = useState(() => {
         const saved = localStorage.getItem('myOrderIds');
@@ -29,14 +28,7 @@ export default function Menu() {
         ? menuItems
         : menuItems.filter(item => item.category === activeCategory);
 
-    // Scroll handler
-    useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 20);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+
 
 
 
@@ -111,6 +103,7 @@ export default function Menu() {
 
             alert(`${t('orderPlaced')} ${trimmedTableNumber} !`);
         } catch (error) {
+            console.error('Order submission error:', error);
             alert('Failed to place order. Please try again.');
         }
     };

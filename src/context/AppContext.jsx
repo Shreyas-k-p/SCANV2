@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { listenToMenu, addMenuItemToDB } from "../services/menuService";
 import { saveManagerToDB } from "../services/managerService";
 import {
@@ -24,9 +24,30 @@ import {
 } from "../services/subManagerService";
 import { addOrderToDB, listenToOrders, updateOrderInDB } from "../services/orderService";
 import { translations } from '../utils/translations';
+import { playNotificationSound, playUrgentNotificationSound } from '../utils/soundUtils';
 
 
 const AppContext = createContext();
+
+// Initial Menu Data - Moved outside component
+const initialMenu = [
+  { id: 1, name: 'Masala Dosa', price: 120, category: 'South Indian', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=400', available: true, benefits: 'Fermented delight' },
+  { id: 2, name: 'Idli Vada', price: 90, category: 'South Indian', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=400', available: true, benefits: 'Steamed perfection' },
+  { id: 3, name: 'Schezwan Noodles', price: 180, category: 'Chinese', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=400', available: true, benefits: 'Spicy kick' },
+  { id: 4, name: 'Manchurian', price: 160, category: 'Chinese', image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=400', available: true, benefits: 'Crunchy bites' },
+  { id: 5, name: 'Sushi Roll', price: 350, category: 'Japanese', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400', available: true, benefits: 'Fresh catch' },
+  { id: 6, name: 'Butter Chicken', price: 280, category: 'North Indian', image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=400', available: true, benefits: 'Creamy goodness' },
+  { id: 7, name: 'Chicken Shawarma', price: 150, category: 'Arabic', image: 'https://images.unsplash.com/photo-1631515243349-e960b796303d?auto=format&fit=crop&w=400', available: true, benefits: 'Juicy bites' },
+  { id: 8, name: 'Hummus & Pita', price: 120, category: 'Arabic', image: 'https://images.unsplash.com/photo-1628717341663-0007b0ee2597?auto=format&fit=crop&w=400', available: true, benefits: 'Healthy dip' },
+  { id: 9, name: 'Paneer Tikka', price: 220, category: 'North Indian', image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=400', available: true, benefits: 'Smoky flavor' },
+  { id: 10, name: 'Hakka Noodles', price: 170, category: 'Chinese', image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=400', available: true, benefits: 'Classic wok toss' },
+  { id: 11, name: 'Gulab Jamun', price: 80, category: 'Dessert', image: 'https://images.unsplash.com/photo-1589119908995-c6837fa14848?auto=format&fit=crop&w=400', available: true, benefits: 'Sweet rose dumplings' },
+  { id: 12, name: 'Mango Lassi', price: 90, category: 'Beverage', image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=400', available: true, benefits: 'Chilled mango yogurt' },
+  { id: 13, name: 'Spring Rolls', price: 140, category: 'Chinese', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400', available: true, benefits: 'Crispy veggie pockets' },
+  { id: 14, name: 'Filter Coffee', price: 40, category: 'Beverage', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400', available: true, benefits: 'Aromatic brew' },
+  { id: 15, name: 'Dal Makhani', price: 200, category: 'North Indian', image: 'https://images.unsplash.com/photo-1585937421612-70a008356f36?auto=format&fit=crop&w=400', available: true, benefits: 'Slow-cooked lentil' },
+  { id: 16, name: 'Falafel Wrap', price: 130, category: 'Arabic', image: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=400', available: true, benefits: 'Crispy chickpea wrap' }
+];
 
 export function AppProvider({ children }) {
   // --- STATE ---
@@ -65,27 +86,28 @@ export function AppProvider({ children }) {
   };
 
 
-  const [user, setUser] = useState(null); // { name, id, role }
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error("Failed to parse user", e);
+        return null;
+      }
+    }
+    return null;
+  });
 
-  // Initial Menu Data
-  const initialMenu = [
-    { id: 1, name: 'Masala Dosa', price: 120, category: 'South Indian', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=400', available: true, benefits: 'Fermented delight' },
-    { id: 2, name: 'Idli Vada', price: 90, category: 'South Indian', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=400', available: true, benefits: 'Steamed perfection' },
-    { id: 3, name: 'Schezwan Noodles', price: 180, category: 'Chinese', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=400', available: true, benefits: 'Spicy kick' },
-    { id: 4, name: 'Manchurian', price: 160, category: 'Chinese', image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=400', available: true, benefits: 'Crunchy bites' },
-    { id: 5, name: 'Sushi Roll', price: 350, category: 'Japanese', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400', available: true, benefits: 'Fresh catch' },
-    { id: 6, name: 'Butter Chicken', price: 280, category: 'North Indian', image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=400', available: true, benefits: 'Creamy goodness' },
-    { id: 7, name: 'Chicken Shawarma', price: 150, category: 'Arabic', image: 'https://images.unsplash.com/photo-1631515243349-e960b796303d?auto=format&fit=crop&w=400', available: true, benefits: 'Juicy bites' },
-    { id: 8, name: 'Hummus & Pita', price: 120, category: 'Arabic', image: 'https://images.unsplash.com/photo-1628717341663-0007b0ee2597?auto=format&fit=crop&w=400', available: true, benefits: 'Healthy dip' },
-    { id: 9, name: 'Paneer Tikka', price: 220, category: 'North Indian', image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=400', available: true, benefits: 'Smoky flavor' },
-    { id: 10, name: 'Hakka Noodles', price: 170, category: 'Chinese', image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=400', available: true, benefits: 'Classic wok toss' },
-    { id: 11, name: 'Gulab Jamun', price: 80, category: 'Dessert', image: 'https://images.unsplash.com/photo-1589119908995-c6837fa14848?auto=format&fit=crop&w=400', available: true, benefits: 'Sweet rose dumplings' },
-    { id: 12, name: 'Mango Lassi', price: 90, category: 'Beverage', image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=400', available: true, benefits: 'Chilled mango yogurt' },
-    { id: 13, name: 'Spring Rolls', price: 140, category: 'Chinese', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400', available: true, benefits: 'Crispy veggie pockets' },
-    { id: 14, name: 'Filter Coffee', price: 40, category: 'Beverage', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400', available: true, benefits: 'Aromatic brew' },
-    { id: 15, name: 'Dal Makhani', price: 200, category: 'North Indian', image: 'https://images.unsplash.com/photo-1585937421612-70a008356f36?auto=format&fit=crop&w=400', available: true, benefits: 'Slow-cooked lentil' },
-    { id: 16, name: 'Falafel Wrap', price: 130, category: 'Arabic', image: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=400', available: true, benefits: 'Crispy chickpea wrap' }
-  ];
+  // Handle session cleanup on mount
+  useEffect(() => {
+    if (user && user.role !== 'MANAGER') {
+      localStorage.removeItem('activeManager');
+    } else if (!user) {
+      localStorage.removeItem('activeManager');
+    }
+  }, [user]);
+
   const [menuItems, setMenuItems] = useState([]);
 
   //const [menuItems, setMenuItems] = useState(() => {
@@ -206,6 +228,49 @@ export function AppProvider({ children }) {
   //  localStorage.setItem('kitchenStaff', JSON.stringify(kitchenStaff));
   //}, [kitchenStaff]);
 
+
+  // --- NOTIFICATIONS SYSTEM ---
+  const prevOrdersRef = useRef([]);
+  const isFirstOrderLoad = useRef(true);
+
+  useEffect(() => {
+    // Skip if no orders yet (avoids empty checks) or if user not logged in (optional)
+    // We strictly want to avoid playing sound on the very first hydration of orders.
+    if (orders.length === 0) return;
+
+    if (isFirstOrderLoad.current) {
+      prevOrdersRef.current = orders;
+      isFirstOrderLoad.current = false;
+      return;
+    }
+
+    // Check for NEW orders (Kitchen)
+    // An order is new if it's in 'orders' but not in 'prevOrdersRef'
+    const newOrders = orders.filter(o => !prevOrdersRef.current.find(po => po.id === o.id));
+    const hasNewPendingOrders = newOrders.some(o => o.status === 'pending');
+
+    if (hasNewPendingOrders && user?.role === 'KITCHEN') {
+      // Play "New Order" Sound
+      playUrgentNotificationSound();
+    }
+
+    // Check for STATUS CHANGES (Waiter)
+    // Order was pending, now is ready
+    const readyOrders = orders.filter(o => {
+      const prev = prevOrdersRef.current.find(po => po.id === o.id);
+      return prev && prev.status !== 'ready' && o.status === 'ready';
+    });
+
+    if (readyOrders.length > 0 && user?.role === 'WAITER') {
+      // Play "Order Ready" Sound
+      playNotificationSound();
+    }
+
+    // Update ref
+    prevOrdersRef.current = orders;
+
+  }, [orders, user]); // Re-run when orders change or user login changes (though mostly orders)
+
   // --- ACTIONS ---
   const login = async (userData) => {
     if (userData.role === "MANAGER") {
@@ -233,21 +298,9 @@ export function AppProvider({ children }) {
     localStorage.removeItem('currentUser');
   };
 
-  // Restore session
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      // If restored user is not a manager, clear any stale manager session
-      if (userData.role !== 'MANAGER') {
-        localStorage.removeItem('activeManager');
-      }
-    } else {
-      // If no user is logged in, clear any stale manager session
-      localStorage.removeItem('activeManager');
-    }
-  }, []);
+  // Restore session - logic moved to useState lazy init
+  // Keeping this empty or removed if no other logic needed. 
+  // We already handled cleanup in the useEffect above.
   const addMenuItem = async (item) => {
     await addMenuItemToDB(item);
   };
@@ -469,6 +522,7 @@ export function AppProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
   return useContext(AppContext);
 }

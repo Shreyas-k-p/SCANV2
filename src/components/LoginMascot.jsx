@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
+// Fun & Witty Robot Messages
+const robotMessages = [
+    "I promise I don't eat the food... I rust! 🤖",
+    "My favorite number is 010101! 🔢",
+    "Do you need a byte to eat? 💾",
+    "I'm training to be a toaster one day! 🍞",
+    "Scanning for French Fries... 🍟",
+    "Beep boop! You look hungry! 😋",
+    "Don't worry, I don't track your cookies! 🍪",
+    "I accept payment in AA batteries! 🔋",
+    "Error 404: Hunger not found. Wait, yes it is! 🍕",
+    "Are you a robot too? click the box if not! ☑️",
+    "My mother was a calculator! 🧮"
+];
+
 export default function LoginMascot({ focusedField, isTyping }) {
-    const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 });
-    const [isHiding, setIsHiding] = useState(false);
+    const [eyeAnimationOffset, setEyeAnimationOffset] = useState({ x: 0, y: 0 });
     const [message, setMessage] = useState("Hi! I'm serving you today! 🤖");
     const [isBlinking, setIsBlinking] = useState(false);
     const [isCrying, setIsCrying] = useState(false);
     const [isJumping, setIsJumping] = useState(false);
 
-    // Fun & Witty Robot Messages
-    const robotMessages = [
-        "I promise I don't eat the food... I rust! 🤖",
-        "My favorite number is 010101! 🔢",
-        "Do you need a byte to eat? 💾",
-        "I'm training to be a toaster one day! 🍞",
-        "Scanning for French Fries... 🍟",
-        "Beep boop! You look hungry! 😋",
-        "Don't worry, I don't track your cookies! 🍪",
-        "I accept payment in AA batteries! 🔋",
-        "Error 404: Hunger not found. Wait, yes it is! 🍕",
-        "Are you a robot too? click the box if not! ☑️",
-        "My mother was a calculator! 🧮"
-    ];
+    // Derived state instead of useEffect syncing
+    const isHiding = !isCrying && !isTyping && focusedField === 'secret';
 
     // Blinking logic
     useEffect(() => {
@@ -32,44 +34,24 @@ export default function LoginMascot({ focusedField, isTyping }) {
         return () => clearInterval(blinkInterval);
     }, []);
 
-    // Focus and Interaction Logic
+    // Focus and Interaction Logic - Eyes (Animations only)
     useEffect(() => {
-        if (isCrying) return; // Don't interrupt crying logic
+        if (isCrying) return;
 
         if (isTyping) {
-            setIsHiding(false);
-            // Scanning effect - eyes move left/right rapidly
-            // We use standard interval for this or CSS class. 
-            // Better to use state updates here for simple left/right
+            // Scanning effect - wiggling offset
             const scanInterval = setInterval(() => {
-                setEyePosition(prev => ({ x: prev.x === -6 ? 6 : -6, y: 5 }));
+                setEyeAnimationOffset(prev => ({ x: prev.x === -6 ? 6 : -6, y: 0 }));
             }, 150);
-
-            setMessage("Processing input... ⚡");
-
-            return () => clearInterval(scanInterval);
-
-        } else if (focusedField === 'secret') {
-            setIsHiding(true);
-            setMessage("I won't peek! My sensors are covered! 🙈");
-        } else if (focusedField) {
-            setIsHiding(false);
-            // Look down at the inputs
-            setEyePosition({ x: 0, y: 5 });
-
-            if (focusedField === 'name') setMessage("Ooh, nice name! 📝");
-            if (focusedField === 'id') setMessage("Checking your ID... Beep! 🔢");
-            if (focusedField === 'role') setMessage("Pick your destiny! 👔");
+            return () => {
+                clearInterval(scanInterval);
+                setEyeAnimationOffset({ x: 0, y: 0 }); // Reset offset
+            };
         } else {
-            setIsHiding(false);
-            setEyePosition({ x: 0, y: 0 });
-            // Randomly change message when idle
-            if (Math.random() > 0.8) {
-                const randomMsg = robotMessages[Math.floor(Math.random() * robotMessages.length)];
-                setMessage(randomMsg);
-            }
+            // Reset animation offset when not typing
+            setEyeAnimationOffset({ x: 0, y: 0 });
         }
-    }, [focusedField, isCrying, isTyping]);
+    }, [isCrying, isTyping]); // focusedField is not needed for animation trigger really
 
     // Random Look Aside and Jump when Idle
     useEffect(() => {
@@ -82,34 +64,35 @@ export default function LoginMascot({ focusedField, isTyping }) {
                 // Look around
                 const randomX = Math.floor(Math.random() * 20) - 10;
                 const randomY = Math.floor(Math.random() * 10) - 5;
-                setEyePosition({ x: randomX, y: randomY });
-                setTimeout(() => setEyePosition({ x: 0, y: 0 }), 1500);
+                setEyeAnimationOffset({ x: randomX, y: randomY });
+                setTimeout(() => setEyeAnimationOffset({ x: 0, y: 0 }), 1500);
 
             } else if (action > 0.4) {
-                // PHYSICAL JUMP
+                // ... logic uses specialized states like isJumping
+                // But if we want eye movement during jump:
                 setIsJumping(true);
-                setTimeout(() => setIsJumping(false), 600); // 0.6s jump
+                setTimeout(() => setIsJumping(false), 600);
 
-                // Also blink happy
                 setIsBlinking(true);
-                setEyePosition({ x: 0, y: -5 });
+                setEyeAnimationOffset({ x: 0, y: -5 });
                 setTimeout(() => {
                     setIsBlinking(false);
-                    setEyePosition({ x: 0, y: 0 });
+                    setEyeAnimationOffset({ x: 0, y: 0 });
                 }, 600);
-
-            } else {
-                // Do nothing, just breathe/hover
+            }
+            // Random message state logic
+            if (Math.random() > 0.8) {
+                const randomMsg = robotMessages[Math.floor(Math.random() * robotMessages.length)];
+                setMessage(randomMsg);
             }
 
         }, 3000);
 
         return () => clearInterval(activityInterval);
-    }, [focusedField, isCrying]);
+    }, [focusedField, isCrying, isTyping]);
 
     const handlePoke = () => {
         setIsCrying(true);
-        setIsHiding(false);
         setMessage("Ouch! Why did you poke me?! 😭😭");
 
         // Stop crying after 3 seconds
@@ -117,6 +100,31 @@ export default function LoginMascot({ focusedField, isTyping }) {
             setIsCrying(false);
             setMessage("Hmph! That wasn't very nice! 😤");
         }, 3000);
+    };
+
+    // Calculate display message (Derived State) & Eye Position
+    let displayMessage = message;
+    let baseEyeX = 0;
+    let baseEyeY = 0;
+
+    if (!isCrying) {
+        if (isTyping) {
+            displayMessage = "Processing input... ⚡";
+        }
+        else if (focusedField === 'secret') {
+            displayMessage = "I won't peek! My sensors are covered! 🙈";
+        }
+        else if (focusedField) {
+            baseEyeY = 5; // Look down
+            if (focusedField === 'name') displayMessage = "Ooh, nice name! 📝";
+            else if (focusedField === 'id') displayMessage = "Checking your ID... Beep! 🔢";
+            else if (focusedField === 'role') displayMessage = "Pick your destiny! 👔";
+        }
+    }
+
+    const eyePosition = {
+        x: baseEyeX + eyeAnimationOffset.x,
+        y: baseEyeY + eyeAnimationOffset.y
     };
 
     return (
@@ -150,7 +158,7 @@ export default function LoginMascot({ focusedField, isTyping }) {
                 transformOrigin: 'bottom center'
             }}>
                 <p style={{ margin: 0, color: '#0f172a', fontWeight: '800', fontSize: '0.95rem' }}>
-                    {message}
+                    {displayMessage}
                 </p>
                 <div style={{
                     position: 'absolute',

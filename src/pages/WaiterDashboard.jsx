@@ -5,7 +5,7 @@ import { extractGradientContent } from '../utils/gradientUtils';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function WaiterDashboard() {
-    const { tables, orders, updateOrderStatus, t, user } = useApp();
+    const { tables, orders, updateOrderStatus, updateTableStatus, t, user } = useApp();
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
 
@@ -27,13 +27,13 @@ export default function WaiterDashboard() {
 
     const handleBillTable = async (table) => {
         if (confirm(`Generate bill for Table ${table.tableNo}? This will lock the table for customers.`)) {
-            await useApp().updateTableStatus(table.docId, 'billed');
+            await updateTableStatus(table.docId, 'billed');
         }
     };
 
     const handleClearTable = async (table) => {
         if (confirm(`Clear Table ${table.tableNo} and make it available?`)) {
-            await useApp().updateTableStatus(table.docId, 'active');
+            await updateTableStatus(table.docId, 'active');
         }
     };
 
@@ -193,23 +193,24 @@ export default function WaiterDashboard() {
                                                     </li>
                                                 ))}
                                             </ul>
-                                            <button
-                                                className="btn "
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '0.75rem',
-                                                    marginTop: '0.75rem',
-                                                    fontSize: '1rem',
-                                                    fontWeight: '700',
-                                                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '12px'
-                                                }}
-                                                onClick={() => handleServeOrder(order.id)}
-                                            >
-                                                ✅ {t('markServed')}
-                                            </button>
+                                            {order.status === 'ready' && (
+                                                <button
+                                                    className="btn "
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '0.75rem',
+                                                        marginTop: '0.75rem',
+                                                        fontSize: '1rem',
+                                                        fontWeight: '700',
+                                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '12px'
+                                                    }}
+                                                    onClick={() => handleServeOrder(order.id)}
+                                                >
+                                                    ✅ {t('markServed')}
+                                                </button>
                                             )}
                                         </div>
                                     ))}

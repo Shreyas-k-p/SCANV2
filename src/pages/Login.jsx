@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { User, Utensils, Shield, Users, Lock, ChevronRight } from 'lucide-react';
@@ -7,7 +7,7 @@ import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login, t, language } = useApp();
+    const { login, t } = useApp();
 
     const [formData, setFormData] = useState({
         role: 'WAITER',
@@ -17,7 +17,6 @@ const Login = () => {
     });
 
     const [error, setError] = useState('');
-    const [focusedField, setFocusedField] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const roles = [
@@ -38,14 +37,6 @@ const Login = () => {
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
         setError('');
-    };
-
-    const handleFocus = (field) => {
-        setFocusedField(field);
-    };
-
-    const handleBlur = () => {
-        setFocusedField(null);
     };
 
     const handleSubmit = async (e) => {
@@ -73,8 +64,8 @@ const Login = () => {
                 navigate('/manager');
             }
             else if (upperRole === 'KITCHEN') {
-                if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
-                login({ name: 'Kitchen Staff', id: upperId, role: 'KITCHEN' });
+                if (!upperId || !secretId || !name.trim()) throw new Error("ID, Name and Secret Code are required");
+                login({ name: name.trim(), id: upperId, role: 'KITCHEN' });
                 navigate('/kitchen');
             }
             else if (upperRole === 'SUB_MANAGER') {
@@ -135,15 +126,13 @@ const Login = () => {
                                     placeholder=" "
                                     value={formData.id}
                                     onChange={handleChange}
-                                    onFocus={() => handleFocus('id')}
-                                    onBlur={handleBlur}
                                     className="floating-input"
                                 />
                                 <label>{t('staffId')}</label>
                             </div>
 
 
-                            {(formData.role === 'WAITER' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
+                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
                                 <div className="floating-input-group">
                                     <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
                                     <input
@@ -152,8 +141,6 @@ const Login = () => {
                                         placeholder=" "
                                         value={formData.name}
                                         onChange={handleChange}
-                                        onFocus={() => handleFocus('name')}
-                                        onBlur={handleBlur}
                                         className="floating-input"
                                     />
                                     <label>{t('fullName')}</label>
@@ -169,8 +156,6 @@ const Login = () => {
                                         placeholder=" "
                                         value={formData.secretId}
                                         onChange={handleChange}
-                                        onFocus={() => handleFocus('password')}
-                                        onBlur={handleBlur}
                                         className="floating-input"
                                     />
                                     <label>{t('secretKey')}</label>
