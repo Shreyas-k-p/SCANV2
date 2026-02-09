@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { listenToMenu, addMenuItemToDB } from "../services/menuService";
-import { saveManagerToDB } from "../services/managerService";
+import {
+  addManagerToDB,
+  listenToManagers,
+  removeManagerFromDB
+} from "../services/managerService";
 import {
   addWaiterToDB,
   listenToWaiters,
@@ -133,6 +137,7 @@ export function AppProvider({ children }) {
 
   const [kitchenStaff, setKitchenStaff] = useState([]);
   const [subManagers, setSubManagers] = useState([]);
+  const [managers, setManagers] = useState([]);
 
   //const [kitchenStaff, setKitchenStaff] = useState(() => {
   //  const saved = localStorage.getItem('kitchenStaff');
@@ -224,6 +229,35 @@ export function AppProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = listenToManagers((data) => {
+      console.log("📊 Managers loaded from Firebase:", data);
+      if (data && data.length > 0) {
+        console.log("✅ Found", data.length, "manager(s) in database");
+        setManagers(data);
+      } else {
+        console.log("⚠️ No managers found, creating default manager...");
+        // Create default manager if none exists
+        const defaultManager = {
+          id: "MANAGER",
+          name: "Main Manager",
+          secretID: "5710",
+          profilePhoto: "",
+          email: ""
+        };
+        console.log("🔧 Creating default manager:", defaultManager);
+        addManagerToDB(defaultManager)
+          .then(() => {
+            console.log("✅ Default manager created successfully!");
+          })
+          .catch((error) => {
+            console.error("❌ Error creating default manager:", error);
+          });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   //useEffect(() => {
   //  localStorage.setItem('kitchenStaff', JSON.stringify(kitchenStaff));
   //}, [kitchenStaff]);
@@ -279,9 +313,6 @@ export function AppProvider({ children }) {
         throw new Error("Another manager is already logged in");
       }
       localStorage.setItem("activeManager", userData.id);
-
-      // 🔥 SAVE MANAGER TO FIRESTORE
-      await saveManagerToDB(userData);
     }
 
     setUser(userData);
@@ -453,6 +484,23 @@ export function AppProvider({ children }) {
   const removeSubManager = async (docId) => {
     await removeSubManagerFromDB(docId);
   };
+
+  const addManager = async (name, profilePhoto = '') => {
+    const secretID = generateSecretID();
+    const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
+    const manager = {
+      id: `MGR-${shortIdSuffix}`,
+      name: name.trim(),
+      profilePhoto,
+      secretID
+    };
+    await addManagerToDB(manager);
+    return secretID;
+  };
+
+  const removeManager = async (docId) => {
+    await removeManagerFromDB(docId);
+  };
   useEffect(() => {
     const unsubscribe = listenToTables(setTables);
     return () => unsubscribe();
@@ -473,26 +521,52 @@ export function AppProvider({ children }) {
 
   // Validate secret ID for login
   const validateSecretID = (role, id, secretID) => {
+    console.log("🔐 Validating credentials:", { role, id, secretID });
+
+    // Safety checks for input parameters
+    if (!id || !secretID) {
+      console.log("❌ Missing id or secretID");
+      return null;
+    }
+
     if (role === 'WAITER') {
-      // Case-insensitive ID matching
+      console.log("👨‍🍳 Checking waiters:", waiters);
+      // Case-insensitive ID matching with null checks
       const waiter = waiters.find(w =>
-        w.id.toUpperCase() === id.toUpperCase() &&
-        w.secretID.toUpperCase() === secretID.toUpperCase()
+        w?.id?.toUpperCase() === id.toUpperCase() &&
+        w?.secretID?.toUpperCase() === secretID.toUpperCase()
       );
+      console.log("Waiter found:", waiter);
       return waiter ? { name: waiter.name, id: waiter.id, profilePhoto: waiter.profilePhoto } : null;
     } else if (role === 'KITCHEN') {
-      // Case-insensitive ID matching
+      console.log("🍳 Checking kitchen staff:", kitchenStaff);
+      // Case-insensitive ID matching with null checks
       const staff = kitchenStaff.find(s =>
-        s.id.toUpperCase() === id.toUpperCase() &&
-        s.secretID.toUpperCase() === secretID.toUpperCase()
+        s?.id?.toUpperCase() === id.toUpperCase() &&
+        s?.secretID?.toUpperCase() === secretID.toUpperCase()
       );
+      console.log("Kitchen staff found:", staff);
       return staff ? { name: staff.name, id: staff.id, profilePhoto: staff.profilePhoto } : null;
     } else if (role === 'SUB_MANAGER') {
+      console.log("🤵 Checking sub managers:", subManagers);
       const sm = subManagers.find(s =>
-        s.id.toUpperCase() === id.toUpperCase() &&
-        s.secretID.toUpperCase() === secretID.toUpperCase()
+        s?.id?.toUpperCase() === id.toUpperCase() &&
+        s?.secretID?.toUpperCase() === secretID.toUpperCase()
       );
+      console.log("Sub manager found:", sm);
       return sm ? { name: sm.name, id: sm.id, profilePhoto: sm.profilePhoto } : null;
+    } else if (role === 'MANAGER') {
+      console.log("👔 Checking managers:", managers);
+      console.log("Looking for ID:", id.toUpperCase(), "Secret:", secretID.toUpperCase());
+      const manager = managers.find(m => {
+        console.log("Comparing with manager:", m);
+        const idMatch = m?.id?.toUpperCase() === id.toUpperCase();
+        const secretMatch = m?.secretID?.toUpperCase() === secretID.toUpperCase();
+        console.log("ID match:", idMatch, "Secret match:", secretMatch);
+        return idMatch && secretMatch;
+      });
+      console.log("Manager found:", manager);
+      return manager ? { name: manager.name, id: manager.id, profilePhoto: manager.profilePhoto } : null;
     }
     return null;
   };
@@ -512,6 +586,7 @@ export function AppProvider({ children }) {
       waiters, addWaiter, removeWaiter,
       kitchenStaff, addKitchenStaff, removeKitchenStaff,
       subManagers, addSubManager, removeSubManager,
+      managers, addManager, removeManager,
       validateSecretID,
       language, setLanguage, t, translations,
       theme, toggleTheme

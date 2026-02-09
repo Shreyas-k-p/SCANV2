@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 
@@ -6,8 +6,15 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function WaiterDashboard() {
     const { tables, orders, updateOrderStatus, updateTableStatus, t, user } = useApp();
+    const [readyOrdersCount, setReadyOrdersCount] = useState(0);
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
+
+    // Count ready orders
+    useEffect(() => {
+        const count = orders.filter(o => o.status === 'ready').length;
+        setReadyOrdersCount(count);
+    }, [orders]);
 
     const tableColors = [
         'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
@@ -40,42 +47,73 @@ export default function WaiterDashboard() {
     return (
         <div style={{ padding: '2rem' }}>
             <div style={{
-                display: 'inline-flex',
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '1rem',
-                padding: '0.75rem 1.5rem',
-                background: 'var(--gradient-accent)',
-                borderRadius: '16px',
                 marginBottom: '2rem',
-                boxShadow: 'var(--shadow-glow)'
+                flexWrap: 'wrap',
+                gap: '1rem'
             }}>
-                {user?.profilePhoto && (
-                    <img
-                        src={user.profilePhoto}
-                        alt="Profile"
-                        style={{
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border: '3px solid white',
-                            boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
-                        }}
-                    />
-                )}
-                <h1 style={{
-                    margin: 0,
-                    fontSize: '2.5rem',
-                    fontWeight: '800',
-                    color: '#ffffff',
-                    letterSpacing: '-1px',
-                    textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '0.75rem 1.5rem',
+                    background: 'var(--gradient-accent)',
+                    borderRadius: '16px',
+                    boxShadow: 'var(--shadow-glow)',
+                    position: 'relative'
                 }}>
-                    👨‍🍳 {t('waiter')} {t('dashboard')}
-                </h1>
-            </div>
-            <div style={{ float: 'right' }}>
-                <LanguageSwitcher />
+                    {user?.profilePhoto && (
+                        <img
+                            src={user.profilePhoto}
+                            alt="Profile"
+                            style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '3px solid white',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                            }}
+                        />
+                    )}
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: '2.5rem',
+                        fontWeight: '800',
+                        color: '#ffffff',
+                        letterSpacing: '-1px',
+                        textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+                    }}>
+                        👨‍🍳 {t('waiter')} {t('dashboard')}
+                    </h1>
+                    {readyOrdersCount > 0 && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-10px',
+                            right: '-10px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: '800',
+                            fontSize: '1.2rem',
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5)',
+                            animation: 'pulse 2s ease-in-out infinite',
+                            border: '3px solid white'
+                        }}>
+                            {readyOrdersCount}
+                        </div>
+                    )}
+                </div>
+                <div style={{ float: 'right' }}>
+                    <LanguageSwitcher />
+                </div>
             </div>
             <div className="card-grid" style={{ marginTop: '20px', gap: '1.5rem' }}>
                 {tables.map((tableObj, idx) => {
@@ -156,11 +194,21 @@ export default function WaiterDashboard() {
                                         <div
                                             key={order.id}
                                             style={{
-                                                background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                                                background: order.status === 'ready'
+                                                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(52, 211, 153, 0.15) 100%)'
+                                                    : 'linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
                                                 padding: '1rem',
                                                 borderRadius: '12px',
-                                                border: '2px solid var(--accent-light)',
-                                                transition: 'all 0.3s ease'
+                                                border: order.status === 'ready'
+                                                    ? '3px solid #10b981'
+                                                    : '2px solid var(--accent-light)',
+                                                transition: 'all 0.3s ease',
+                                                boxShadow: order.status === 'ready'
+                                                    ? '0 0 20px rgba(16, 185, 129, 0.4)'
+                                                    : 'none',
+                                                animation: order.status === 'ready'
+                                                    ? 'pulse 2s ease-in-out infinite'
+                                                    : 'none'
                                             }}
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>

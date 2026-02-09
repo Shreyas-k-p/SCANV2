@@ -7,7 +7,7 @@ import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login, t } = useApp();
+    const { login, t, validateSecretID } = useApp();
 
     const [formData, setFormData] = useState({
         role: 'WAITER',
@@ -25,14 +25,6 @@ const Login = () => {
         { id: 'MANAGER', label: t('manager'), icon: Shield },
         { id: 'SUB_MANAGER', label: t('subManager'), icon: Users }
     ];
-
-    const SECRET_IDS = {
-        'MANAGER': 'MGR2024',
-        'sub_manager': 'SUB2024',
-        'SUB_MANAGER': 'SUB2024'
-    };
-
-
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -59,22 +51,66 @@ const Login = () => {
             }
             else if (upperRole === 'MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
-                if (secretId !== SECRET_IDS['MANAGER']) throw new Error("Invalid Secret ID");
-                login({ name: name.trim() || 'Manager', id: upperId, role: 'MANAGER' });
-                navigate('/manager');
+
+                try {
+                    // Validate against database
+                    const validatedManager = validateSecretID('MANAGER', upperId, secretId);
+                    if (!validatedManager) throw new Error("Invalid Manager ID or Secret Code");
+
+                    login({
+                        name: validatedManager.name || name.trim() || 'Manager',
+                        id: upperId,
+                        role: 'MANAGER',
+                        profilePhoto: validatedManager.profilePhoto
+                    });
+                    navigate('/manager');
+                } catch (validationError) {
+                    console.error("Manager validation error:", validationError);
+                    throw new Error("Invalid Manager ID or Secret Code");
+                }
             }
             else if (upperRole === 'KITCHEN') {
                 if (!upperId || !secretId || !name.trim()) throw new Error("ID, Name and Secret Code are required");
-                login({ name: name.trim(), id: upperId, role: 'KITCHEN' });
-                navigate('/kitchen');
+
+                try {
+                    // Validate against database
+                    const validatedStaff = validateSecretID('KITCHEN', upperId, secretId);
+                    if (!validatedStaff) throw new Error("Invalid Kitchen Staff ID or Secret Code");
+
+                    login({
+                        name: validatedStaff.name,
+                        id: upperId,
+                        role: 'KITCHEN',
+                        profilePhoto: validatedStaff.profilePhoto
+                    });
+                    navigate('/kitchen');
+                } catch (validationError) {
+                    console.error("Kitchen validation error:", validationError);
+                    throw new Error("Invalid Kitchen Staff ID or Secret Code");
+                }
             }
             else if (upperRole === 'SUB_MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
-                if (secretId !== SECRET_IDS['SUB_MANAGER']) throw new Error("Invalid Secret ID");
-                login({ name, id: upperId, role: 'SUB_MANAGER' });
-                navigate('/sub-manager');
+
+                try {
+                    // Validate against database
+                    const validatedSubManager = validateSecretID('SUB_MANAGER', upperId, secretId);
+                    if (!validatedSubManager) throw new Error("Invalid Sub Manager ID or Secret Code");
+
+                    login({
+                        name: validatedSubManager.name || name,
+                        id: upperId,
+                        role: 'SUB_MANAGER',
+                        profilePhoto: validatedSubManager.profilePhoto
+                    });
+                    navigate('/sub-manager');
+                } catch (validationError) {
+                    console.error("Sub Manager validation error:", validationError);
+                    throw new Error("Invalid Sub Manager ID or Secret Code");
+                }
             }
         } catch (err) {
+            console.error("Login error:", err);
             setError(err.message);
             setIsLoading(false);
         }

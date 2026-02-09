@@ -25,7 +25,10 @@ export default function ManagerDashboard() {
         t,
         subManagers,
         addSubManager,
-        removeSubManager
+        removeSubManager,
+        managers,
+        addManager,
+        removeManager
     } = useApp();
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -66,10 +69,13 @@ export default function ManagerDashboard() {
     const [showAddWaiterModal, setShowAddWaiterModal] = useState(false);
     const [showAddKitchenModal, setShowAddKitchenModal] = useState(false);
     const [showAddSubManagerModal, setShowAddSubManagerModal] = useState(false);
+    const [showAddManagerModal, setShowAddManagerModal] = useState(false);
     const [newSecretID, setNewSecretID] = useState(null);
     const [newKitchenSecretID, setNewKitchenSecretID] = useState(null);
     const [newSubManagerSecretID, setNewSubManagerSecretID] = useState(null);
+    const [newManagerSecretID, setNewManagerSecretID] = useState(null);
     const [subManagerPhoto, setSubManagerPhoto] = useState('');
+    const [managerPhoto, setManagerPhoto] = useState('');
 
     const handleSubManagerImageChange = (e) => {
         const file = e.target.files[0];
@@ -85,6 +91,25 @@ export default function ManagerDashboard() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setSubManagerPhoto(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleManagerImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            if (file.size > 800 * 1024) {
+                alert('Image size should be less than 800KB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setManagerPhoto(reader.result);
             };
             reader.readAsDataURL(file);
         }
@@ -178,6 +203,7 @@ export default function ManagerDashboard() {
                     { key: 'waiters', label: `👨‍🍳 ${t('manageStaff')} (${waiters.length})`, gradient: tabGradients.waiters },
                     { key: 'kitchen', label: `🍳 ${t('kitchenStaff')} (${kitchenStaff.length})`, gradient: tabGradients.kitchen },
                     { key: 'subManagers', label: `🤵 Sub Managers (${subManagers.length})`, gradient: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' },
+                    { key: 'managers', label: `👔 Managers (${managers.length})`, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' },
                     { key: 'feedback', label: `💬 ${t('feedback')} (${feedbacks.length})`, gradient: tabGradients.feedback }
                 ].map(tab => (
 
@@ -1105,6 +1131,131 @@ export default function ManagerDashboard() {
                 </div>
             )}
 
+            {activeTab === 'managers' && (
+                <div>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1.5rem',
+                        flexWrap: 'wrap',
+                        gap: '1rem'
+                    }}>
+                        <h2 style={{
+                            margin: 0,
+                            fontSize: '1.75rem',
+                            fontWeight: '700',
+                            background: 'var(--gradient-accent)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}>
+                            👔 Manager Management
+                        </h2>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setShowAddManagerModal(true)}
+                            style={{
+                                borderRadius: '12px',
+                                padding: '0.75rem 1.5rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <UserPlus size={18} /> Add Manager
+                        </button>
+                    </div>
+                    {managers.length === 0 ? (
+                        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '1.1rem' }}>No Managers added yet.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                            {managers.map(mgr => (
+                                <div key={mgr.id} className="glass-panel" style={{
+                                    padding: '1.5rem',
+                                    background: 'var(--card-bg)',
+                                    border: '2px solid rgba(139, 92, 246, 0.3)',
+                                    borderRadius: '16px',
+                                    position: 'relative'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div>
+                                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {mgr.profilePhoto && <img src={mgr.profilePhoto} alt={mgr.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />}
+                                                {mgr.name}
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+                                                ID: {mgr.id}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm(`Are you sure you want to remove "${mgr.name}"?`)) {
+                                                    removeManager(mgr.docId);
+
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '0.5rem',
+                                                background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                    <div style={{
+                                        padding: '1rem',
+                                        background: 'rgba(0, 0, 0, 0.05)',
+                                        borderRadius: '12px',
+                                        border: '2px dashed rgba(139, 92, 246, 0.3)'
+                                    }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
+                                            Secret ID:
+                                        </label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <code style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                background: 'var(--card-bg)',
+                                                borderRadius: '8px',
+                                                fontSize: '1.1rem',
+                                                fontWeight: '700',
+                                                letterSpacing: '2px',
+                                                color: 'var(--accent)',
+                                                border: '2px solid var(--accent-light)'
+                                            }}>
+                                                {mgr.secretID}
+                                            </code>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(mgr.secretID);
+                                                    alert('Secret ID copied to clipboard!');
+                                                }}
+                                                className="btn btn-secondary"
+                                                style={{ padding: '0.75rem' }}
+                                            >
+                                                <Copy size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {showAddModal && (
                 <AddMenuModal
                     onClose={() => {
@@ -1233,6 +1384,99 @@ export default function ManagerDashboard() {
                                     onClick={() => {
                                         setNewSubManagerSecretID(null);
                                         setShowAddSubManagerModal(false);
+                                    }}
+                                    style={{ width: '100%', justifyContent: 'center' }}
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {showAddManagerModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div className="glass-panel" style={{ padding: '2rem', width: '90%', maxWidth: '400px' }}>
+                        {!newManagerSecretID ? (
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                    <h3 style={{ margin: 0 }}>Add Manager</h3>
+                                    <button onClick={() => setShowAddManagerModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const name = e.target.elements.name.value;
+                                    if (!name.trim()) return;
+                                    const secret = await addManager(name, managerPhoto);
+                                    setNewManagerSecretID(secret);
+                                    setManagerPhoto('');
+                                    e.target.reset();
+                                }}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Name</label>
+                                        <input
+                                            name="name"
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="Enter Manager Name"
+                                            required
+                                        />
+                                    </div>
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Profile Photo</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleManagerImageChange}
+                                            className="input-field"
+                                            style={{ padding: '0.5rem' }}
+                                        />
+                                        {managerPhoto && (
+                                            <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                                                <img src={managerPhoto} alt="Preview" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                                        Create Manager Account
+                                    </button>
+                                </form>
+                            </>
+                        ) : (
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{
+                                    width: '60px', height: '60px', background: '#10b981', borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto'
+                                }}>
+                                    <span style={{ fontSize: '30px', color: 'white' }}>✓</span>
+                                </div>
+                                <h3 style={{ marginBottom: '0.5rem' }}>Manager Added!</h3>
+                                <p style={{ color: 'var(--text-dim)', marginBottom: '1.5rem' }}>Share these credentials with the manager. They will need the Secret ID to login.</p>
+
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ fontSize: '2rem', fontWeight: '800', letterSpacing: '4px', color: '#8b5cf6' }}>
+                                        {newManagerSecretID}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>SECRET ID</div>
+                                </div>
+
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        setNewManagerSecretID(null);
+                                        setShowAddManagerModal(false);
                                     }}
                                     style={{ width: '100%', justifyContent: 'center' }}
                                 >
