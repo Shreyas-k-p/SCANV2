@@ -496,7 +496,7 @@ export default function ManagerDashboard() {
                                 <div key={item.id} className="glass-panel" style={{
                                     padding: '1.25rem',
                                     background: 'var(--card-bg)',
-                                    border: item.available
+                                    border: item.available !== false
                                         ? '2px solid rgba(16, 185, 129, 0.3)'
                                         : '2px solid rgba(239, 68, 68, 0.3)',
                                     borderRadius: '16px',
@@ -508,7 +508,7 @@ export default function ManagerDashboard() {
                                         position: 'absolute',
                                         top: '1rem',
                                         right: '1rem',
-                                        background: item.available
+                                        background: item.available !== false
                                             ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
                                             : 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
                                         color: 'white',
@@ -519,7 +519,7 @@ export default function ManagerDashboard() {
                                         textTransform: 'uppercase',
                                         letterSpacing: '0.5px'
                                     }}>
-                                        {item.available ? 'Available' : 'Unavailable'}
+                                        {item.available !== false ? 'Available' : 'Unavailable'}
                                     </div>
                                     <div style={{ marginBottom: '1rem' }}>
                                         <img
@@ -1558,7 +1558,8 @@ function AddMenuModal({ onClose, onSave, item }) {
         price: item?.price || '',
         category: isCustomCategory ? 'Other' : itemCategory,
         image: item?.image || '',
-        benefits: item?.benefits || ''
+        benefits: item?.benefits || '',
+        available: item?.available !== false // Default true for new items
     });
     const [imagePreview, setImagePreview] = useState(item?.image || null);
     const [imageFile, setImageFile] = useState(null);
@@ -1609,7 +1610,8 @@ function AddMenuModal({ onClose, onSave, item }) {
         onSave({
             ...formData,
             category: isOtherCategory ? customCategory.trim() : formData.category,
-            price: Number(formData.price)
+            price: Number(formData.price),
+            available: formData.available // Use the form value
         });
         onClose();
     };
@@ -1699,6 +1701,20 @@ function AddMenuModal({ onClose, onSave, item }) {
                         onChange={e => setFormData({ ...formData, price: e.target.value })}
                         style={{ width: '100%', boxSizing: 'border-box' }}
                     />
+
+                    {/* Availability Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
+                        <input
+                            type="checkbox"
+                            checked={formData.available !== false}
+                            onChange={e => setFormData({ ...formData, available: e.target.checked })}
+                            id="available-check"
+                            style={{ width: '20px', height: '20px', accentColor: '#10b981', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="available-check" style={{ color: 'var(--text-light)', fontWeight: '600', cursor: 'pointer' }}>
+                            Item is Available
+                        </label>
+                    </div>
                     <div style={{ width: '100%', boxSizing: 'border-box' }}>
                         <select
                             className="input-field"

@@ -6,7 +6,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import BillPrint from '../components/BillPrint';
 
 export default function WaiterDashboard() {
-    const { tables, orders, updateOrderStatus, updateTableStatus, t, user } = useApp();
+    const { tables, orders, updateOrderStatus, updateTableStatus, t, user, deleteOrder } = useApp();
     const [readyOrdersCount, setReadyOrdersCount] = useState(0);
     const [showBillPrint, setShowBillPrint] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
@@ -66,6 +66,20 @@ export default function WaiterDashboard() {
                 await updateOrderStatus(order.id, 'completed');
             }
             // Clear the table
+            await updateTableStatus(selectedTable.docId, 'active');
+            setShowBillPrint(false);
+            setSelectedTable(null);
+        }
+    };
+
+    const handleDeleteRecord = async () => {
+        if (selectedTable) {
+            const tableOrders = getTableOrders(selectedTable.tableNo);
+            // Delete all orders for this table
+            for (const order of tableOrders) {
+                await deleteOrder(order.id);
+            }
+            // Reset table to active
             await updateTableStatus(selectedTable.docId, 'active');
             setShowBillPrint(false);
             setSelectedTable(null);
@@ -355,6 +369,7 @@ export default function WaiterDashboard() {
                         setSelectedTable(null);
                     }}
                     onConfirmClear={handleConfirmClear}
+                    onDelete={handleDeleteRecord}
                 />
             )}
         </div >

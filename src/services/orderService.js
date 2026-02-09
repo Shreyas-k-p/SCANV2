@@ -4,6 +4,7 @@ import {
     addDoc,
     onSnapshot,
     updateDoc,
+    deleteDoc,
     doc,
     query,
     orderBy
@@ -43,5 +44,15 @@ export const updateOrderInDB = async (docId, updates) => {
         await updateDoc(orderDoc, updates);
     } catch (error) {
         console.error("Error updating order: ", error);
+    }
+};
+
+// DELETE ORDER
+export const deleteOrderFromDB = async (docId) => {
+    try {
+        const orderDoc = doc(db, "orders", docId);
+        await deleteDoc(orderDoc);
+    } catch (error) {
+        console.error("Error deleting order: ", error);
     }
 };

@@ -15,7 +15,7 @@ export default function Menu() {
     const [showCart, setShowCart] = useState(false);
     const [showOrders, setShowOrders] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [showPayment, setShowPayment] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const [tableNumber, setTableNumber] = useState(() => localStorage.getItem('customerTableNumber') || '');
     const [myOrderIds, setMyOrderIds] = useState(() => {
@@ -35,7 +35,7 @@ export default function Menu() {
 
 
     const handleItemClick = (item) => {
-        if (item.available) {
+        if (item.available !== false) {
             setSelectedItem(item);
         }
     };
@@ -79,10 +79,8 @@ export default function Menu() {
             return;
         }
 
-        // If table is billed, show payment modal instead of blocking
         if (validTable.status === 'billed') {
-            setShowPayment(true);
-            setShowCart(false);
+            alert(`This table has already been billed. Please ask the waiter to clear the table or start a new session.`);
             return;
         }
 
@@ -165,34 +163,7 @@ export default function Menu() {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <LanguageSwitcher />
 
-                    {/* Pay Bill Button - Shows when table is billed */}
-                    {(() => {
-                        const currentTable = tables.find(t => String(t.tableNo) === String(tableNumber).trim());
-                        if (currentTable && currentTable.status === 'billed') {
-                            return (
-                                <button
-                                    className="btn interactive-btn"
-                                    onClick={() => setShowPayment(true)}
-                                    style={{
-                                        borderRadius: '12px',
-                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '0.75rem 1.25rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
-                                        fontWeight: 'bold',
-                                        animation: 'pulse 2s ease-in-out infinite'
-                                    }}
-                                >
-                                    <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>💳</span>
-                                    Pay Bill
-                                </button>
-                            );
-                        }
-                        return null;
-                    })()}
+
 
                     <button
                         className="btn interactive-btn"
@@ -315,9 +286,9 @@ export default function Menu() {
                             className="dynamic-card fade-in"
                             onClick={() => handleItemClick(item)}
                             style={{
-                                cursor: item.available ? 'pointer' : 'not-allowed',
-                                opacity: item.available ? 1 : 0.7,
-                                animationDelay: `${idx * 0.05} s`
+                                cursor: item.available !== false ? 'pointer' : 'not-allowed',
+                                opacity: item.available !== false ? 1 : 0.7,
+                                animationDelay: `${idx * 0.05}s`
                             }}
                         >
                             <div className="card-image-container">
@@ -330,7 +301,7 @@ export default function Menu() {
                                         objectFit: 'cover'
                                     }}
                                 />
-                                {!item.available && (
+                                {item.available === false && (
                                     <div style={{
                                         position: 'absolute',
                                         top: 0,
@@ -352,7 +323,7 @@ export default function Menu() {
                                         </span>
                                     </div>
                                 )}
-                                {item.available && (
+                                {item.available !== false && (
                                     <div style={{
                                         position: 'absolute',
                                         top: '12px',
@@ -396,7 +367,7 @@ export default function Menu() {
                                 }}>
                                     {t(item.benefits)}
                                 </p>
-                                {item.available && (
+                                {item.available !== false && (
                                     <div style={{
                                         marginTop: '1rem',
                                         paddingTop: '1rem',
@@ -831,10 +802,50 @@ export default function Menu() {
 
                                         return (
                                             <>
-                                                <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ fontWeight: '600', color: 'var(--text-dim)' }}>Session Total:</span>
-                                                    <span style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--accent)' }}>₹{grandTotal}</span>
+
+                                                <div style={{ padding: '1rem', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                        <span style={{ fontWeight: '600', color: 'var(--text-dim)' }}>Session Total:</span>
+                                                        <span style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--accent)' }}>₹{grandTotal}</span>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => setShowPaymentModal(true)}
+                                                        className="btn"
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '0.9rem',
+                                                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '12px',
+                                                            fontSize: '1rem',
+                                                            fontWeight: '700',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                                        }}
+                                                    >
+                                                        💳 Pay Bill
+                                                    </button>
                                                 </div>
+
+                                                {showPaymentModal && (
+                                                    <PaymentModal
+                                                        table={{ tableNo: tableNumber }}
+                                                        totalAmount={grandTotal}
+                                                        onClose={() => setShowPaymentModal(false)}
+                                                        onPaymentInitiated={() => {
+                                                            setShowPaymentModal(false);
+                                                            alert("Payment Initiated via UPI! Please show the confirmation to the waiter.");
+                                                        }}
+                                                    />
+                                                )}
+
+                                                <h4 style={{ margin: '1.5rem 0 1rem 0', color: 'var(--text-dim)' }}>Order Details</h4>
 
                                                 {myOrders.map(order => (
                                                     <div key={order.id} style={{
@@ -883,35 +894,14 @@ export default function Menu() {
                                         );
                                     })()}
                                 </>
-                            )}
+                            )
+                            }
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Payment Modal */}
-            {showPayment && (() => {
-                const currentTable = tables.find(t => String(t.tableNo) === String(tableNumber).trim());
-                if (!currentTable) return null;
 
-                // Calculate total from all orders for this table
-                const tableOrders = orders.filter(o => String(o.tableNo) === String(tableNumber).trim());
-                const totalAmount = tableOrders.reduce((sum, order) => sum + order.totalAmount, 0);
-                const tax = totalAmount * 0.05;
-                const grandTotal = totalAmount + tax;
-
-                return (
-                    <PaymentModal
-                        table={currentTable}
-                        totalAmount={grandTotal}
-                        onClose={() => setShowPayment(false)}
-                        onPaymentInitiated={() => {
-                            alert('Payment initiated! Please complete the payment in your UPI app. After payment, please inform the waiter.');
-                            setShowPayment(false);
-                        }}
-                    />
-                );
-            })()}
 
 
         </div >
@@ -923,7 +913,7 @@ function ItemModal({ item, onClose, onAdd }) {
     const [qty, setQty] = useState(1);
     const [note, setNote] = useState('');
 
-    if (!item.available) return null;
+    if (item.available === false) return null;
 
     return (
         <div className="glass-modal-overlay" style={{

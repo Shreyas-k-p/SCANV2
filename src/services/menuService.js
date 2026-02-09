@@ -2,7 +2,10 @@ import { db } from "../firebase";
 import {
   collection,
   addDoc,
-  onSnapshot
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 const menuRef = collection(db, "menuItems");
@@ -19,9 +22,21 @@ export const addMenuItemToDB = async (item) => {
 export const listenToMenu = (setMenuItems) => {
   return onSnapshot(menuRef, (snapshot) => {
     const data = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      id: doc.id
     }));
     setMenuItems(data);
   });
+};
+
+// UPDATE MENU ITEM
+export const updateMenuItemInDB = async (id, updatedData) => {
+  const itemDoc = doc(db, "menuItems", id);
+  await updateDoc(itemDoc, updatedData);
+};
+
+// DELETE MENU ITEM
+export const deleteMenuItemFromDB = async (id) => {
+  const itemDoc = doc(db, "menuItems", id);
+  await deleteDoc(itemDoc);
 };

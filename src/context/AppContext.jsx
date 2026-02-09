@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { listenToMenu, addMenuItemToDB } from "../services/menuService";
+import { listenToMenu, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB } from "../services/menuService";
 import {
   addManagerToDB,
   listenToManagers,
@@ -26,7 +26,7 @@ import {
   listenToSubManagers,
   removeSubManagerFromDB
 } from "../services/subManagerService";
-import { addOrderToDB, listenToOrders, updateOrderInDB } from "../services/orderService";
+import { addOrderToDB, listenToOrders, updateOrderInDB, deleteOrderFromDB } from "../services/orderService";
 import { translations } from '../utils/translations';
 import { playNotificationSound, playUrgentNotificationSound } from '../utils/soundUtils';
 
@@ -369,16 +369,34 @@ export function AppProvider({ children }) {
   //setMenuItems([...menuItems, newItem]);
   //};
 
-  const updateMenuItem = (id, updatedItem) => {
+  const updateMenuItem = async (id, updatedItem) => {
+    // Optimistic update
     setMenuItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
+    try {
+      await updateMenuItemInDB(id, updatedItem);
+    } catch (error) {
+      console.error("Failed to update menu item:", error);
+    }
   };
 
-  const updateMenuItemStatus = (id, available) => {
+  const updateMenuItemStatus = async (id, available) => {
+    // Optimistic update
     setMenuItems(prev => prev.map(item => item.id === id ? { ...item, available } : item));
+    try {
+      await updateMenuItemInDB(id, { available });
+    } catch (error) {
+      console.error("Failed to update menu item status:", error);
+    }
   };
 
-  const deleteMenuItem = (id) => {
+  const deleteMenuItem = async (id) => {
+    // Optimistic update
     setMenuItems(prev => prev.filter(item => item.id !== id));
+    try {
+      await deleteMenuItemFromDB(id);
+    } catch (error) {
+      console.error("Failed to delete menu item:", error);
+    }
   };
 
   const placeOrder = async (tableNo, items, customerInfo) => {
@@ -419,6 +437,13 @@ export function AppProvider({ children }) {
     const order = orders.find(o => o.id === orderId);
     if (order && order.docId) {
       await updateOrderInDB(order.docId, { status });
+    }
+  };
+
+  const deleteOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order && order.docId) {
+      await deleteOrderFromDB(order.docId);
     }
   };
 
@@ -602,7 +627,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       user, login, logout,
       menuItems, addMenuItem, updateMenuItem, updateMenuItemStatus, deleteMenuItem,
-      orders, placeOrder, updateOrderStatus,
+      orders, placeOrder, updateOrderStatus, deleteOrder,
 
       tables,
       addTable,
