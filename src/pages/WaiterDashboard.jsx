@@ -3,10 +3,13 @@ import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import BillPrint from '../components/BillPrint';
 
 export default function WaiterDashboard() {
     const { tables, orders, updateOrderStatus, updateTableStatus, t, user } = useApp();
     const [readyOrdersCount, setReadyOrdersCount] = useState(0);
+    const [showBillPrint, setShowBillPrint] = useState(false);
+    const [selectedTable, setSelectedTable] = useState(null);
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
 
@@ -38,9 +41,23 @@ export default function WaiterDashboard() {
         }
     };
 
-    const handleClearTable = async (table) => {
-        if (confirm(`Clear Table ${table.tableNo} and make it available?`)) {
-            await updateTableStatus(table.docId, 'active');
+    const handleClearTable = (table) => {
+        // Show bill print dialog instead of immediate clear
+        setSelectedTable(table);
+        setShowBillPrint(true);
+    };
+
+    const handleConfirmClear = async () => {
+        if (selectedTable) {
+            // Mark all orders as completed
+            const tableOrders = getTableOrders(selectedTable.tableNo);
+            for (const order of tableOrders) {
+                await updateOrderStatus(order.id, 'completed');
+            }
+            // Clear the table
+            await updateTableStatus(selectedTable.docId, 'active');
+            setShowBillPrint(false);
+            setSelectedTable(null);
         }
     };
 
@@ -316,6 +333,19 @@ export default function WaiterDashboard() {
                     );
                 })}
             </div>
+
+            {/* Bill Print Modal */}
+            {showBillPrint && selectedTable && (
+                <BillPrint
+                    table={selectedTable}
+                    orders={getTableOrders(selectedTable.tableNo)}
+                    onClose={() => {
+                        setShowBillPrint(false);
+                        setSelectedTable(null);
+                    }}
+                    onConfirmClear={handleConfirmClear}
+                />
+            )}
         </div >
     );
 }

@@ -46,16 +46,28 @@ const Login = () => {
             if (upperRole === 'WAITER') {
                 if (!upperId || !name.trim()) throw new Error("ID and Name are required");
                 const profilePhoto = `https://ui-avatars.com/api/?name=${name}&background=random`;
-                login({ name, id: upperId, role: 'WAITER', profilePhoto });
+                login({ name: name.trim(), id: upperId, role: 'WAITER', profilePhoto });
                 navigate('/waiter');
             }
             else if (upperRole === 'MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
 
                 try {
+                    console.log("🔐 Attempting manager login...");
+                    console.log("Input - Staff ID:", upperId);
+                    console.log("Input - Secret Code:", secretId);
+
                     // Validate against database
                     const validatedManager = validateSecretID('MANAGER', upperId, secretId);
-                    if (!validatedManager) throw new Error("Invalid Manager ID or Secret Code");
+
+                    console.log("Validation result:", validatedManager);
+
+                    if (!validatedManager) {
+                        console.error("❌ Validation failed - no matching manager found");
+                        throw new Error("Invalid Manager ID or Secret Code. Please check console for details.");
+                    }
+
+                    console.log("✅ Manager validated successfully:", validatedManager);
 
                     login({
                         name: validatedManager.name || name.trim() || 'Manager',
@@ -66,28 +78,14 @@ const Login = () => {
                     navigate('/manager');
                 } catch (validationError) {
                     console.error("Manager validation error:", validationError);
-                    throw new Error("Invalid Manager ID or Secret Code");
+                    throw new Error("Invalid Manager ID or Secret Code. Check browser console (F12) for details.");
                 }
             }
             else if (upperRole === 'KITCHEN') {
-                if (!upperId || !secretId || !name.trim()) throw new Error("ID, Name and Secret Code are required");
-
-                try {
-                    // Validate against database
-                    const validatedStaff = validateSecretID('KITCHEN', upperId, secretId);
-                    if (!validatedStaff) throw new Error("Invalid Kitchen Staff ID or Secret Code");
-
-                    login({
-                        name: validatedStaff.name,
-                        id: upperId,
-                        role: 'KITCHEN',
-                        profilePhoto: validatedStaff.profilePhoto
-                    });
-                    navigate('/kitchen');
-                } catch (validationError) {
-                    console.error("Kitchen validation error:", validationError);
-                    throw new Error("Invalid Kitchen Staff ID or Secret Code");
-                }
+                if (!upperId || !name.trim()) throw new Error("ID and Name are required");
+                const profilePhoto = `https://ui-avatars.com/api/?name=${name}&background=random`;
+                login({ name: name.trim(), id: upperId, role: 'KITCHEN', profilePhoto });
+                navigate('/kitchen');
             }
             else if (upperRole === 'SUB_MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
@@ -183,7 +181,7 @@ const Login = () => {
                                 </div>
                             )}
 
-                            {formData.role !== 'WAITER' && (
+                            {(formData.role === 'MANAGER' || formData.role === 'SUB_MANAGER') && (
                                 <div className="floating-input-group">
                                     <Lock className="input-icon" size={18} />
                                     <input
