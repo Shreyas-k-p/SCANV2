@@ -13,9 +13,20 @@ export default function WaiterDashboard() {
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
 
-    // Count ready orders
+    // Count ready orders and trigger vibration
     useEffect(() => {
         const count = orders.filter(o => o.status === 'ready').length;
+
+        // Trigger vibration if count increased (new ready order)
+        if (count > readyOrdersCount && count > 0) {
+            // Vibrate if supported
+            if ('vibrate' in navigator) {
+                // Vibration pattern: vibrate for 200ms, pause 100ms, vibrate 200ms
+                navigator.vibrate([200, 100, 200]);
+            }
+            console.log("📳 Vibration triggered for ready order!");
+        }
+
         setReadyOrdersCount(count);
     }, [orders]);
 

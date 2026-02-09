@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 
@@ -7,8 +7,60 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 export default function KitchenDashboard() {
     const { orders, updateOrderStatus, menuItems, updateMenuItemStatus, t, user } = useApp();
     const [activeTab, setActiveTab] = useState('orders'); // orders | menu
+    const [newOrdersCount, setNewOrdersCount] = useState(0);
 
     const activeOrders = orders.filter(o => o.status !== 'completed').sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const pendingOrders = orders.filter(o => o.status === 'pending');
+
+    // Notification for new orders
+    useEffect(() => {
+        const count = pendingOrders.length;
+
+        // Trigger notification if count increased (new order arrived)
+        if (count > newOrdersCount && count > 0) {
+            // Play notification sound
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create urgent notification sound (higher pitch, faster)
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator1.connect(gainNode);
+                oscillator2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Urgent alarm sound (higher frequencies)
+                oscillator1.frequency.value = 800; // High pitch
+                oscillator2.frequency.value = 1000; // Even higher
+                oscillator1.type = 'square'; // Sharp sound
+                oscillator2.type = 'square';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator1.start(audioContext.currentTime);
+                oscillator2.start(audioContext.currentTime);
+                oscillator1.stop(audioContext.currentTime + 0.5);
+                oscillator2.stop(audioContext.currentTime + 0.5);
+
+                console.log("🔔 Kitchen notification sound played!");
+            } catch (error) {
+                console.error("Error playing notification sound:", error);
+            }
+
+            // Vibrate if supported
+            if ('vibrate' in navigator) {
+                // Urgent vibration pattern: long-short-long
+                navigator.vibrate([400, 100, 400, 100, 400]);
+            }
+
+            console.log("📳 Kitchen notification triggered for new order!");
+        }
+
+        setNewOrdersCount(count);
+    }, [orders]);
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -27,7 +79,8 @@ export default function KitchenDashboard() {
                     padding: '0.75rem 1.5rem',
                     background: 'var(--gradient-accent)',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-glow)'
+                    boxShadow: 'var(--shadow-glow)',
+                    position: 'relative'
                 }}>
                     {user?.profilePhoto && (
                         <img
@@ -53,6 +106,29 @@ export default function KitchenDashboard() {
                     }}>
                         🍳 {t('kitchen')} {t('dashboard')}
                     </h1>
+                    {/* New Orders Badge */}
+                    {newOrdersCount > 0 && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-10px',
+                            right: '-10px',
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: '45px',
+                            height: '45px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.2rem',
+                            fontWeight: '900',
+                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.6)',
+                            border: '3px solid white',
+                            animation: 'pulse 2s ease-in-out infinite'
+                        }}>
+                            {newOrdersCount}
+                        </div>
+                    )}
                 </div>
                 <div style={{ float: 'right' }}>
                     <LanguageSwitcher />

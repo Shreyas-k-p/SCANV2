@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import PaymentModal from '../components/PaymentModal';
 
 import './Menu.css';
 
@@ -14,6 +15,7 @@ export default function Menu() {
     const [showCart, setShowCart] = useState(false);
     const [showOrders, setShowOrders] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [showPayment, setShowPayment] = useState(false);
 
     const [tableNumber, setTableNumber] = useState(() => localStorage.getItem('customerTableNumber') || '');
     const [myOrderIds, setMyOrderIds] = useState(() => {
@@ -76,10 +78,14 @@ export default function Menu() {
             alert(`Invalid Table Number: ${trimmedTableNumber}. Please check the number on your table.`);
             return;
         }
+
+        // If table is billed, show payment modal instead of blocking
         if (validTable.status === 'billed') {
-            alert(`This table has already been billed. Please ask the waiter to clear the table or start a new session.`);
+            setShowPayment(true);
+            setShowCart(false);
             return;
         }
+
         if (cart.length === 0) {
             alert('Your cart is empty');
             return;
@@ -158,6 +164,36 @@ export default function Menu() {
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <LanguageSwitcher />
+
+                    {/* Pay Bill Button - Shows when table is billed */}
+                    {(() => {
+                        const currentTable = tables.find(t => String(t.tableNo) === String(tableNumber).trim());
+                        if (currentTable && currentTable.status === 'billed') {
+                            return (
+                                <button
+                                    className="btn interactive-btn"
+                                    onClick={() => setShowPayment(true)}
+                                    style={{
+                                        borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '0.75rem 1.25rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
+                                        fontWeight: 'bold',
+                                        animation: 'pulse 2s ease-in-out infinite'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>💳</span>
+                                    Pay Bill
+                                </button>
+                            );
+                        }
+                        return null;
+                    })()}
+
                     <button
                         className="btn interactive-btn"
                         onClick={() => setShowOrders(true)}
@@ -853,6 +889,29 @@ export default function Menu() {
                 </div>
             )}
 
+            {/* Payment Modal */}
+            {showPayment && (() => {
+                const currentTable = tables.find(t => String(t.tableNo) === String(tableNumber).trim());
+                if (!currentTable) return null;
+
+                // Calculate total from all orders for this table
+                const tableOrders = orders.filter(o => String(o.tableNo) === String(tableNumber).trim());
+                const totalAmount = tableOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+                const tax = totalAmount * 0.05;
+                const grandTotal = totalAmount + tax;
+
+                return (
+                    <PaymentModal
+                        table={currentTable}
+                        totalAmount={grandTotal}
+                        onClose={() => setShowPayment(false)}
+                        onPaymentInitiated={() => {
+                            alert('Payment initiated! Please complete the payment in your UPI app. After payment, please inform the waiter.');
+                            setShowPayment(false);
+                        }}
+                    />
+                );
+            })()}
 
 
         </div >

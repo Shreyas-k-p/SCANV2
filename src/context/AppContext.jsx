@@ -232,26 +232,53 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const unsubscribe = listenToManagers((data) => {
       console.log("📊 Managers loaded from Firebase:", data);
+
+      // Always ensure only ONE manager exists - Shreyas
       if (data && data.length > 0) {
         console.log("✅ Found", data.length, "manager(s) in database");
-        setManagers(data);
+
+        // Check if Shreyas manager exists
+        const shreyasManager = data.find(m => m.id === "MGR5710");
+
+        if (shreyasManager) {
+          // Only keep Shreyas manager
+          setManagers([shreyasManager]);
+          console.log("✅ Shreyas manager found and set as the only manager");
+        } else {
+          // Create Shreyas manager
+          console.log("⚠️ Shreyas manager not found, creating...");
+          const shreyasManagerData = {
+            id: "MGR5710",
+            name: "SHREYAS",
+            secretID: "5710",
+            profilePhoto: "",
+            email: ""
+          };
+          addManagerToDB(shreyasManagerData)
+            .then(() => {
+              console.log("✅ Shreyas manager created successfully!");
+            })
+            .catch((error) => {
+              console.error("❌ Error creating Shreyas manager:", error);
+            });
+        }
       } else {
-        console.log("⚠️ No managers found, creating default manager...");
-        // Create default manager if none exists
-        const defaultManager = {
-          id: "MANAGER",
-          name: "Main Manager",
+        console.log("⚠️ No managers found, creating Shreyas manager...");
+        // Create Shreyas as the only manager
+        const shreyasManagerData = {
+          id: "MGR5710",
+          name: "SHREYAS",
           secretID: "5710",
           profilePhoto: "",
           email: ""
         };
-        console.log("🔧 Creating default manager:", defaultManager);
-        addManagerToDB(defaultManager)
+        console.log("🔧 Creating Shreyas manager:", shreyasManagerData);
+        addManagerToDB(shreyasManagerData)
           .then(() => {
-            console.log("✅ Default manager created successfully!");
+            console.log("✅ Shreyas manager created successfully!");
           })
           .catch((error) => {
-            console.error("❌ Error creating default manager:", error);
+            console.error("❌ Error creating Shreyas manager:", error);
           });
       }
     });
