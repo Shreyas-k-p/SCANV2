@@ -7,7 +7,7 @@ import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login, t, validateSecretID } = useApp();
+    const { login, t } = useApp();
 
     const [formData, setFormData] = useState({
         role: 'WAITER',
@@ -43,69 +43,38 @@ const Login = () => {
         const upperRole = role.toUpperCase();
 
         try {
-            if (upperRole === 'WAITER') {
+            if (upperRole === 'WAITER' || upperRole === 'KITCHEN') {
+                // For WAITER and KITCHEN: ID + Name (no secret required for basic validation)
                 if (!upperId || !name.trim()) throw new Error("ID and Name are required");
-                const profilePhoto = `https://ui-avatars.com/api/?name=${name}&background=random`;
-                login({ name: name.trim(), id: upperId, role: 'WAITER', profilePhoto });
-                navigate('/waiter');
-            }
-            else if (upperRole === 'MANAGER') {
-                if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
 
-                try {
-                    console.log("🔐 Attempting manager login...");
-                    console.log("Input - Staff ID:", upperId);
-                    console.log("Input - Secret Code:", secretId);
+                // Validate against Supabase
+                const result = await login(upperRole, upperId, null, name.trim());
 
-                    // Validate against database
-                    const validatedManager = validateSecretID('MANAGER', upperId, secretId);
-
-                    console.log("Validation result:", validatedManager);
-
-                    if (!validatedManager) {
-                        console.error("❌ Validation failed - no matching manager found");
-                        throw new Error("Invalid Manager ID or Secret Code. Please check console for details.");
-                    }
-
-                    console.log("✅ Manager validated successfully:", validatedManager);
-
-                    login({
-                        name: validatedManager.name || name.trim() || 'Manager',
-                        id: upperId,
-                        role: 'MANAGER',
-                        profilePhoto: validatedManager.profilePhoto
-                    });
-                    navigate('/manager');
-                } catch (validationError) {
-                    console.error("Manager validation error:", validationError);
-                    throw new Error("Invalid Manager ID or Secret Code. Check browser console (F12) for details.");
+                if (!result.success) {
+                    throw new Error(result.error || "Invalid credentials");
                 }
-            }
-            else if (upperRole === 'KITCHEN') {
-                if (!upperId || !name.trim()) throw new Error("ID and Name are required");
-                const profilePhoto = `https://ui-avatars.com/api/?name=${name}&background=random`;
-                login({ name: name.trim(), id: upperId, role: 'KITCHEN', profilePhoto });
-                navigate('/kitchen');
-            }
-            else if (upperRole === 'SUB_MANAGER') {
-                if (!upperId || !secretId) throw new Error("ID and Secret ID are required");
 
-                try {
-                    // Validate against database
-                    const validatedSubManager = validateSecretID('SUB_MANAGER', upperId, secretId);
-                    if (!validatedSubManager) throw new Error("Invalid Sub Manager ID or Secret Code");
+                navigate(upperRole === 'WAITER' ? '/waiter' : '/kitchen');
+            }
+            else if (upperRole === 'MANAGER' || upperRole === 'SUB_MANAGER') {
+                // For MANAGER and SUB_MANAGER: ID + Secret Code required
+                if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
 
-                    login({
-                        name: validatedSubManager.name || name,
-                        id: upperId,
-                        role: 'SUB_MANAGER',
-                        profilePhoto: validatedSubManager.profilePhoto
-                    });
-                    navigate('/sub-manager');
-                } catch (validationError) {
-                    console.error("Sub Manager validation error:", validationError);
-                    throw new Error("Invalid Sub Manager ID or Secret Code");
+                console.log(`🔐 Attempting ${upperRole} login...`);
+                console.log("Input - Staff ID:", upperId);
+                console.log("Input - Secret Code:", secretId);
+
+                // Validate against Supabase
+                const result = await login(upperRole, upperId, secretId);
+
+                if (!result.success) {
+                    console.error("❌ Validation failed:", result.error);
+                    throw new Error(result.error || "Invalid credentials");
                 }
+
+                console.log("✅ User validated successfully:", result.user);
+
+                navigate(upperRole === 'MANAGER' ? '/manager' : '/sub-manager');
             }
         } catch (err) {
             console.error("Login error:", err);

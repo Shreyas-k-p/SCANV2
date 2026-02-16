@@ -1,42 +1,106 @@
-import { db } from "../firebase";
-import {
-  collection,
-  addDoc,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc
-} from "firebase/firestore";
+import { supabase } from "../supabaseClient";
 
-const menuRef = collection(db, "menuItems");
+/**
+ * Menu Service - Supabase Implementation
+ * Replaces Firebase menuService.js
+ */
 
-// ADD MENU ITEM (CREATES COLLECTION)
+// ADD MENU ITEM
 export const addMenuItemToDB = async (item) => {
-  await addDoc(menuRef, {
-    ...item,
-    createdAt: new Date()
-  });
+  try {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .insert([{
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        description: item.description || '',
+        image: item.image || '',
+        available: item.available !== false,
+        benefits: item.benefits || ''
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error adding menu item:", error);
+    throw error;
+  }
 };
 
-// READ MENU ITEMS (REAL-TIME)
+// LISTEN TO MENU ITEMS (REAL-TIME)
 export const listenToMenu = (setMenuItems) => {
-  return onSnapshot(menuRef, (snapshot) => {
-    const data = snapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id
-    }));
-    setMenuItems(data);
-  });
+  // Initial fetch
+  const fetchMenu = async () => {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error("Error fetching menu:", error);
+      return;
+    }
+
+    setMenuItems(data || []);
+  };
+
+  fetchMenu();
+
+  // Subscribe to real-time changes
+  const subscription = supabase
+    .channel('menu_items_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'menu_items'
+      },
+      (payload) => {
+        console.log('Menu change detected:', payload);
+        fetchMenu(); // Refetch all items on any change
+      }
+    )
+    .subscribe();
+
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
 };
 
 // UPDATE MENU ITEM
 export const updateMenuItemInDB = async (id, updatedData) => {
-  const itemDoc = doc(db, "menuItems", id);
-  await updateDoc(itemDoc, updatedData);
+  try {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .update(updatedData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating menu item:", error);
+    throw error;
+  }
 };
 
 // DELETE MENU ITEM
 export const deleteMenuItemFromDB = async (id) => {
-  const itemDoc = doc(db, "menuItems", id);
-  await deleteDoc(itemDoc);
+  try {
+    const { error } = await supabase
+      .from('menu_items')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting menu item:", error);
+    throw error;
+  }
 };

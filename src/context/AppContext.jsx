@@ -1,34 +1,25 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { listenToMenu, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB } from "../services/menuService";
 import {
-  addManagerToDB,
-  listenToManagers,
-  removeManagerFromDB
-} from "../services/managerService";
-import {
-  addWaiterToDB,
-  listenToWaiters,
-  removeWaiterFromDB
-} from "../services/waiterService";
-import {
-  addKitchenStaffToDB,
-  listenToKitchenStaff,
-  removeKitchenStaffFromDB
-} from "../services/kitchenService";
-import {
   addTableToDB,
   listenToTables,
   removeTableFromDB,
   updateTableStatusInDB
 } from "../services/tableService";
-import {
-  addSubManagerToDB,
-  listenToSubManagers,
-  removeSubManagerFromDB
-} from "../services/subManagerService";
 import { addOrderToDB, listenToOrders, updateOrderInDB, deleteOrderFromDB } from "../services/orderService";
 import { translations } from '../utils/translations';
 import { playNotificationSound, playUrgentNotificationSound } from '../utils/soundUtils';
+import {
+  loginStaff,
+  logoutStaff,
+  getCurrentUser,
+  getStaffSession,
+  createStaffAccount,
+  deleteStaffAccount,
+  getStaffByRole,
+  subscribeToStaffChanges
+} from '../services/authService';
+import { supabase } from '../supabaseClient';
 
 
 const AppContext = createContext();
@@ -129,12 +120,8 @@ export function AppProvider({ children }) {
   });
 
   // Waiters and Kitchen Staff Management
+  // Staff state - now managed by Supabase
   const [waiters, setWaiters] = useState([]);
-  // const [waiters, setWaiters] = useState(() => {
-  //   const saved = localStorage.getItem('waiters');
-  // return saved ? JSON.parse(saved) : [];
-  //});
-
   const [kitchenStaff, setKitchenStaff] = useState([]);
   const [subManagers, setSubManagers] = useState([]);
   const [managers, setManagers] = useState([]);
@@ -199,90 +186,165 @@ export function AppProvider({ children }) {
     localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
   }, [feedbacks]);
 
+  // Listen to Waiters (Supabase)
   useEffect(() => {
-    const unsubscribe = listenToWaiters(setWaiters);
-    return () => unsubscribe();
-  }, []);
-  // useEffect(() => {
-  //   localStorage.setItem('waiters', JSON.stringify(waiters));
-  //}, [waiters]);
-
-  useEffect(() => {
-    const unsubscribe = listenToKitchenStaff((data) => {
-      if (data && data.length > 0) {
-        setKitchenStaff(data);
-      } else {
-        // Optional: Seed a default kitchen staff if empty so the collection exists
-        const defaultChef = {
-          id: `KITCHEN-${Date.now()}`,
-          name: "Head Chef Robot",
-          secretID: "CHEF123"
-        };
-        addKitchenStaffToDB(defaultChef);
+    const fetchWaiters = async () => {
+      const result = await getStaffByRole('WAITER');
+      if (result.success) {
+        // Transform to match expected format
+        const transformed = result.data.map(w => ({
+          docId: w.id,
+          id: w.staff_id,
+          name: w.name,
+          profilePhoto: w.profile_photo,
+          secretID: w.secret_id
+        }));
+        setWaiters(transformed);
       }
+    };
+
+    fetchWaiters();
+
+    // Subscribe to real-time changes
+    const subscription = subscribeToStaffChanges('WAITER', () => {
+      fetchWaiters();
     });
-    return () => unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Listen to Kitchen Staff (Supabase)
   useEffect(() => {
-    const unsubscribe = listenToSubManagers(setSubManagers);
-    return () => unsubscribe();
+    const fetchKitchenStaff = async () => {
+      const result = await getStaffByRole('KITCHEN');
+      if (result.success) {
+        const transformed = result.data.map(k => ({
+          docId: k.id,
+          id: k.staff_id,
+          name: k.name,
+          profilePhoto: k.profile_photo,
+          secretID: k.secret_id
+        }));
+        setKitchenStaff(transformed);
+      }
+    };
+
+    fetchKitchenStaff();
+
+    const subscription = subscribeToStaffChanges('KITCHEN', () => {
+      fetchKitchenStaff();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Listen to Sub-Managers (Supabase)
   useEffect(() => {
-    const unsubscribe = listenToManagers((data) => {
-      console.log("📊 Managers loaded from Firebase:", data);
+    const fetchSubManagers = async () => {
+      const result = await getStaffByRole('SUB_MANAGER');
+      if (result.success) {
+        const transformed = result.data.map(sm => ({
+          docId: sm.id,
+          id: sm.staff_id,
+          name: sm.name,
+          profilePhoto: sm.profile_photo,
+          secretID: sm.secret_id
+        }));
+        setSubManagers(transformed);
+      }
+    };
 
-      // Always ensure only ONE manager exists - Shreyas
-      if (data && data.length > 0) {
-        console.log("✅ Found", data.length, "manager(s) in database");
+    fetchSubManagers();
 
-        // Check if Shreyas manager exists
-        const shreyasManager = data.find(m => m.id === "MGR5710");
+    const subscription = subscribeToStaffChanges('SUB_MANAGER', () => {
+      fetchSubManagers();
+    });
 
-        if (shreyasManager) {
-          // Only keep Shreyas manager
-          setManagers([shreyasManager]);
-          console.log("✅ Shreyas manager found and set as the only manager");
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Listen to Managers (Supabase)
+  useEffect(() => {
+    const fetchManagers = async () => {
+      const result = await getStaffByRole('MANAGER');
+
+      if (result.success) {
+        console.log("📊 Managers loaded from Supabase:", result.data);
+
+        if (result.data && result.data.length > 0) {
+          console.log("✅ Found", result.data.length, "manager(s) in database");
+
+          // Check if Shreyas manager exists
+          const shreyasManager = result.data.find(m => m.staff_id === "MGR5710");
+
+          if (shreyasManager) {
+            // Transform and set managers
+            const transformed = result.data.map(m => ({
+              docId: m.id,
+              id: m.staff_id,
+              name: m.name,
+              profilePhoto: m.profile_photo,
+              secretID: m.secret_id
+            }));
+            setManagers(transformed);
+            console.log("✅ Shreyas manager found");
+          } else {
+            // Create Shreyas manager
+            console.log("⚠️ Shreyas manager not found, creating...");
+            const shreyasManagerData = {
+              staff_id: "MGR5710",
+              role: "MANAGER",
+              name: "SHREYAS",
+              secret_id: "5710",
+              profile_photo: "",
+              email: ""
+            };
+            createStaffAccount(shreyasManagerData)
+              .then(() => {
+                console.log("✅ Shreyas manager created successfully!");
+                fetchManagers(); // Refetch after creation
+              })
+              .catch((error) => {
+                console.error("❌ Error creating Shreyas manager:", error);
+              });
+          }
         } else {
-          // Create Shreyas manager
-          console.log("⚠️ Shreyas manager not found, creating...");
+          console.log("⚠️ No managers found, creating Shreyas manager...");
           const shreyasManagerData = {
-            id: "MGR5710",
+            staff_id: "MGR5710",
+            role: "MANAGER",
             name: "SHREYAS",
-            secretID: "5710",
-            profilePhoto: "",
+            secret_id: "5710",
+            profile_photo: "",
             email: ""
           };
-          addManagerToDB(shreyasManagerData)
+          createStaffAccount(shreyasManagerData)
             .then(() => {
               console.log("✅ Shreyas manager created successfully!");
+              fetchManagers();
             })
             .catch((error) => {
               console.error("❌ Error creating Shreyas manager:", error);
             });
         }
-      } else {
-        console.log("⚠️ No managers found, creating Shreyas manager...");
-        // Create Shreyas as the only manager
-        const shreyasManagerData = {
-          id: "MGR5710",
-          name: "SHREYAS",
-          secretID: "5710",
-          profilePhoto: "",
-          email: ""
-        };
-        console.log("🔧 Creating Shreyas manager:", shreyasManagerData);
-        addManagerToDB(shreyasManagerData)
-          .then(() => {
-            console.log("✅ Shreyas manager created successfully!");
-          })
-          .catch((error) => {
-            console.error("❌ Error creating Shreyas manager:", error);
-          });
       }
+    };
+
+    fetchManagers();
+
+    const subscription = subscribeToStaffChanges('MANAGER', () => {
+      fetchManagers();
     });
-    return () => unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   //useEffect(() => {
@@ -333,27 +395,27 @@ export function AppProvider({ children }) {
   }, [orders, user]); // Re-run when orders change or user login changes (though mostly orders)
 
   // --- ACTIONS ---
-  const login = async (userData) => {
-    if (userData.role === "MANAGER") {
-      const activeManager = localStorage.getItem("activeManager");
-      if (activeManager && activeManager !== userData.id) {
-        throw new Error("Another manager is already logged in");
-      }
-      localStorage.setItem("activeManager", userData.id);
-    }
+  // Login with Supabase
+  const login = async (role, staffId, secretId = null, name = null) => {
+    try {
+      const result = await loginStaff(role, staffId, secretId, name);
 
-    setUser(userData);
-    localStorage.setItem("currentUser", JSON.stringify(userData));
+      if (result.success) {
+        setUser(result.user);
+        return result;
+      } else {
+        return result;
+      }
+    } catch (error) {
+      console.error('Login error in AppContext:', error);
+      return { success: false, error: error.message };
+    }
   };
 
-
+  // Logout with Supabase
   const logout = () => {
-    // Clear manager session if manager is logging out
-    if (user?.role === 'MANAGER') {
-      localStorage.removeItem('activeManager');
-    }
+    logoutStaff();
     setUser(null);
-    localStorage.removeItem('currentUser');
   };
 
   // Restore session - logic moved to useState lazy init
@@ -467,91 +529,105 @@ export function AppProvider({ children }) {
     return secret;
   };
 
+  // Staff Management with Supabase
   const addWaiter = async (name, profilePhoto = '') => {
     const secretID = generateSecretID();
-    // Generate a simple 5-digit ID suffix
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
-    const waiter = {
-      id: `W-${shortIdSuffix}`,
+    const staffData = {
+      staff_id: `W-${shortIdSuffix}`,
+      role: 'WAITER',
       name: name.trim(),
-      profilePhoto,
-      secretID
+      profile_photo: profilePhoto,
+      secret_id: secretID
     };
-    await addWaiterToDB(waiter);
-    return secretID;
+    const result = await createStaffAccount(staffData);
+    if (result.success) {
+      return secretID;
+    } else {
+      throw new Error(result.error);
+    }
   };
 
-  const removeWaiter = async (docId) => {
-    await removeWaiterFromDB(docId);
+  const removeWaiter = async (profileId) => {
+    const result = await deleteStaffAccount(profileId);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
   };
 
   const addKitchenStaff = async (name, profilePhoto = '') => {
     const secretID = generateSecretID();
-    // Generate a simple 5-digit ID suffix
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
-    const staff = {
-      id: `K-${shortIdSuffix}`,
+    const staffData = {
+      staff_id: `K-${shortIdSuffix}`,
+      role: 'KITCHEN',
       name: name.trim(),
-      profilePhoto,
-      secretID
+      profile_photo: profilePhoto,
+      secret_id: secretID
     };
-    await addKitchenStaffToDB(staff);
-    return secretID;
+    const result = await createStaffAccount(staffData);
+    if (result.success) {
+      return secretID;
+    } else {
+      throw new Error(result.error);
+    }
   };
 
-  // Kitchen Staff Management
-  //const addKitchenStaff = (name) => {
-  //  const secretID = generateSecretID();
-  //const newStaff = {
-  //  id: `KITCHEN-${Date.now()}`,
-  //name: name.trim(),
-  //secretID,
-  //createdAt: new Date().toISOString()
-  //};
-  //setKitchenStaff(prev => [...prev, newStaff]);
-  //return secretID; // Return secret ID to display immediately
-  //};
-
-  //const removeKitchenStaff = (id) => {
-  //  setKitchenStaff(prev => prev.filter(staff => staff.id !== id));
-  //};
-
-  const removeKitchenStaff = async (docId) => {
-    await removeKitchenStaffFromDB(docId);
+  const removeKitchenStaff = async (profileId) => {
+    const result = await deleteStaffAccount(profileId);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
   };
 
   const addSubManager = async (name, profilePhoto = '') => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
-    const subManager = {
-      id: `SM-${shortIdSuffix}`,
+    const staffData = {
+      staff_id: `SM-${shortIdSuffix}`,
+      role: 'SUB_MANAGER',
       name: name.trim(),
-      profilePhoto,
-      secretID
+      profile_photo: profilePhoto,
+      secret_id: secretID
     };
-    await addSubManagerToDB(subManager);
-    return secretID;
+    const result = await createStaffAccount(staffData);
+    if (result.success) {
+      return secretID;
+    } else {
+      throw new Error(result.error);
+    }
   };
 
-  const removeSubManager = async (docId) => {
-    await removeSubManagerFromDB(docId);
+  const removeSubManager = async (profileId) => {
+    const result = await deleteStaffAccount(profileId);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
   };
 
   const addManager = async (name, profilePhoto = '') => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
-    const manager = {
-      id: `MGR-${shortIdSuffix}`,
+    const staffData = {
+      staff_id: `MGR-${shortIdSuffix}`,
+      role: 'MANAGER',
       name: name.trim(),
-      profilePhoto,
-      secretID
+      profile_photo: profilePhoto,
+      secret_id: secretID
     };
-    await addManagerToDB(manager);
-    return secretID;
+    const result = await createStaffAccount(staffData);
+    if (result.success) {
+      return secretID;
+    } else {
+      throw new Error(result.error);
+    }
   };
 
-  const removeManager = async (docId) => {
-    await removeManagerFromDB(docId);
+  const removeManager = async (profileId) => {
+    const result = await deleteStaffAccount(profileId);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
   };
   useEffect(() => {
     const unsubscribe = listenToTables(setTables);
@@ -571,57 +647,8 @@ export function AppProvider({ children }) {
   };
 
 
-  // Validate secret ID for login
-  const validateSecretID = (role, id, secretID) => {
-    console.log("🔐 Validating credentials:", { role, id, secretID });
 
-    // Safety checks for input parameters
-    if (!id || !secretID) {
-      console.log("❌ Missing id or secretID");
-      return null;
-    }
-
-    if (role === 'WAITER') {
-      console.log("👨‍🍳 Checking waiters:", waiters);
-      // Case-insensitive ID matching with null checks
-      const waiter = waiters.find(w =>
-        w?.id?.toUpperCase() === id.toUpperCase() &&
-        w?.secretID?.toUpperCase() === secretID.toUpperCase()
-      );
-      console.log("Waiter found:", waiter);
-      return waiter ? { name: waiter.name, id: waiter.id, profilePhoto: waiter.profilePhoto } : null;
-    } else if (role === 'KITCHEN') {
-      console.log("🍳 Checking kitchen staff:", kitchenStaff);
-      // Case-insensitive ID matching with null checks
-      const staff = kitchenStaff.find(s =>
-        s?.id?.toUpperCase() === id.toUpperCase() &&
-        s?.secretID?.toUpperCase() === secretID.toUpperCase()
-      );
-      console.log("Kitchen staff found:", staff);
-      return staff ? { name: staff.name, id: staff.id, profilePhoto: staff.profilePhoto } : null;
-    } else if (role === 'SUB_MANAGER') {
-      console.log("🤵 Checking sub managers:", subManagers);
-      const sm = subManagers.find(s =>
-        s?.id?.toUpperCase() === id.toUpperCase() &&
-        s?.secretID?.toUpperCase() === secretID.toUpperCase()
-      );
-      console.log("Sub manager found:", sm);
-      return sm ? { name: sm.name, id: sm.id, profilePhoto: sm.profilePhoto } : null;
-    } else if (role === 'MANAGER') {
-      console.log("👔 Checking managers:", managers);
-      console.log("Looking for ID:", id.toUpperCase(), "Secret:", secretID.toUpperCase());
-      const manager = managers.find(m => {
-        console.log("Comparing with manager:", m);
-        const idMatch = m?.id?.toUpperCase() === id.toUpperCase();
-        const secretMatch = m?.secretID?.toUpperCase() === secretID.toUpperCase();
-        console.log("ID match:", idMatch, "Secret match:", secretMatch);
-        return idMatch && secretMatch;
-      });
-      console.log("Manager found:", manager);
-      return manager ? { name: manager.name, id: manager.id, profilePhoto: manager.profilePhoto } : null;
-    }
-    return null;
-  };
+  // validateSecretID removed - now handled by Supabase authService
 
   return (
     <AppContext.Provider value={{
@@ -639,7 +666,6 @@ export function AppProvider({ children }) {
       kitchenStaff, addKitchenStaff, removeKitchenStaff,
       subManagers, addSubManager, removeSubManager,
       managers, addManager, removeManager,
-      validateSecretID,
       language, setLanguage, t, translations,
       theme, toggleTheme
     }}>

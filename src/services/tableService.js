@@ -1,43 +1,111 @@
-import { db } from "../firebase";
-import {
-  collection,
-  addDoc,
-  onSnapshot,
-  deleteDoc,
-  doc,
-  updateDoc
-} from "firebase/firestore";
+import { supabase } from "../supabaseClient";
 
-const tableRef = collection(db, "tables");
+/**
+ * Table Service - Supabase Implementation
+ * Replaces Firebase tableService.js
+ */
 
 // ADD TABLE
 export const addTableToDB = async (tableNo) => {
-  await addDoc(tableRef, {
-    tableNo: Number(tableNo),
-    active: true,
-    status: 'active', // Default status
-    createdAt: new Date()
-  });
+  try {
+    const { data, error } = await supabase
+      .from('tables')
+      .insert([{
+        table_number: String(tableNo),
+        capacity: 4,
+        status: 'available'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error adding table:", error);
+    throw error;
+  }
 };
 
 // LISTEN TO TABLES (REAL-TIME)
 export const listenToTables = (setTables) => {
-  return onSnapshot(tableRef, (snapshot) => {
-    const data = snapshot.docs.map(doc => ({
-      docId: doc.id,
-      ...doc.data()
+  // Initial fetch
+  const fetchTables = async () => {
+    const { data, error } = await supabase
+      .from('tables')
+      .select('*')
+      .order('table_number', { ascending: true });
+
+    if (error) {
+      console.error("Error fetching tables:", error);
+      return;
+    }
+
+    // Transform to match Firebase format
+    const transformedTables = (data || []).map(table => ({
+      docId: table.id,
+      tableNo: table.table_number,
+      capacity: table.capacity,
+      status: table.status,
+      qrCode: table.qr_code
     }));
-    setTables(data);
-  });
+
+    setTables(transformedTables);
+  };
+
+  fetchTables();
+
+  // Subscribe to real-time changes
+  const subscription = supabase
+    .channel('tables_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'tables'
+      },
+      (payload) => {
+        console.log('Table change detected:', payload);
+        fetchTables();
+      }
+    )
+    .subscribe();
+
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
 };
 
 // UPDATE TABLE STATUS
 export const updateTableStatusInDB = async (docId, status) => {
-  const ref = doc(db, "tables", docId);
-  await updateDoc(ref, { status });
+  try {
+    const { data, error } = await supabase
+      .from('tables')
+      .update({ status })
+      .eq('id', docId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating table status:", error);
+    throw error;
+  }
 };
 
 // REMOVE TABLE
 export const removeTableFromDB = async (docId) => {
-  await deleteDoc(doc(db, "tables", docId));
+  try {
+    const { error } = await supabase
+      .from('tables')
+      .delete()
+      .eq('id', docId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error removing table:", error);
+    throw error;
+  }
 };
