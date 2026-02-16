@@ -6,7 +6,7 @@ import {
   removeTableFromDB,
   updateTableStatusInDB
 } from "../services/tableService";
-import { addOrderToDB, listenToOrders, updateOrderInDB, deleteOrderFromDB } from "../services/orderService";
+import { addOrderToDB, listenToOrders, updateOrderStatus as updateOrderInDB, deleteOrder as deleteOrderFromDB } from "../services/orderService";
 import { translations } from '../utils/translations';
 import { playNotificationSound, playUrgentNotificationSound } from '../utils/soundUtils';
 import {
@@ -498,7 +498,7 @@ export function AppProvider({ children }) {
   const updateOrderStatus = async (orderId, status) => {
     const order = orders.find(o => o.id === orderId);
     if (order && order.docId) {
-      await updateOrderInDB(order.docId, { status });
+      await updateOrderInDB(order.docId, status);
     }
   };
 

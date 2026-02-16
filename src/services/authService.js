@@ -1,6 +1,5 @@
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
-import { logLoginFailure } from './errorLoggingService';
 
 /**
  * Authentication Service for Supabase
@@ -139,7 +138,6 @@ export const loginStaff = async (role, staffId, secretId = null, name = null) =>
 
         if (!validatedUser) {
             toast.error('Invalid credentials');
-            await logLoginFailure(staffId, role, 'Invalid credentials');
             throw new Error('Invalid credentials');
         }
 
@@ -148,7 +146,6 @@ export const loginStaff = async (role, staffId, secretId = null, name = null) =>
             const activeManager = localStorage.getItem('activeManager');
             if (activeManager && activeManager !== staffId.toUpperCase()) {
                 toast.error('Another manager is already logged in');
-                await logLoginFailure(staffId, role, 'Another manager already logged in');
                 throw new Error('Another manager is already logged in');
             }
             localStorage.setItem('activeManager', staffId.toUpperCase());
