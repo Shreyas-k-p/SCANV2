@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
  */
 export const validateStaffCredentials = async (role, staffId, secretId) => {
     try {
-        console.log('🔐 Validating credentials:', { role, staffId });
+
 
         // Query profiles table for matching staff
         const { data, error } = await supabase
@@ -32,7 +32,7 @@ export const validateStaffCredentials = async (role, staffId, secretId) => {
         }
 
         if (data) {
-            console.log('✅ Staff validated:', data);
+
             return {
                 id: data.id,
                 staffId: data.staff_id,
@@ -268,7 +268,7 @@ export const subscribeToStaffChanges = (role, callback) => {
                 filter: `role=eq.${role.toUpperCase()}`
             },
             (payload) => {
-                console.log('Staff change detected:', payload);
+
                 callback(payload);
             }
         )

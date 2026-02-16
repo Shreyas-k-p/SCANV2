@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { User, Utensils, Shield, Users, Lock, ChevronRight } from 'lucide-react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import BrandLogo from '../components/BrandLogo';
 import './Login.css';
 
 const Login = () => {
@@ -60,9 +61,7 @@ const Login = () => {
                 // For MANAGER and SUB_MANAGER: ID + Secret Code required
                 if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
 
-                console.log(`🔐 Attempting ${upperRole} login...`);
-                console.log("Input - Staff ID:", upperId);
-                console.log("Input - Secret Code:", secretId);
+
 
                 // Validate against Supabase
                 const result = await login(upperRole, upperId, secretId);
@@ -72,7 +71,7 @@ const Login = () => {
                     throw new Error(result.error || "Invalid credentials");
                 }
 
-                console.log("✅ User validated successfully:", result.user);
+
 
                 navigate(upperRole === 'MANAGER' ? '/manager' : '/sub-manager');
             }
@@ -86,10 +85,15 @@ const Login = () => {
     return (
         <div className="login-wrapper">
             <div className="login-card-container">
+                <div className="card-corner top-left"></div>
+                <div className="card-corner top-right"></div>
+                <div className="card-corner bottom-left"></div>
+                <div className="card-corner bottom-right"></div>
+
                 {/* Brand Header */}
                 <div className="login-brand">
-                    <div className="brand-logo">
-                        <Utensils size={40} color="#fff" />
+                    <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                        <BrandLogo size={90} />
                     </div>
                     <h1>Scan<span>4</span>Serve</h1>
                     <p>{t('smartRestaurantOS')}</p>

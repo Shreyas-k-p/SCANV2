@@ -45,7 +45,7 @@ export default function KitchenDashboard() {
                 oscillator1.stop(audioContext.currentTime + 0.5);
                 oscillator2.stop(audioContext.currentTime + 0.5);
 
-                console.log("🔔 Kitchen notification sound played!");
+
             } catch (error) {
                 console.error("Error playing notification sound:", error);
             }
@@ -56,7 +56,7 @@ export default function KitchenDashboard() {
                 navigator.vibrate([400, 100, 400, 100, 400]);
             }
 
-            console.log("📳 Kitchen notification triggered for new order!");
+
         }
 
         setNewOrdersCount(count);

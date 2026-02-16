@@ -134,7 +134,7 @@ export const subscribeToUserChanges = (userId, callback) => {
                 filter: `id=eq.${userId}`
             },
             (payload) => {
-                console.log('User profile changed:', payload);
+
                 callback(payload);
             }
         )
@@ -157,7 +157,7 @@ export const subscribeToAllStaffChanges = (callback) => {
                 table: 'profiles'
             },
             (payload) => {
-                console.log('Staff change detected:', payload);
+
                 callback(payload);
             }
         )

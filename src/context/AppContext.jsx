@@ -167,7 +167,7 @@ export function AppProvider({ children }) {
         const parsedOrders = JSON.parse(localOrders);
         if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
           // eslint-disable-next-line no-console
-          console.log("Migrating " + parsedOrders.length + " orders to Firestore...");
+
           parsedOrders.forEach((order) => {
             // Only add if it doesn't look like it has a firestore ID yet (though local ones definitely won't)
             addOrderToDB(order);
@@ -275,63 +275,16 @@ export function AppProvider({ children }) {
       const result = await getStaffByRole('MANAGER');
 
       if (result.success) {
-        console.log("📊 Managers loaded from Supabase:", result.data);
-
         if (result.data && result.data.length > 0) {
-          console.log("✅ Found", result.data.length, "manager(s) in database");
-
-          // Check if Shreyas manager exists
-          const shreyasManager = result.data.find(m => m.staff_id === "MGR5710");
-
-          if (shreyasManager) {
-            // Transform and set managers
-            const transformed = result.data.map(m => ({
-              docId: m.id,
-              id: m.staff_id,
-              name: m.name,
-              profilePhoto: m.profile_photo,
-              secretID: m.secret_id
-            }));
-            setManagers(transformed);
-            console.log("✅ Shreyas manager found");
-          } else {
-            // Create Shreyas manager
-            console.log("⚠️ Shreyas manager not found, creating...");
-            const shreyasManagerData = {
-              staff_id: "MGR5710",
-              role: "MANAGER",
-              name: "SHREYAS",
-              secret_id: "5710",
-              profile_photo: "",
-              email: ""
-            };
-            createStaffAccount(shreyasManagerData)
-              .then(() => {
-                console.log("✅ Shreyas manager created successfully!");
-                fetchManagers(); // Refetch after creation
-              })
-              .catch((error) => {
-                console.error("❌ Error creating Shreyas manager:", error);
-              });
-          }
-        } else {
-          console.log("⚠️ No managers found, creating Shreyas manager...");
-          const shreyasManagerData = {
-            staff_id: "MGR5710",
-            role: "MANAGER",
-            name: "SHREYAS",
-            secret_id: "5710",
-            profile_photo: "",
-            email: ""
-          };
-          createStaffAccount(shreyasManagerData)
-            .then(() => {
-              console.log("✅ Shreyas manager created successfully!");
-              fetchManagers();
-            })
-            .catch((error) => {
-              console.error("❌ Error creating Shreyas manager:", error);
-            });
+          // Transform and set managers
+          const transformed = result.data.map(m => ({
+            docId: m.id,
+            id: m.staff_id,
+            name: m.name,
+            profilePhoto: m.profile_photo,
+            secretID: m.secret_id
+          }));
+          setManagers(transformed);
         }
       }
     };

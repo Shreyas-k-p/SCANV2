@@ -10,7 +10,7 @@ window.onerror = function (msg, url, line) {
   alert("Application Error: " + msg + "\nLine: " + line);
 };
 
-console.log('Mounting App verified...');
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

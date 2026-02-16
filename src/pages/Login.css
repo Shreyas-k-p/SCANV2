@@ -1,41 +1,36 @@
-/* Login Page Styles - Premium Aesthetics V6 */
+/* Login Page Styles - Tech/Cyber Theme (Matching BrandLogo) */
 :root {
-  /* Light Mode: Soft, Dreamy, Attractive */
-  --login-bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  --login-card-bg: rgba(255, 255, 255, 0.75);
-  --login-card-border: rgba(255, 255, 255, 0.8);
-  --login-text-main: #2d3436;
-  --login-text-dim: #636e72;
-  --login-accent: #6c5ce7;
-  /* High quality purple */
-  --login-accent-gradient: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
-  --login-nav-gradient: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
-  /* Fresh */
-  --login-input-bg: rgba(255, 255, 255, 0.6);
-  --login-input-border: rgba(0, 0, 0, 0.08);
-  --login-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  --login-glow: 0 0 20px rgba(108, 92, 231, 0.2);
-}
-
-[data-theme='light'] {
-  /* Overriding with a more colorful "Aurora" Light Theme */
-  --login-bg-gradient: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
-  --login-accent: #5844bc;
+  /* Default (Light Mode) - Clean Tech */
+  --login-bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  --login-card-bg: rgba(255, 255, 255, 0.85);
+  --login-card-border: rgba(34, 211, 238, 0.3);
+  --login-text-main: #0f172a;
+  --login-text-dim: #64748b;
+  --login-accent: #06b6d4;
+  /* Cyan-500 */
+  --login-accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  /* Cyan to Blue */
+  --login-nav-gradient: linear-gradient(135deg, #22d3ee 0%, #60a5fa 100%);
+  --login-input-bg: rgba(255, 255, 255, 0.8);
+  --login-input-border: rgba(34, 211, 238, 0.2);
+  --login-shadow: 0 10px 40px -10px rgba(6, 182, 212, 0.2);
+  --login-glow: 0 0 20px rgba(6, 182, 212, 0.3);
 }
 
 [data-theme='dark'] {
-  /* Dark Mode: Deep, Rich, Cyber-Premium */
-  --login-bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-  --login-card-bg: rgba(16, 24, 40, 0.7);
-  --login-card-border: rgba(255, 255, 255, 0.1);
-  --login-text-main: #ffffff;
-  --login-text-dim: #a0a0a0;
-  --login-accent: #00cec9;
-  --login-accent-gradient: linear-gradient(135deg, #00cec9 0%, #81ecec 100%);
-  --login-input-bg: rgba(0, 0, 0, 0.3);
-  --login-input-border: rgba(255, 255, 255, 0.1);
-  --login-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  --login-glow: 0 0 25px rgba(0, 206, 201, 0.3);
+  /* Dark Mode - Deep Cyber/Hacker Theme */
+  --login-bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e293b 100%);
+  --login-card-bg: rgba(15, 23, 42, 0.8);
+  --login-card-border: rgba(34, 211, 238, 0.3);
+  --login-text-main: #f1f5f9;
+  --login-text-dim: #94a3b8;
+  --login-accent: #22d3ee;
+  /* Cyan-400 */
+  --login-accent-gradient: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+  --login-input-bg: rgba(2, 6, 23, 0.5);
+  --login-input-border: rgba(34, 211, 238, 0.2);
+  --login-shadow: 0 10px 50px -10px rgba(34, 211, 238, 0.15);
+  --login-glow: 0 0 25px rgba(34, 211, 238, 0.4);
 }
 
 .login-wrapper {
@@ -53,6 +48,19 @@
   transition: all 0.5s ease;
 }
 
+/* Add a subtle grid overlay for tech feel */
+.login-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  pointer-events: none;
+}
+
 @keyframes gradientFlow {
   0% {
     background-position: 0% 50%;
@@ -67,13 +75,13 @@
   }
 }
 
-/* Glassmorphism Card */
+/* Glassmorphism Card with Tech Frame */
 .login-card-container {
   width: 100%;
   max-width: 440px;
   background: var(--login-card-bg);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--login-card-border);
   border-radius: 24px;
   box-shadow: var(--login-shadow);
@@ -81,14 +89,65 @@
   position: relative;
   z-index: 10;
   overflow: visible;
-  /* Allowed for mascot overlap if needed */
+  /* Important for corner accents */
   animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Corner Accents (Matching Logo) */
+.card-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-color: var(--login-accent);
+  border-style: solid;
+  border-width: 0;
+  box-shadow: 0 0 15px var(--login-accent);
+  opacity: 0.8;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.login-card-container:hover .card-corner {
+  box-shadow: 0 0 20px var(--login-accent);
+  opacity: 1;
+}
+
+.card-corner.top-left {
+  top: -2px;
+  left: -2px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-top-left-radius: 20px;
+}
+
+.card-corner.top-right {
+  top: -2px;
+  right: -2px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+  border-top-right-radius: 20px;
+}
+
+.card-corner.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  border-bottom-left-radius: 20px;
+}
+
+.card-corner.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  border-bottom-right-radius: 20px;
 }
 
 @keyframes cardEntrance {
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.98);
+    transform: translateY(30px) scale(0.95);
   }
 
   to {
@@ -103,30 +162,13 @@
   text-align: center;
 }
 
-.brand-logo {
-  width: 72px;
-  height: 72px;
-  background: var(--login-accent-gradient);
-  border-radius: 20px;
-  margin: 0 auto 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  transform: rotate(-3deg);
-  transition: transform 0.3s ease;
-}
-
-.login-card-container:hover .brand-logo {
-  transform: rotate(0) scale(1.05);
-}
-
 .login-brand h1 {
   font-size: 2rem;
   font-weight: 800;
   margin: 0;
   color: var(--login-text-main);
   letter-spacing: -0.5px;
+  text-transform: uppercase;
 }
 
 .login-brand h1 span {
@@ -135,14 +177,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.3));
 }
 
 .login-brand p {
   color: var(--login-text-dim);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.85rem;
+  font-weight: 600;
   margin-top: 0.5rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
@@ -190,16 +233,17 @@
 }
 
 .role-pill:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(34, 211, 238, 0.1);
   transform: translateY(-2px);
   border-color: var(--login-accent);
+  box-shadow: 0 5px 15px rgba(34, 211, 238, 0.1);
 }
 
 .role-pill.active {
   background: var(--login-accent-gradient);
   color: white;
   border-color: transparent;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px rgba(34, 211, 238, 0.4);
 }
 
 /* Floating Input Groups */
@@ -238,7 +282,7 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--login-text-dim);
-  transition: colro 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 .floating-input:focus~.input-icon {
@@ -263,7 +307,6 @@
   font-size: 0.75rem;
   color: var(--login-accent);
   background: var(--login-card-bg);
-  /* Match card bg to hide line */
   border-radius: 4px;
   padding: 2px 6px;
   font-weight: 700;
@@ -286,12 +329,12 @@
   justify-content: center;
   gap: 8px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
 }
 
 .login-submit-btn:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 211, 238, 0.5);
 }
 
 .customer-link {
@@ -308,6 +351,7 @@
 .customer-link:hover {
   color: var(--login-accent);
   text-decoration: underline;
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
 }
 
 .login-footer-tools {

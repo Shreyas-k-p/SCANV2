@@ -24,7 +24,7 @@ export default function WaiterDashboard() {
                 // Vibration pattern: vibrate for 200ms, pause 100ms, vibrate 200ms
                 navigator.vibrate([200, 100, 200]);
             }
-            console.log("📳 Vibration triggered for ready order!");
+
         }
 
         setReadyOrdersCount(count);

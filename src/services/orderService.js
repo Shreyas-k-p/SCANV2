@@ -59,7 +59,7 @@ export const addOrderToDB = async (order) => {
             throw new Error(`Failed to create order: ${error.message}`);
         }
 
-        console.log("✅ Order created successfully:", data.id);
+
         toast.success('Order placed successfully!');
         return data.id;
     } catch (error) {
@@ -113,7 +113,7 @@ export const updateOrderStatus = async (orderId, newStatus) => {
             throw new Error(`Failed to update status: ${error.message}`);
         }
 
-        console.log(`✅ Order ${orderId} status updated: ${currentOrder.status} → ${newStatus}`);
+
         toast.success(`Order status updated to ${newStatus}`);
         return data;
     } catch (error) {
@@ -180,7 +180,7 @@ export const listenToOrders = (setOrders) => {
                 table: 'orders'
             },
             (payload) => {
-                console.log('📡 Order change detected:', payload);
+
                 fetchOrders(); // Refresh all orders
             }
         )
@@ -211,7 +211,7 @@ export const deleteOrder = async (orderId) => {
             throw new Error(`Failed to delete order: ${error.message}`);
         }
 
-        console.log("✅ Order deleted successfully:", orderId);
+
     } catch (error) {
         console.error("❌ Error in deleteOrder:", error);
         throw error;
@@ -298,7 +298,7 @@ export const assignWaiterToOrder = async (orderId, waiterId) => {
             throw new Error(`Failed to assign waiter: ${error.message}`);
         }
 
-        console.log("✅ Waiter assigned successfully");
+
         return { success: true, data };
     } catch (error) {
         console.error("❌ Error in assignWaiterToOrder:", error);

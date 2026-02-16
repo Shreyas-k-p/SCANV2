@@ -65,7 +65,7 @@ export const listenToTables = (setTables) => {
         table: 'tables'
       },
       (payload) => {
-        console.log('Table change detected:', payload);
+
         fetchTables();
       }
     )

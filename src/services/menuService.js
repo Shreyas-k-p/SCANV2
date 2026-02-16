@@ -60,7 +60,7 @@ export const listenToMenu = (setMenuItems) => {
         table: 'menu_items'
       },
       (payload) => {
-        console.log('Menu change detected:', payload);
+
         fetchMenu(); // Refetch all items on any change
       }
     )
