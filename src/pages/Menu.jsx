@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import PaymentModal from '../components/PaymentModal';
+
 
 import './Menu.css';
 
@@ -15,9 +16,22 @@ export default function Menu() {
     const [showCart, setShowCart] = useState(false);
     const [showOrders, setShowOrders] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-    const [tableNumber, setTableNumber] = useState(() => localStorage.getItem('customerTableNumber') || '');
+    const [searchParams] = useSearchParams();
+    const tableIdFromUrl = searchParams.get('table');
+
+    const [tableNumber, setTableNumber] = useState(() => {
+        if (tableIdFromUrl) return tableIdFromUrl;
+        return localStorage.getItem('customerTableNumber') || '';
+    });
+
+    useEffect(() => {
+        if (tableIdFromUrl) {
+            setTableNumber(tableIdFromUrl);
+            localStorage.setItem('customerTableNumber', tableIdFromUrl);
+        }
+    }, [tableIdFromUrl]);
+
     const [myOrderIds, setMyOrderIds] = useState(() => {
         const saved = localStorage.getItem('myOrderIds');
         return saved ? JSON.parse(saved) : [];
@@ -786,9 +800,10 @@ export default function Menu() {
                                         const myOrders = orders
                                             .filter(o =>
                                                 myOrderIds.includes(o.id) &&
-                                                String(o.tableNo) === String(tableNumber).trim()
+                                                String(o.tableNo) === String(tableNumber).trim() &&
+                                                o.status !== 'completed' && o.status !== 'billed'
                                             )
-                                            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                                            .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
 
                                         if (myOrders.length === 0) {
                                             return (
@@ -808,42 +823,7 @@ export default function Menu() {
                                                         <span style={{ fontWeight: '600', color: 'var(--text-dim)' }}>Session Total:</span>
                                                         <span style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--accent)' }}>₹{grandTotal}</span>
                                                     </div>
-
-                                                    <button
-                                                        onClick={() => setShowPaymentModal(true)}
-                                                        className="btn"
-                                                        style={{
-                                                            width: '100%',
-                                                            padding: '0.9rem',
-                                                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '12px',
-                                                            fontSize: '1rem',
-                                                            fontWeight: '700',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '0.5rem',
-                                                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                                                        }}
-                                                    >
-                                                        💳 Pay Bill
-                                                    </button>
                                                 </div>
-
-                                                {showPaymentModal && (
-                                                    <PaymentModal
-                                                        table={{ tableNo: tableNumber }}
-                                                        totalAmount={grandTotal}
-                                                        onClose={() => setShowPaymentModal(false)}
-                                                        onPaymentInitiated={() => {
-                                                            setShowPaymentModal(false);
-                                                            alert("Payment Initiated via UPI! Please show the confirmation to the waiter.");
-                                                        }}
-                                                    />
-                                                )}
 
                                                 <h4 style={{ margin: '1.5rem 0 1rem 0', color: 'var(--text-dim)' }}>Order Details</h4>
 
@@ -868,7 +848,7 @@ export default function Menu() {
 
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', paddingLeft: '10px' }}>
                                                             <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-                                                                {new Date(order.timestamp).toLocaleTimeString()}
+                                                                {new Date(order.createdAt || order.timestamp).toLocaleTimeString()}
                                                             </span>
                                                             <span className={`badge ${order.status === 'ready' ? 'badge-warning' : order.status === 'completed' ? 'badge-success' : 'badge-primary'}`} style={{ fontSize: '0.75rem' }}>
                                                                 {order.status.toUpperCase()}

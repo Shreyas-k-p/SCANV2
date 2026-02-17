@@ -1,5 +1,7 @@
 import { supabase } from "../supabaseClient";
 import toast from 'react-hot-toast';
+import { publishMQTT } from "./mqttService";
+import { updateTableStatusByNumber } from "./tableService";
 
 /**
  * Order Service - Production-Ready Supabase Implementation
@@ -8,9 +10,9 @@ import toast from 'react-hot-toast';
 
 // Valid order status transitions
 const VALID_TRANSITIONS = {
-    pending: ['preparing', 'cancelled'],
-    preparing: ['ready', 'cancelled'],
-    ready: ['served', 'cancelled'],
+    pending: ['preparing', 'ready', 'cancelled', 'completed'],
+    preparing: ['ready', 'cancelled', 'completed'],
+    ready: ['served', 'cancelled', 'completed'],
     served: ['completed', 'cancelled'],
     completed: [],
     cancelled: []
@@ -24,6 +26,8 @@ const isValidTransition = (currentStatus, newStatus) => {
     return VALID_TRANSITIONS[currentStatus]?.includes(newStatus) || false;
 };
 
+
+
 /**
  * ADD ORDER
  */
@@ -35,6 +39,11 @@ export const addOrderToDB = async (order) => {
 
         if (!order.totalAmount || order.totalAmount <= 0) {
             throw new Error('Order total must be greater than zero');
+        }
+
+        // Set table to occupied immediately
+        if (order.tableNo) {
+            await updateTableStatusByNumber(order.tableNo, 'occupied');
         }
 
         const { data, error } = await supabase
@@ -61,6 +70,19 @@ export const addOrderToDB = async (order) => {
 
 
         toast.success('Order placed successfully!');
+
+        // MQTT Service Integration
+        await publishMQTT({
+            type: "ORDER_PLACED",
+            table_id: order.tableNo,
+            order_id: order.id,
+            items: order.items.map(i => ({
+                name: i.name,
+                qty: i.quantity
+            })),
+            total: order.totalAmount
+        });
+
         return data.id;
     } catch (error) {
         console.error("❌ Error in addOrderToDB:", error);
@@ -81,7 +103,7 @@ export const updateOrderStatus = async (orderId, newStatus) => {
         // Fetch current order
         const { data: currentOrder, error: fetchError } = await supabase
             .from('orders')
-            .select('status')
+            .select('status, table_number, order_id')
             .eq('id', orderId)
             .single();
 
@@ -115,6 +137,16 @@ export const updateOrderStatus = async (orderId, newStatus) => {
 
 
         toast.success(`Order status updated to ${newStatus}`);
+
+        // MQTT Updates
+        if (newStatus === 'preparing') {
+            await publishMQTT({
+                type: "PREPARING",
+                table_id: currentOrder.table_number,
+                order_id: currentOrder.order_id
+            });
+        }
+
         return data;
     } catch (error) {
         console.error("❌ Error in updateOrderStatus:", error);

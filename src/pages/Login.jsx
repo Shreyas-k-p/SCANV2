@@ -40,39 +40,20 @@ const Login = () => {
         await new Promise(resolve => setTimeout(resolve, 800));
 
         const { id, name, role, secretId } = formData;
-        const upperId = id.toUpperCase().trim();
+        const upperId = id ? id.toUpperCase().trim() : '';
         const upperRole = role.toUpperCase();
 
         try {
             if (upperRole === 'WAITER' || upperRole === 'KITCHEN') {
-                // For WAITER and KITCHEN: ID + Name (no secret required for basic validation)
-                if (!upperId || !name.trim()) throw new Error("ID and Name are required");
-
-                // Validate against Supabase
+                if (!upperId || !name || !name.trim()) throw new Error("ID and Name are required");
                 const result = await login(upperRole, upperId, null, name.trim());
-
-                if (!result.success) {
-                    throw new Error(result.error || "Invalid credentials");
-                }
-
+                if (!result.success) throw new Error(result.error || "Invalid credentials");
                 navigate(upperRole === 'WAITER' ? '/waiter' : '/kitchen');
             }
             else if (upperRole === 'MANAGER' || upperRole === 'SUB_MANAGER') {
-                // For MANAGER and SUB_MANAGER: ID + Secret Code required
                 if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
-
-
-
-                // Validate against Supabase
                 const result = await login(upperRole, upperId, secretId);
-
-                if (!result.success) {
-                    console.error("❌ Validation failed:", result.error);
-                    throw new Error(result.error || "Invalid credentials");
-                }
-
-
-
+                if (!result.success) throw new Error(result.error || "Invalid credentials");
                 navigate(upperRole === 'MANAGER' ? '/manager' : '/sub-manager');
             }
         } catch (err) {
@@ -138,7 +119,6 @@ const Login = () => {
                                 <label>{t('staffId')}</label>
                             </div>
 
-
                             {(formData.role === 'WAITER' || formData.role === 'KITCHEN' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
                                 <div className="floating-input-group">
                                     <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
@@ -170,7 +150,7 @@ const Login = () => {
                             )}
                         </div>
 
-                        {error && <div className="error-banner">{error}</div>}
+                        {error && <div className="error-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{error}</div>}
 
                         <button type="submit" className="login-submit-btn" disabled={isLoading}>
                             {isLoading ? (
@@ -185,11 +165,9 @@ const Login = () => {
                         {t('continueAsCustomer')}
                     </button>
 
-                    {/* Integrated Footer Tools */}
                     <div className="login-footer-tools">
                         <LanguageSwitcher />
                     </div>
-
                 </div>
             </div>
         </div>

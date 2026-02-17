@@ -143,11 +143,6 @@ export const loginStaff = async (role, staffId, secretId = null, name = null) =>
 
         // Check for active manager session (only one manager at a time)
         if (role === 'MANAGER') {
-            const activeManager = localStorage.getItem('activeManager');
-            if (activeManager && activeManager !== staffId.toUpperCase()) {
-                toast.error('Another manager is already logged in');
-                throw new Error('Another manager is already logged in');
-            }
             localStorage.setItem('activeManager', staffId.toUpperCase());
         }
 

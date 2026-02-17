@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import PWAInstall from './components/PWAInstall';
 import Login from './pages/Login';
@@ -9,6 +10,7 @@ import KitchenDashboard from './pages/KitchenDashboard';
 
 import ManagerDashboard from './pages/ManagerDashboard';
 import SubManagerDashboard from './pages/SubManagerDashboard';
+import CustomerScreen from './pages/CustomerScreen';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -29,6 +31,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 function App() {
   return (
     <AppProvider>
+      <Toaster position="top-right" />
       <BrowserRouter>
         <Layout>
           <Routes>
@@ -58,6 +61,8 @@ function App() {
                 <ManagerDashboard />
               </ProtectedRoute>
             } />
+
+            <Route path="/table/:id" element={<CustomerScreen />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />

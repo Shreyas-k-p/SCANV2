@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
+import { publishMQTT } from '../services/mqttService';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
@@ -283,7 +284,7 @@ export default function KitchenDashboard() {
                                             </div>
                                         ))}
                                     </div>
-                                    {order.status === 'pending' ? (
+                                    {['pending', 'preparing'].includes(order.status) ? (
                                         <button
                                             className="btn btn-primary"
                                             style={{
@@ -292,7 +293,14 @@ export default function KitchenDashboard() {
                                                 fontSize: '1rem',
                                                 fontWeight: '700'
                                             }}
-                                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                                            onClick={async () => {
+                                                await updateOrderStatus(order.id, 'ready');
+                                                publishMQTT({
+                                                    type: "ORDER_READY",
+                                                    table_id: order.tableNo,
+                                                    order_id: order.id
+                                                });
+                                            }}
                                         >
                                             ✅ {t('markReady')}
                                         </button>

@@ -95,6 +95,25 @@ export const updateTableStatusInDB = async (docId, status) => {
   }
 };
 
+// UPDATE TABLE STATUS BY NUMBER
+export const updateTableStatusByNumber = async (tableNo, status) => {
+  try {
+    const { data, error } = await supabase
+      .from('tables')
+      .update({ status })
+      .eq('table_number', String(tableNo))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating table status by number:", error);
+    // Don't throw, just log, to avoid blocking order creation flow
+    return null;
+  }
+};
+
 // REMOVE TABLE
 export const removeTableFromDB = async (docId) => {
   try {

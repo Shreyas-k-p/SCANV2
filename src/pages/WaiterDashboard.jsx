@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
+import { publishMQTT } from '../services/mqttService'; // Import MQTT helper
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import BillPrint from '../components/BillPrint';
@@ -11,7 +12,9 @@ export default function WaiterDashboard() {
     const [showBillPrint, setShowBillPrint] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
 
-    const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed');
+    const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed' && o.status !== 'cancelled');
+    // Helper to get ALL orders for a table (including completed) for billing
+    const getPrintableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'cancelled');
 
     // Count ready orders and trigger vibration
     useEffect(() => {
@@ -42,13 +45,36 @@ export default function WaiterDashboard() {
 
     const handleServeOrder = async (orderId) => {
         if (confirm("Confirm this order has been served?")) {
-            await updateOrderStatus(orderId, 'completed');
+            await updateOrderStatus(orderId, 'served');
+
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                publishMQTT({
+                    type: "ORDER_SERVED",
+                    table_id: order.tableNo,
+                    order_id: order.id
+                });
+            }
         }
     };
 
     const handleBillTable = async (table) => {
         if (confirm(`Generate bill for Table ${table.tableNo}? This will lock the table for customers.`)) {
-            await updateTableStatus(table.docId, 'billed');
+            const tableOrders = getTableOrders(table.tableNo);
+            const totalAmount = tableOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+            // Mark orders as completed so they disappear from the active view but we can still fetch them for the bill
+            await Promise.all(tableOrders.map(o => updateOrderStatus(o.id, 'completed')));
+
+            await publishMQTT({
+                type: "PAYMENT_REQUEST",
+                table_id: table.tableNo,
+                total: totalAmount
+            });
+
+            // Automatically open print modal
+            setSelectedTable(table);
+            setShowBillPrint(true);
         }
     };
 
@@ -65,8 +91,14 @@ export default function WaiterDashboard() {
             for (const order of tableOrders) {
                 await updateOrderStatus(order.id, 'completed');
             }
-            // Clear the table
-            await updateTableStatus(selectedTable.docId, 'active');
+            // Clear the table - Set to 'available'
+            await updateTableStatus(selectedTable.docId, 'available');
+
+            await publishMQTT({
+                type: "THANK_YOU",
+                table_id: selectedTable.tableNo
+            });
+
             setShowBillPrint(false);
             setSelectedTable(null);
         }
@@ -80,7 +112,7 @@ export default function WaiterDashboard() {
                 await deleteOrder(order.id);
             }
             // Reset table to active
-            await updateTableStatus(selectedTable.docId, 'active');
+            await updateTableStatus(selectedTable.docId, 'available');
             setShowBillPrint(false);
             setSelectedTable(null);
         }
@@ -230,7 +262,7 @@ export default function WaiterDashboard() {
                                 )}
                             </div>
 
-                            {hasOrders ? (
+                            {hasOrders && tableObj.status !== 'billed' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {tableOrders.map(order => (
                                         <div
@@ -311,47 +343,80 @@ export default function WaiterDashboard() {
                                     padding: '2rem 1rem',
                                     color: 'var(--text-dim)',
                                     fontStyle: 'italic',
-                                    fontSize: '1.1rem'
+                                    fontSize: '1.1rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '1rem'
                                 }}>
-                                    {tableObj.status === 'billed' ? '💰 Payment Pending' : '🪑 Table Available'}
+                                    {tableObj.status === 'billed' ? (
+                                        <>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent)' }}>
+                                                💰 Payment Pending
+                                            </div>
+                                            <button
+                                                className="btn"
+                                                onClick={() => {
+                                                    setSelectedTable(tableObj);
+                                                    setShowBillPrint(true);
+                                                }}
+                                                style={{
+                                                    background: 'var(--card-bg)',
+                                                    border: '2px solid var(--accent)',
+                                                    color: 'var(--text-light)',
+                                                    padding: '0.5rem 1rem',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    marginTop: '0.5rem'
+                                                }}
+                                            >
+                                                📄 Show/Print Bill
+                                            </button>
+                                        </>
+                                    ) : (
+                                        '🪑 Table Available'
+                                    )}
                                 </div>
                             )}
 
                             {/* Table Actions */}
                             <div style={{ marginTop: '1.5rem', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                {tableObj.status !== 'billed' && hasOrders && (
-                                    <button
-                                        className="btn"
-                                        style={{
-                                            flex: 1,
-                                            background: 'var(--accent)',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            padding: '10px',
-                                            fontWeight: '700'
-                                        }}
-                                        onClick={() => handleBillTable(tableObj)}
-                                    >
-                                        🧾 Bill
-                                    </button>
-                                )}
-                                {tableObj.status === 'billed' && (
-                                    <button
-                                        className="btn"
-                                        style={{
-                                            flex: 1,
-                                            background: '#10b981', // Green for cleared/paid
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            padding: '10px',
-                                            fontWeight: '700'
-                                        }}
-                                        onClick={() => handleClearTable(tableObj)}
-                                    >
-                                        ✅ Paid & Clear
-                                    </button>
+                                {hasOrders && (
+                                    <>
+                                        <button
+                                            className="btn"
+                                            style={{
+                                                flex: 1,
+                                                background: 'var(--accent)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                padding: '10px',
+                                                fontWeight: '700'
+                                            }}
+                                            onClick={() => handleBillTable(tableObj)}
+                                        >
+                                            🧾 Bill
+                                        </button>
+                                        <button
+                                            className="btn"
+                                            style={{
+                                                flex: 1,
+                                                background: '#10b981', // Green for cleared/paid
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                padding: '10px',
+                                                fontWeight: '700'
+                                            }}
+                                            onClick={() => handleClearTable(tableObj)}
+                                        >
+                                            ✅ Paid & Clear
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -363,7 +428,7 @@ export default function WaiterDashboard() {
             {showBillPrint && selectedTable && (
                 <BillPrint
                     table={selectedTable}
-                    orders={getTableOrders(selectedTable.tableNo)}
+                    orders={getPrintableOrders(selectedTable.tableNo)}
                     onClose={() => {
                         setShowBillPrint(false);
                         setSelectedTable(null);
