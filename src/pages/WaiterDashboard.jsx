@@ -11,10 +11,9 @@ export default function WaiterDashboard() {
     const [readyOrdersCount, setReadyOrdersCount] = useState(0);
     const [showBillPrint, setShowBillPrint] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
+    const [billedOrders, setBilledOrders] = useState([]);
 
     const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed' && o.status !== 'cancelled');
-    // Helper to get ALL orders for a table (including completed) for billing
-    const getPrintableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'cancelled');
 
     // Count ready orders and trigger vibration
     useEffect(() => {
@@ -63,7 +62,10 @@ export default function WaiterDashboard() {
             const tableOrders = getTableOrders(table.tableNo);
             const totalAmount = tableOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
-            // Mark orders as completed so they disappear from the active view but we can still fetch them for the bill
+            // Capture the current session orders BEFORE marking them completed
+            setBilledOrders(tableOrders);
+
+            // Mark orders as completed so they disappear from the active view
             await Promise.all(tableOrders.map(o => updateOrderStatus(o.id, 'completed')));
 
             await publishMQTT({
@@ -79,7 +81,10 @@ export default function WaiterDashboard() {
     };
 
     const handleClearTable = (table) => {
-        // Show bill print dialog instead of immediate clear
+        // Capture only the current active orders for this table
+        const tableOrders = getTableOrders(table.tableNo);
+        setBilledOrders(tableOrders);
+        // Show bill print dialog
         setSelectedTable(table);
         setShowBillPrint(true);
     };
@@ -428,10 +433,11 @@ export default function WaiterDashboard() {
             {showBillPrint && selectedTable && (
                 <BillPrint
                     table={selectedTable}
-                    orders={getPrintableOrders(selectedTable.tableNo)}
+                    orders={billedOrders}
                     onClose={() => {
                         setShowBillPrint(false);
                         setSelectedTable(null);
+                        setBilledOrders([]);
                     }}
                     onConfirmClear={handleConfirmClear}
                     onDelete={handleDeleteRecord}

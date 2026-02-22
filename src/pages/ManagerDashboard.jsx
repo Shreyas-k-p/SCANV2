@@ -15,7 +15,7 @@ export default function ManagerDashboard() {
         addMenuItem,
         updateMenuItem,
         deleteMenuItem,
-        orders,
+        orders, clearAllOrders,
         feedbacks,
         waiters,
         addWaiter,
@@ -34,6 +34,9 @@ export default function ManagerDashboard() {
         addManager,
         removeManager
     } = useApp();
+
+    const [showClearDialog, setShowClearDialog] = useState(false);
+    const [clearLoading, setClearLoading] = useState(false);
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -360,17 +363,58 @@ export default function ManagerDashboard() {
 
             {activeTab === 'orders' && (
                 <div>
-                    <h2 style={{
+                    {/* Orders Header */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                         marginBottom: '1.5rem',
-                        fontSize: '1.75rem',
-                        fontWeight: '700',
-                        background: 'var(--gradient-accent)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
+                        flexWrap: 'wrap',
+                        gap: '1rem'
                     }}>
-                        📋 All Orders
-                    </h2>
+                        <h2 style={{
+                            margin: 0,
+                            fontSize: '1.75rem',
+                            fontWeight: '700',
+                            background: 'var(--gradient-accent)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}>
+                            📋 All Orders ({orders.length})
+                        </h2>
+                        {orders.length > 0 && (
+                            <button
+                                onClick={() => setShowClearDialog(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '0.75rem 1.5rem',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontWeight: '700',
+                                    fontSize: '0.95rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.55)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.4)';
+                                }}
+                            >
+                                <Trash2 size={17} /> Clear All Orders
+                            </button>
+                        )}
+                    </div>
+
                     {orders.length === 0 ? (
                         <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
                             <p style={{ color: 'var(--text-dim)', fontSize: '1.1rem' }}>No orders yet.</p>
@@ -471,6 +515,140 @@ export default function ManagerDashboard() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Clear All Orders Confirmation Dialog */}
+                    {showClearDialog && (
+                        <div style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(0, 0, 0, 0.75)',
+                            backdropFilter: 'blur(6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1000,
+                            padding: '1rem'
+                        }}>
+                            <div style={{
+                                background: 'var(--card-bg)',
+                                borderRadius: '24px',
+                                padding: '2.5rem',
+                                maxWidth: '440px',
+                                width: '100%',
+                                border: '2px solid rgba(239, 68, 68, 0.3)',
+                                boxShadow: '0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(239,68,68,0.1)',
+                                textAlign: 'center',
+                                animation: 'fadeIn 0.2s ease'
+                            }}>
+                                <div style={{
+                                    width: '72px',
+                                    height: '72px',
+                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    margin: '0 auto 1.5rem',
+                                    boxShadow: '0 8px 20px rgba(239,68,68,0.4)'
+                                }}>
+                                    <Trash2 size={34} color="white" />
+                                </div>
+                                <h3 style={{
+                                    margin: '0 0 0.75rem',
+                                    fontSize: '1.5rem',
+                                    fontWeight: '800',
+                                    color: 'var(--text-light)'
+                                }}>
+                                    Clear All Orders?
+                                </h3>
+                                <p style={{
+                                    color: 'var(--text-dim)',
+                                    marginBottom: '0.5rem',
+                                    lineHeight: '1.6',
+                                    fontSize: '0.95rem'
+                                }}>
+                                    This will permanently delete all <strong style={{ color: 'var(--text-light)' }}>{orders.length} order{orders.length !== 1 ? 's' : ''}</strong> and reset all table statuses to <strong style={{ color: '#10b981' }}>available</strong>.
+                                </p>
+                                <p style={{
+                                    color: '#ef4444',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '600',
+                                    marginBottom: '2rem'
+                                }}>
+                                    ⚠️ This action cannot be undone.
+                                </p>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button
+                                        onClick={() => setShowClearDialog(false)}
+                                        disabled={clearLoading}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.875rem',
+                                            background: 'var(--glass-bg)',
+                                            color: 'var(--text-light)',
+                                            border: '2px solid var(--border-color)',
+                                            borderRadius: '12px',
+                                            fontWeight: '700',
+                                            fontSize: '0.95rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            setClearLoading(true);
+                                            try {
+                                                await clearAllOrders();
+                                                setShowClearDialog(false);
+                                            } catch (err) {
+                                                console.error('Clear failed:', err);
+                                            } finally {
+                                                setClearLoading(false);
+                                            }
+                                        }}
+                                        disabled={clearLoading}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.875rem',
+                                            background: clearLoading
+                                                ? 'rgba(239,68,68,0.5)'
+                                                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontWeight: '700',
+                                            fontSize: '0.95rem',
+                                            cursor: clearLoading ? 'not-allowed' : 'pointer',
+                                            boxShadow: '0 4px 15px rgba(239,68,68,0.4)',
+                                            transition: 'all 0.2s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        {clearLoading ? (
+                                            <>
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    width: '16px', height: '16px',
+                                                    border: '2px solid rgba(255,255,255,0.4)',
+                                                    borderTopColor: 'white',
+                                                    borderRadius: '50%',
+                                                    animation: 'spin 0.7s linear infinite'
+                                                }} />
+                                                Clearing...
+                                            </>
+                                        ) : (
+                                            <><Trash2 size={16} /> Yes, Clear All</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -853,49 +1031,7 @@ export default function ManagerDashboard() {
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>
-                                        <div style={{
-                                            padding: '1rem',
-                                            background: 'rgba(0, 0, 0, 0.05)',
-                                            borderRadius: '12px',
-                                            border: '2px dashed rgba(16, 185, 129, 0.3)'
-                                        }}>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
-                                                Secret ID (Show this to waiter only):
-                                            </label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <code style={{
-                                                    padding: '0.75rem',
-                                                    background: 'var(--card-bg)',
-                                                    borderRadius: '8px',
-                                                    fontSize: '1.1rem',
-                                                    fontWeight: '700',
-                                                    letterSpacing: '2px',
-                                                    color: 'var(--accent)',
-                                                    border: '2px solid var(--accent-light)'
-                                                }}>
-                                                    {waiter.secretID}
-                                                </code>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(waiter.secretID);
-                                                        alert('Secret ID copied to clipboard!');
-                                                    }}
-                                                    style={{
-                                                        padding: '0.75rem',
-                                                        background: 'var(--gradient-accent)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}
-                                                >
-                                                    <Copy size={18} />
-                                                </button>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 ))}
                             </div>
@@ -988,50 +1124,7 @@ export default function ManagerDashboard() {
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>
-                                        <div style={{
-                                            padding: '1rem',
-                                            background: 'rgba(0, 0, 0, 0.05)',
-                                            borderRadius: '12px',
-                                            border: '2px dashed rgba(245, 158, 11, 0.3)'
-                                        }}>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
-                                                Secret ID (Show this to kitchen staff only):
-                                            </label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <code style={{
-                                                    flex: 1,
-                                                    padding: '0.75rem',
-                                                    background: 'var(--card-bg)',
-                                                    borderRadius: '8px',
-                                                    fontSize: '1.1rem',
-                                                    fontWeight: '700',
-                                                    letterSpacing: '2px',
-                                                    color: 'var(--accent)',
-                                                    border: '2px solid var(--accent-light)'
-                                                }}>
-                                                    {staff.secretID}
-                                                </code>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(staff.secretID);
-                                                        alert('Secret ID copied to clipboard!');
-                                                    }}
-                                                    style={{
-                                                        padding: '0.75rem',
-                                                        background: 'var(--gradient-accent)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}
-                                                >
-                                                    <Copy size={18} />
-                                                </button>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 ))}
                             </div>
@@ -1324,8 +1417,8 @@ export default function ManagerDashboard() {
                             setShowAddWaiterModal(false);
                             setNewSecretID(null);
                         }}
-                        onAdd={async (name, photo) => {
-                            const secretID = await addWaiter(name, photo);
+                        onAdd={async (name, photo, mobile, email, documents) => {
+                            const secretID = await addWaiter(name, photo, mobile, email, documents);
                             setNewSecretID(secretID);
                         }}
                         secretID={newSecretID}
@@ -1339,8 +1432,8 @@ export default function ManagerDashboard() {
                             setShowAddKitchenModal(false);
                             setNewKitchenSecretID(null);
                         }}
-                        onAdd={async (name, photo) => {
-                            const secretID = await addKitchenStaff(name, photo);
+                        onAdd={async (name, photo, mobile, email, documents) => {
+                            const secretID = await addKitchenStaff(name, photo, mobile, email, documents);
                             setNewKitchenSecretID(secretID);
                         }}
                         secretID={newKitchenSecretID}
@@ -1372,8 +1465,11 @@ export default function ManagerDashboard() {
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
                                         const name = e.target.elements.name.value;
+                                        const mobile = e.target.elements.mobile.value;
+                                        const email = e.target.elements.email.value;
+                                        const documents = e.target.elements.documents.value;
                                         if (!name.trim()) return;
-                                        const secret = await addSubManager(name, subManagerPhoto);
+                                        const secret = await addSubManager(name, subManagerPhoto, mobile, email, documents);
                                         setNewSubManagerSecretID(secret);
                                         setSubManagerPhoto('');
                                         e.target.reset();
@@ -1386,6 +1482,35 @@ export default function ManagerDashboard() {
                                                 className="input-field"
                                                 placeholder="Enter Name"
                                                 required
+                                            />
+                                        </div>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input
+                                                name="mobile"
+                                                type="tel"
+                                                className="input-field"
+                                                placeholder="Enter Mobile Number"
+                                                required
+                                            />
+                                        </div>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Email <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input
+                                                name="email"
+                                                type="email"
+                                                className="input-field"
+                                                placeholder="Enter Email Address"
+                                                required
+                                            />
+                                        </div>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Documents <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>(Optional – ID/Aadhar no.)</span></label>
+                                            <input
+                                                name="documents"
+                                                type="text"
+                                                className="input-field"
+                                                placeholder="e.g. Aadhar 1234 5678 9012"
                                             />
                                         </div>
                                         <div style={{ marginBottom: '1.5rem' }}>
@@ -1889,6 +2014,9 @@ function AddMenuModal({ onClose, onSave, item }) {
 function AddWaiterModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
+    const [mobile, setMobile] = useState('');
+    const [email, setEmail] = useState('');
+    const [documents, setDocuments] = useState('');
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -1915,9 +2043,12 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
             alert('Please enter waiter name');
             return;
         }
-        onAdd(name, image);
+        onAdd(name, image, mobile, email, documents);
         setName('');
         setImage('');
+        setMobile('');
+        setEmail('');
+        setDocuments('');
     };
 
     return (
@@ -1925,8 +2056,10 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
             <div className="glass-panel" style={{
                 width: '100%',
                 maxWidth: '500px',
+                maxHeight: '90vh',
                 padding: '30px',
-                position: 'relative'
+                position: 'relative',
+                overflowY: 'auto'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
@@ -2018,6 +2151,34 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                             onChange={e => setName(e.target.value)}
                             autoFocus
                         />
+                        <input
+                            className="input-field"
+                            type="tel"
+                            placeholder="Mobile Number *"
+                            required
+                            value={mobile}
+                            onChange={e => setMobile(e.target.value)}
+                        />
+                        <input
+                            className="input-field"
+                            type="email"
+                            placeholder="Email Address *"
+                            required
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                        />
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: '500' }}>
+                                Documents <span style={{ fontSize: '0.8rem' }}>(Optional – e.g. Aadhar no.)</span>
+                            </label>
+                            <input
+                                className="input-field"
+                                type="text"
+                                placeholder="e.g. Aadhar 1234 5678 9012"
+                                value={documents}
+                                onChange={e => setDocuments(e.target.value)}
+                            />
+                        </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
                             <input
@@ -2046,6 +2207,9 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
 function AddKitchenModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
+    const [mobile, setMobile] = useState('');
+    const [email, setEmail] = useState('');
+    const [documents, setDocuments] = useState('');
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -2072,9 +2236,12 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
             alert('Please enter kitchen staff name');
             return;
         }
-        onAdd(name, image);
+        onAdd(name, image, mobile, email, documents);
         setName('');
         setImage('');
+        setMobile('');
+        setEmail('');
+        setDocuments('');
     };
 
     return (
@@ -2082,8 +2249,10 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
             <div className="glass-panel" style={{
                 width: '100%',
                 maxWidth: '500px',
+                maxHeight: '90vh',
                 padding: '30px',
-                position: 'relative'
+                position: 'relative',
+                overflowY: 'auto'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
@@ -2175,6 +2344,34 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                             onChange={e => setName(e.target.value)}
                             autoFocus
                         />
+                        <input
+                            className="input-field"
+                            type="tel"
+                            placeholder="Mobile Number *"
+                            required
+                            value={mobile}
+                            onChange={e => setMobile(e.target.value)}
+                        />
+                        <input
+                            className="input-field"
+                            type="email"
+                            placeholder="Email Address *"
+                            required
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                        />
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: '500' }}>
+                                Documents <span style={{ fontSize: '0.8rem' }}>(Optional – e.g. Aadhar no.)</span>
+                            </label>
+                            <input
+                                className="input-field"
+                                type="text"
+                                placeholder="e.g. Aadhar 1234 5678 9012"
+                                value={documents}
+                                onChange={e => setDocuments(e.target.value)}
+                            />
+                        </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
                             <input

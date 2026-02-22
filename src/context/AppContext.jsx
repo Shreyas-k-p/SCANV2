@@ -6,7 +6,7 @@ import {
   removeTableFromDB,
   updateTableStatusInDB
 } from "../services/tableService";
-import { addOrderToDB, listenToOrders, updateOrderStatus as updateOrderInDB, deleteOrder as deleteOrderFromDB } from "../services/orderService";
+import { addOrderToDB, listenToOrders, updateOrderStatus as updateOrderInDB, deleteOrder as deleteOrderFromDB, clearAllOrders as clearAllOrdersInDB } from "../services/orderService";
 import { translations } from '../utils/translations';
 import { playNotificationSound, playUrgentNotificationSound } from '../utils/soundUtils';
 import {
@@ -462,6 +462,10 @@ export function AppProvider({ children }) {
     }
   };
 
+  const clearAllOrders = async () => {
+    await clearAllOrdersInDB();
+  };
+
   const addFeedback = (feedback) => {
     const newFeedback = {
       id: Date.now().toString(),
@@ -483,7 +487,7 @@ export function AppProvider({ children }) {
   };
 
   // Staff Management with Supabase
-  const addWaiter = async (name, profilePhoto = '') => {
+  const addWaiter = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
     const staffData = {
@@ -491,7 +495,10 @@ export function AppProvider({ children }) {
       role: 'WAITER',
       name: name.trim(),
       profile_photo: profilePhoto,
-      secret_id: secretID
+      secret_id: secretID,
+      mobile: mobile.trim(),
+      email: email.trim(),
+      documents: documents.trim()
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -508,7 +515,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addKitchenStaff = async (name, profilePhoto = '') => {
+  const addKitchenStaff = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
     const staffData = {
@@ -516,7 +523,10 @@ export function AppProvider({ children }) {
       role: 'KITCHEN',
       name: name.trim(),
       profile_photo: profilePhoto,
-      secret_id: secretID
+      secret_id: secretID,
+      mobile: mobile.trim(),
+      email: email.trim(),
+      documents: documents.trim()
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -533,7 +543,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addSubManager = async (name, profilePhoto = '') => {
+  const addSubManager = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
     const staffData = {
@@ -541,7 +551,10 @@ export function AppProvider({ children }) {
       role: 'SUB_MANAGER',
       name: name.trim(),
       profile_photo: profilePhoto,
-      secret_id: secretID
+      secret_id: secretID,
+      mobile: mobile.trim(),
+      email: email.trim(),
+      documents: documents.trim()
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -607,7 +620,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       user, login, logout,
       menuItems, addMenuItem, updateMenuItem, updateMenuItemStatus, deleteMenuItem,
-      orders, placeOrder, updateOrderStatus, deleteOrder,
+      orders, placeOrder, updateOrderStatus, deleteOrder, clearAllOrders,
 
       tables,
       addTable,

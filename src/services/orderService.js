@@ -314,6 +314,42 @@ export const getOrdersByStatus = async (status) => {
 };
 
 /**
+ * CLEAR ALL ORDERS
+ * Deletes every order from the DB and resets all tables to 'available'.
+ */
+export const clearAllOrders = async () => {
+    try {
+        // Delete all orders (use gt uuid '00000...' trick because Supabase requires a filter)
+        const { error: deleteError } = await supabase
+            .from('orders')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // matches all rows
+
+        if (deleteError) {
+            console.error('❌ Error clearing all orders:', deleteError);
+            throw new Error(`Failed to clear orders: ${deleteError.message}`);
+        }
+
+        // Reset all table statuses to 'available'
+        const { error: tableError } = await supabase
+            .from('tables')
+            .update({ status: 'available' })
+            .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (tableError) {
+            console.error('❌ Error resetting tables:', tableError);
+            // Non-fatal – orders are already gone
+        }
+
+        toast.success('All order records cleared!');
+    } catch (error) {
+        console.error('❌ Error in clearAllOrders:', error);
+        toast.error(error.message || 'Failed to clear orders');
+        throw error;
+    }
+};
+
+/**
  * ASSIGN WAITER TO ORDER
  */
 export const assignWaiterToOrder = async (orderId, waiterId) => {

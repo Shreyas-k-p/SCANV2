@@ -1,70 +1,79 @@
-/* Customer Screen Styles */
-.customer-screen {
+/* ════════════════════════════════════════════════════
+   CustomerScreen.css  — Premium Edition
+   ════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+
+/* ── Root wrapper ────────────────────────────────── */
+.cs-root {
     min-height: 100vh;
+    width: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
-    transition: background-color 0.7s ease;
     font-family: 'Outfit', sans-serif;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.8s ease;
 }
 
-.screen-content {
-    text-align: center;
-    padding: 2rem;
-    animation: fade-in 0.6s ease-out;
-    max-width: 800px;
+/* Flash overlay */
+.cs-root.cs-flash::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.35);
+    animation: cs-flash-anim 1s ease forwards;
+    pointer-events: none;
+    z-index: 999;
 }
 
-.table-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.status-message {
-    font-size: 1.875rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-.sub-text {
-    font-size: 1.25rem;
-    opacity: 0.9;
-}
-
-.cooking-text {
-    font-size: 1.25rem;
-    margin-top: 1rem;
-    animation: pulse 2s infinite;
-}
-
-.ready-text {
-    font-size: 1.5rem;
-    margin-top: 1rem;
-    animation: bounce 1s infinite;
-}
-
-.payment-text {
-    font-size: 1.25rem;
-    margin-top: 1.5rem;
-}
-
-/* Animations */
-@keyframes fade-in {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-
-    to {
+@keyframes cs-flash-anim {
+    0% {
         opacity: 1;
-        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
     }
 }
 
-@keyframes pulse {
+/* ── Top bar ─────────────────────────────────────── */
+.cs-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.cs-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cs-dot--on {
+    background: #38ef7d;
+    box-shadow: 0 0 8px #38ef7d;
+    animation: cs-blink 2s infinite;
+}
+
+.cs-dot--off {
+    background: #ff6b6b;
+    box-shadow: 0 0 8px #ff6b6b;
+}
+
+@keyframes cs-blink {
 
     0%,
     100% {
@@ -72,18 +81,272 @@
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 0.4;
     }
 }
 
-@keyframes bounce {
+.cs-dot-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    flex: 1;
+}
+
+.cs-table-badge {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    padding: 3px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.cs-fullscreen-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cs-fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Main card ───────────────────────────────────── */
+.cs-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 50px 52px;
+    text-align: center;
+    max-width: 520px;
+    width: 90%;
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: cs-card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cs-card-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.88) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Pulsing glow for active states */
+.cs-card--pulse {
+    animation: cs-card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        cs-glow 2.5s ease-in-out infinite 0.6s;
+}
+
+@keyframes cs-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+
+    50% {
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3), 0 0 40px 10px rgba(255, 255, 255, 0.15);
+    }
+}
+
+/* ── Icon ────────────────────────────────────────── */
+.cs-icon {
+    font-size: 5rem;
+    line-height: 1;
+    margin-bottom: 20px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    animation: cs-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cs-icon-pop {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.cs-icon--bounce {
+    animation:
+        cs-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        cs-bounce 1.2s ease-in-out infinite 0.5s;
+}
+
+@keyframes cs-bounce {
 
     0%,
     100% {
         transform: translateY(0);
     }
 
-    50% {
-        transform: translateY(-10px);
+    40% {
+        transform: translateY(-18px);
+    }
+
+    60% {
+        transform: translateY(-8px);
+    }
+}
+
+/* ── Label & message ─────────────────────────────── */
+.cs-label {
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+
+.cs-message {
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.88);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── Order details ───────────────────────────────── */
+.cs-details {
+    margin-top: 28px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cs-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cs-detail-key {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+.cs-detail-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.cs-total {
+    font-size: 1.4rem;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.cs-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    justify-content: center;
+}
+
+.cs-item-chip {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* ── Divider ─────────────────────────────────────── */
+.cs-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 22px 0 14px;
+}
+
+/* ── Update time ─────────────────────────────────── */
+.cs-update-time {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0;
+    letter-spacing: 0.03em;
+}
+
+/* ── Full screen CTA ─────────────────────────────── */
+.cs-fullscreen-cta {
+    margin-top: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 30px;
+    padding: 10px 26px;
+    font-size: 0.85rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+}
+
+.cs-fullscreen-cta:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* ── Footer ──────────────────────────────────────── */
+.cs-footer {
+    position: fixed;
+    bottom: 14px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 480px) {
+    .cs-card {
+        padding: 36px 28px;
+    }
+
+    .cs-icon {
+        font-size: 4rem;
+    }
+
+    .cs-label {
+        font-size: 1.9rem;
+    }
+
+    .cs-message {
+        font-size: 1rem;
     }
 }
