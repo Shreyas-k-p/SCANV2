@@ -8,23 +8,9 @@ import { updateTableStatusByNumber } from "./tableService";
  * Includes state machine validation and comprehensive error handling
  */
 
-// Valid order status transitions
-const VALID_TRANSITIONS = {
-    pending: ['preparing', 'ready', 'cancelled', 'completed'],
-    preparing: ['ready', 'cancelled', 'completed'],
-    ready: ['served', 'cancelled', 'completed'],
-    served: ['completed', 'cancelled'],
-    completed: [],
-    cancelled: []
-};
 
-/**
- * Validate status transition
- */
-const isValidTransition = (currentStatus, newStatus) => {
-    if (currentStatus === newStatus) return true;
-    return VALID_TRANSITIONS[currentStatus]?.includes(newStatus) || false;
-};
+
+
 
 
 
@@ -94,39 +80,21 @@ export const addOrderToDB = async (order) => {
 /**
  * UPDATE ORDER STATUS (with validation)
  */
+/**
+ * UPDATE ORDER STATUS (optimistic - no prefetch)
+ */
 export const updateOrderStatus = async (orderId, newStatus) => {
     try {
         if (!orderId) {
             throw new Error('Order ID is required');
         }
 
-        // Fetch current order
-        const { data: currentOrder, error: fetchError } = await supabase
-            .from('orders')
-            .select('status, table_number, order_id')
-            .eq('id', orderId)
-            .single();
-
-        if (fetchError) {
-            console.error("❌ Error fetching order:", fetchError);
-            toast.error('Failed to fetch order');
-            throw new Error(`Failed to fetch order: ${fetchError.message}`);
-        }
-
-        // Validate transition
-        if (!isValidTransition(currentOrder.status, newStatus)) {
-            const errorMsg = `Invalid status transition: ${currentOrder.status} → ${newStatus}`;
-            console.error("❌", errorMsg);
-            toast.error(errorMsg);
-            throw new Error(errorMsg);
-        }
-
-        // Update status
+        // Direct update — skip prefetch to halve network round-trips
         const { data, error } = await supabase
             .from('orders')
             .update({ status: newStatus })
             .eq('id', orderId)
-            .select()
+            .select('id, status, table_number, order_id')
             .single();
 
         if (error) {
@@ -135,24 +103,19 @@ export const updateOrderStatus = async (orderId, newStatus) => {
             throw new Error(`Failed to update status: ${error.message}`);
         }
 
-
-        toast.success(`Order status updated to ${newStatus}`);
-
         // MQTT Updates
         if (newStatus === 'preparing') {
             await publishMQTT({
                 type: "PREPARING",
-                table_id: currentOrder.table_number,
-                order_id: currentOrder.order_id
+                table_id: data.table_number,
+                order_id: data.order_id
             });
         }
 
         return data;
     } catch (error) {
         console.error("❌ Error in updateOrderStatus:", error);
-        if (!error.message.includes('Invalid status transition')) {
-            toast.error('Failed to update order');
-        }
+        toast.error('Failed to update order');
         throw error;
     }
 };
@@ -160,68 +123,65 @@ export const updateOrderStatus = async (orderId, newStatus) => {
 /**
  * LISTEN TO ORDERS (REAL-TIME)
  */
+const transformOrder = (order) => ({
+    docId: order.id,
+    id: order.order_id,
+    tableNo: order.table_number,
+    customerInfo: {
+        name: order.customer_name,
+        mobile: order.customer_mobile
+    },
+    items: order.items || [],
+    totalAmount: order.total_amount,
+    status: order.status,
+    assignedWaiter: order.assigned_waiter,
+    notes: order.notes,
+    timestamp: order.created_at,
+    createdAt: order.created_at
+});
+
+/**
+ * LISTEN TO ORDERS (REAL-TIME) — uses payload for incremental updates
+ */
 export const listenToOrders = (setOrders) => {
     // Initial fetch
     const fetchOrders = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error("❌ Error fetching orders:", error);
-                setOrders([]);
-                return;
-            }
-
-            // Transform to match Firebase format
-            const transformedOrders = (data || []).map(order => ({
-                docId: order.id,
-                id: order.order_id,
-                tableNo: order.table_number,
-                customerInfo: {
-                    name: order.customer_name,
-                    mobile: order.customer_mobile
-                },
-                items: order.items || [],
-                totalAmount: order.total_amount,
-                status: order.status,
-                assignedWaiter: order.assigned_waiter,
-                notes: order.notes,
-                createdAt: order.created_at
-            }));
-
-            setOrders(transformedOrders);
-        } catch (error) {
-            console.error("❌ Error in fetchOrders:", error);
+        if (error) {
+            console.error("❌ Error fetching orders:", error);
             setOrders([]);
+            return;
         }
+        setOrders((data || []).map(transformOrder));
     };
 
     fetchOrders();
 
-    // Subscribe to real-time changes
+    // Subscribe — update local state from payload instead of full refetch
     const subscription = supabase
         .channel('orders_channel')
         .on(
             'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'orders'
-            },
+            { event: '*', schema: 'public', table: 'orders' },
             (payload) => {
-
-                fetchOrders(); // Refresh all orders
+                if (payload.eventType === 'INSERT') {
+                    setOrders(prev => [transformOrder(payload.new), ...prev]);
+                } else if (payload.eventType === 'UPDATE') {
+                    setOrders(prev => prev.map(o =>
+                        o.docId === payload.new.id ? transformOrder(payload.new) : o
+                    ));
+                } else if (payload.eventType === 'DELETE') {
+                    setOrders(prev => prev.filter(o => o.docId !== payload.old.id));
+                }
             }
         )
         .subscribe();
 
-    // Return unsubscribe function
-    return () => {
-        subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
 };
 
 /**

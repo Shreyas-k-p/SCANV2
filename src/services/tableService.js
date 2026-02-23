@@ -64,7 +64,7 @@ export const listenToTables = (setTables) => {
         schema: 'public',
         table: 'tables'
       },
-      (payload) => {
+      (_payload) => {
 
         fetchTables();
       }

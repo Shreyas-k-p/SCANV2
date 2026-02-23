@@ -1,15 +1,25 @@
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { LogOut, Home } from 'lucide-react';
+import { LogOut, Home, Menu as MenuIcon, X } from 'lucide-react';
 
 export default function Layout({ children }) {
     const { user, logout, t } = useApp();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate('/');
+    };
+
+    const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+    const closeMenu = () => setIsMobileMenuOpen(false);
+
+    const handleNavigate = (path) => {
+        navigate(path);
+        closeMenu();
     };
 
     // Don't show layout details on login page
@@ -19,14 +29,26 @@ export default function Layout({ children }) {
 
     return (
         <div className="dashboard-container">
-            <nav className="sidebar">
-                <div style={{ marginBottom: '2.5rem' }}>
+            {/* Mobile Toggle Button */}
+            <button
+                className="mobile-menu-toggle"
+                onClick={toggleMenu}
+            >
+                {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+            </button>
+
+            {/* Mobile Overlay */}
+            {isMobileMenuOpen && (
+                <div className="mobile-overlay" onClick={closeMenu} />
+            )}
+
+            <nav className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+                <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{
                         display: 'inline-block',
                         padding: '0.5rem 1rem',
                         background: 'var(--gradient-accent)',
                         borderRadius: '12px',
-                        marginBottom: '1rem',
                         boxShadow: 'var(--shadow-glow)'
                     }}>
                         <h2 style={{
@@ -40,14 +62,19 @@ export default function Layout({ children }) {
                             Scan<span style={{ opacity: 0.9 }}>4</span>Serve
                         </h2>
                     </div>
-                    <div style={{
-                        height: '3px',
-                        width: '80px',
-                        background: 'var(--gradient-accent)',
-                        borderRadius: '2px',
-                        boxShadow: 'var(--shadow-glow)'
-                    }} />
+                    {/* Close button for mobile inside sidebar */}
+                    <button className="sidebar-close-btn" onClick={closeMenu}>
+                        <X size={20} />
+                    </button>
                 </div>
+                <div style={{
+                    height: '3px',
+                    width: '60px',
+                    background: 'var(--gradient-accent)',
+                    borderRadius: '2px',
+                    marginBottom: '2rem',
+                    boxShadow: 'var(--shadow-glow)'
+                }} />
 
                 <div style={{ marginBottom: '2rem' }}>
                     <div className="glass-panel" style={{
@@ -60,15 +87,15 @@ export default function Layout({ children }) {
                         border: '2px solid var(--glass-border)'
                     }}>
                         <div style={{
-                            width: '50px',
-                            height: '50px',
+                            width: '45px',
+                            height: '45px',
                             borderRadius: '50%',
                             background: 'var(--gradient-accent)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontWeight: 'bold',
-                            fontSize: '1.2rem',
+                            fontSize: '1.1rem',
                             boxShadow: 'var(--shadow-glow)',
                             color: '#fff',
                             border: '3px solid rgba(255, 255, 255, 0.3)',
@@ -79,7 +106,7 @@ export default function Layout({ children }) {
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{
                                 fontWeight: '600',
-                                fontSize: '0.95rem',
+                                fontSize: '0.9rem',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
@@ -87,7 +114,7 @@ export default function Layout({ children }) {
                                 {user?.name || t('guest')}
                             </div>
                             <div style={{
-                                fontSize: '0.75rem',
+                                fontSize: '0.7rem',
                                 color: 'var(--text-dim)',
                                 textTransform: 'capitalize',
                                 marginTop: '2px'
@@ -100,7 +127,7 @@ export default function Layout({ children }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '2rem' }}>
                     <button
-                        onClick={() => navigate('/menu')}
+                        onClick={() => handleNavigate('/menu')}
                         className={`btn ${location.pathname === '/menu' ? 'btn-primary' : 'btn-secondary'}`}
                         style={{
                             justifyContent: 'flex-start',
@@ -114,7 +141,7 @@ export default function Layout({ children }) {
 
                     {user?.role === 'WAITER' && (
                         <button
-                            onClick={() => navigate('/waiter')}
+                            onClick={() => handleNavigate('/waiter')}
                             className={`btn ${location.pathname === '/waiter' ? 'btn-primary' : 'btn-secondary'}`}
                             style={{
                                 justifyContent: 'flex-start',
@@ -122,13 +149,13 @@ export default function Layout({ children }) {
                                 borderRadius: '12px'
                             }}
                         >
-                            👨‍🍳 {t('waiter')} {t('dashboard')}
+                            👨‍🍳 {t('waiterDashboard')}
                         </button>
                     )}
 
                     {(user?.role === 'KITCHEN' || user?.role === 'WAITER') && (
                         <button
-                            onClick={() => navigate('/kitchen')}
+                            onClick={() => handleNavigate('/kitchen')}
                             className={`btn ${location.pathname === '/kitchen' ? 'btn-primary' : 'btn-secondary'}`}
                             style={{
                                 justifyContent: 'flex-start',
@@ -136,13 +163,13 @@ export default function Layout({ children }) {
                                 borderRadius: '12px'
                             }}
                         >
-                            🍳 {t('kitchen')} {t('dashboard')}
+                            🍳 {t('kitchenDashboard')}
                         </button>
                     )}
 
                     {user?.role === 'MANAGER' && (
                         <button
-                            onClick={() => navigate('/manager')}
+                            onClick={() => handleNavigate('/manager')}
                             className={`btn ${location.pathname === '/manager' ? 'btn-primary' : 'btn-secondary'}`}
                             style={{
                                 justifyContent: 'flex-start',
@@ -150,7 +177,7 @@ export default function Layout({ children }) {
                                 borderRadius: '12px'
                             }}
                         >
-                            👔 {t('manager')} {t('dashboard')}
+                            👔 {t('managerDashboard')}
                         </button>
                     )}
                 </div>

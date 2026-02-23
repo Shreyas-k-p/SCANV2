@@ -5,6 +5,32 @@ import { supabase } from "../supabaseClient";
  * Replaces Firebase menuService.js
  */
 
+// BULK ADD MENU ITEMS
+export const bulkAddMenuItemsToDB = async (items) => {
+  try {
+    const formattedItems = items.map(item => ({
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      description: item.description || '',
+      image: item.image || '',
+      available: item.available !== false,
+      benefits: item.benefits || ''
+    }));
+
+    const { data, error } = await supabase
+      .from('menu_items')
+      .insert(formattedItems)
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error bulk adding menu items:", error);
+    throw error;
+  }
+};
+
 // ADD MENU ITEM
 export const addMenuItemToDB = async (item) => {
   try {
@@ -59,7 +85,7 @@ export const listenToMenu = (setMenuItems) => {
         schema: 'public',
         table: 'menu_items'
       },
-      (payload) => {
+      (_payload) => {
 
         fetchMenu(); // Refetch all items on any change
       }

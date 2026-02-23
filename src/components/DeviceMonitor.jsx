@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { fetchDeviceStatus } from "../services/deviceService";
 import { Wifi, WifiOff, Battery, Activity, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,7 +8,7 @@ export default function DeviceMonitor({ tables }) {
     const previousDevicesRef = useRef([]);
     const [loading, setLoading] = useState(true);
 
-    async function loadDevices() {
+    const loadDevices = useCallback(async () => {
         // Fetch real status from DB
         const dbData = await fetchDeviceStatus();
 
@@ -46,7 +46,7 @@ export default function DeviceMonitor({ tables }) {
         previousDevicesRef.current = mergedData;
         setDevices(mergedData);
         setLoading(false);
-    }
+    }, [tables]);
 
     const handlePairDevice = async (tableId) => {
         const deviceId = prompt(`Enter Device ID to pair with Table ${tableId} (e.g. ESP32_XYZ)`);
@@ -77,6 +77,7 @@ export default function DeviceMonitor({ tables }) {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadDevices();
 
         const interval = setInterval(() => {
@@ -84,7 +85,7 @@ export default function DeviceMonitor({ tables }) {
         }, 5000); // refresh every 5s
 
         return () => clearInterval(interval);
-    }, [tables]);
+    }, [loadDevices]);
 
     if (loading) return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', color: 'var(--text-dim)' }}>

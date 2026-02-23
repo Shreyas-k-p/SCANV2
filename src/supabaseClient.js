@@ -49,7 +49,7 @@ export const checkSupabaseConnection = async () => {
     try {
         const { error } = await supabase.from('profiles').select('count').limit(1);
         return !error;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 };

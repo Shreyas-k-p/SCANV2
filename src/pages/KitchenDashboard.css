@@ -9,24 +9,6 @@
   flex-wrap: wrap;
 }
 
-.tab-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: var(--glass-bg);
-  color: var(--text-light);
-  border-radius: 10px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  border: 1px solid var(--glass-border);
-}
-
-.tab-button:hover {
-  background: var(--glass-hover);
-  transform: translateY(-2px);
-}
-
 .tab-button.active {
   background: var(--gradient-primary);
   color: white;
@@ -57,13 +39,35 @@
   font-size: 1.1rem;
 }
 
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--glass-bg);
+  color: var(--text-light);
+  border-radius: 10px;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.2s ease;
+  border: 1px solid var(--glass-border);
+  will-change: transform;
+}
+
+.tab-button:hover {
+  background: var(--glass-hover);
+  transform: translateY(-2px);
+}
+
+/* ── Kitchen order card ─────────────────────────── */
 .kitchen-order-card {
   background: var(--card-bg);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 15px;
   padding: 25px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--glass-border);
+  will-change: transform;
 }
 
 .order-header {
@@ -148,14 +152,14 @@
   gap: 8px;
   padding: 12px 24px;
   background: var(--gradient-primary);
-  /* Changed to primary to match theme, or could be success color */
   color: white;
   border-radius: 10px;
   font-weight: 600;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
   justify-content: center;
+  will-change: transform;
 }
 
 .ready-btn:hover {
@@ -176,7 +180,8 @@
 
 .ready-order-card {
   background: rgba(76, 175, 80, 0.2);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 10px;
   padding: 15px;
   text-align: center;
@@ -367,4 +372,86 @@
   .availability-toggle {
     width: 100%;
   }
+}
+
+/* ═══ Order timer badge ═════════════════════════════════════ */
+.order-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+
+.order-timer.fresh {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.order-timer.waiting {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.order-timer.urgent {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  animation: urgent-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* ═══ Mark Ready button (premium) ══════════════════════════ */
+.btn-mark-ready {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 5px 18px rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-mark-ready:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.55);
+}
+
+.btn-mark-ready:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Kitchen order card hover */
+.kitchen-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kitchen-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
 }

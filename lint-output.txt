@@ -1,0 +1,131 @@
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\components\DeviceMonitor.jsx[24m[0m
+[0m  [2m80:9[22m  [31merror[39m    Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  78 |[0m
+[0m  79 |     useEffect(() => {[0m
+[0m> 80 |         loadDevices();[0m
+[0m     |         ^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  81 |[0m
+[0m  82 |         const interval = setInterval(() => {[0m
+[0m  83 |             loadDevices();  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m87:8[22m  [33mwarning[39m  React Hook useEffect has a missing dependency: 'loadDevices'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\components\LoginMascot.jsx[24m[0m
+[0m  [2m52:13[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  50 |         } else {[0m
+[0m  51 |             // Reset animation offset when not typing[0m
+[0m> 52 |             setEyeAnimationOffset({ x: 0, y: 0 });[0m
+[0m     |             ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  53 |         }[0m
+[0m  54 |     }, [isCrying, isTyping]); // focusedField is not needed for animation trigger really[0m
+[0m  55 |  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\context\AppContext.jsx[24m[0m
+[0m   [2m15:3[22m   [31merror[39m    'getCurrentUser' is defined but never used. Allowed unused vars must match /^[A-Z_]/u   [2mno-unused-vars[22m[0m
+[0m   [2m16:3[22m   [31merror[39m    'getStaffSession' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m   [2m23:10[22m  [31merror[39m    'supabase' is defined but never used. Allowed unused vars must match /^[A-Z_]/u         [2mno-unused-vars[22m[0m
+[0m  [2m167:11[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from 'no-console')[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\CustomerMenu.jsx[24m[0m
+[0m  [2m24:13[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  22 |     useEffect(() => {[0m
+[0m  23 |         if (tableIdFromUrl) {[0m
+[0m> 24 |             setTableNumber(tableIdFromUrl);[0m
+[0m     |             ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  25 |             localStorage.setItem('customerTableNumber', tableIdFromUrl);[0m
+[0m  26 |         } else {[0m
+[0m  27 |             const saved = localStorage.getItem('customerTableNumber');  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m36:18[22m  [31merror[39m  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\KitchenDashboard.jsx[24m[0m
+[0m  [2m64:9[22m  [31merror[39m    Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  62 |         }[0m
+[0m  63 |[0m
+[0m> 64 |         setNewOrdersCount(count);[0m
+[0m     |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  65 |     }, [orders]);[0m
+[0m  66 |[0m
+[0m  67 |     return (  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m65:8[22m  [33mwarning[39m  React Hook useEffect has missing dependencies: 'newOrdersCount' and 'pendingOrders.length'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\Menu.jsx[24m[0m
+[0m  [2m30:13[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  28 |     useEffect(() => {[0m
+[0m  29 |         if (tableIdFromUrl) {[0m
+[0m> 30 |             setTableNumber(tableIdFromUrl);[0m
+[0m     |             ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  31 |             localStorage.setItem('customerTableNumber', tableIdFromUrl);[0m
+[0m  32 |         }[0m
+[0m  33 |     }, [tableIdFromUrl]);  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\WaiterDashboard.jsx[24m[0m
+[0m  [2m33:9[22m  [31merror[39m    Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  31 |         }[0m
+[0m  32 |[0m
+[0m> 33 |         setReadyOrdersCount(count);[0m
+[0m     |         ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  34 |     }, [orders]);[0m
+[0m  35 |[0m
+[0m  36 |     const tableColors = [  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m34:8[22m  [33mwarning[39m  React Hook useEffect has a missing dependency: 'readyOrdersCount'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\menuService.js[24m[0m
+[0m  [2m62:8[22m  [31merror[39m  'payload' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\orderService.js[24m[0m
+[0m  [2m24:7[22m  [31merror[39m  'isValidTransition' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\tableService.js[24m[0m
+[0m  [2m67:8[22m  [31merror[39m  'payload' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\userService.js[24m[0m
+[0m  [2m16:17[22m  [31merror[39m  'data' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\supabaseClient.js[24m[0m
+[0m  [2m52:14[22m  [31merror[39m  'e' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 19 problems (15 errors, 4 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  0 errors and 1 warning potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

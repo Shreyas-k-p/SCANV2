@@ -1,6 +1,42 @@
 import { supabase } from '../supabaseClient';
 
 /**
+ * Upload a staff document (raw File object) to Supabase Storage
+ * Returns the permanent public URL, or null on failure.
+ * @param {File} file - The raw File object from <input type="file">
+ * @param {string} staffId - Staff ID used to namespace the path
+ * @returns {Promise<string|null>}
+ */
+export const uploadStaffDocument = async (file, staffId) => {
+    try {
+        if (!file || !(file instanceof File)) return null;
+
+        const fileName = `${staffId}_${Date.now()}_${file.name}`;
+
+        const { data: _data, error } = await supabase.storage
+            .from('staff-documents')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Storage upload error:', error.message);
+            return null;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+            .from('staff-documents')
+            .getPublicUrl(fileName);
+
+        return publicUrlData?.publicUrl || null;
+    } catch (err) {
+        console.error('uploadStaffDocument error:', err);
+        return null;
+    }
+};
+
+/**
  * User/Staff Service - Supabase Implementation
  * Handles staff profile management (separate from auth)
  */

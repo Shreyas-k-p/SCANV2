@@ -5,9 +5,9 @@ import Layout from './components/Layout';
 import PWAInstall from './components/PWAInstall';
 import Login from './pages/Login';
 import Menu from './pages/Menu';
+import CustomerMenu from './pages/CustomerMenu';
 import WaiterDashboard from './pages/WaiterDashboard';
 import KitchenDashboard from './pages/KitchenDashboard';
-
 import ManagerDashboard from './pages/ManagerDashboard';
 import SubManagerDashboard from './pages/SubManagerDashboard';
 import CustomerScreen from './pages/CustomerScreen';
@@ -62,7 +62,14 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/table/:id" element={<CustomerScreen />} />
+            {/* /table/:tableNo — customer ordering menu (QR code destination) */}
+            <Route path="/table/:tableNo" element={<CustomerMenu />} />
+
+            {/* /screen/:tableNo — MQTT status display for restaurant screens */}
+            <Route path="/screen/:tableNo" element={<CustomerScreen />} />
+
+            {/* Legacy /menu route */}
+            <Route path="/menu" element={<Menu />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />

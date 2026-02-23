@@ -82,6 +82,9 @@ export default function ManagerDashboard() {
     const [newSubManagerSecretID, setNewSubManagerSecretID] = useState(null);
     const [newManagerSecretID, setNewManagerSecretID] = useState(null);
     const [subManagerPhoto, setSubManagerPhoto] = useState('');
+    const [subManagerDocFile, setSubManagerDocFile] = useState(null);
+    const [subManagerDocFileName, setSubManagerDocFileName] = useState('');
+    const [subManagerDocPreview, setSubManagerDocPreview] = useState('');
     const [managerPhoto, setManagerPhoto] = useState('');
 
     const handleSubManagerImageChange = (e) => {
@@ -96,10 +99,30 @@ export default function ManagerDashboard() {
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setSubManagerPhoto(reader.result);
-            };
+            reader.onloadend = () => { setSubManagerPhoto(reader.result); };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubManagerDocFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select an image (JPG, PNG) or PDF file');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Document file size should be less than 2MB');
+                return;
+            }
+            setSubManagerDocFile(file); // raw File object
+            setSubManagerDocFileName(file.name);
+            if (file.type.startsWith('image/')) {
+                setSubManagerDocPreview(URL.createObjectURL(file));
+            } else {
+                setSubManagerDocPreview('pdf');
+            }
         }
     };
 
@@ -1417,8 +1440,8 @@ export default function ManagerDashboard() {
                             setShowAddWaiterModal(false);
                             setNewSecretID(null);
                         }}
-                        onAdd={async (name, photo, mobile, email, documents) => {
-                            const secretID = await addWaiter(name, photo, mobile, email, documents);
+                        onAdd={async (name, photo, mobile, email, docText, documentFile) => {
+                            const secretID = await addWaiter(name, photo, mobile, email, docText, documentFile);
                             setNewSecretID(secretID);
                         }}
                         secretID={newSecretID}
@@ -1432,8 +1455,8 @@ export default function ManagerDashboard() {
                             setShowAddKitchenModal(false);
                             setNewKitchenSecretID(null);
                         }}
-                        onAdd={async (name, photo, mobile, email, documents) => {
-                            const secretID = await addKitchenStaff(name, photo, mobile, email, documents);
+                        onAdd={async (name, photo, mobile, email, docText, documentFile) => {
+                            const secretID = await addKitchenStaff(name, photo, mobile, email, docText, documentFile);
                             setNewKitchenSecretID(secretID);
                         }}
                         secretID={newKitchenSecretID}
@@ -1467,52 +1490,73 @@ export default function ManagerDashboard() {
                                         const name = e.target.elements.name.value;
                                         const mobile = e.target.elements.mobile.value;
                                         const email = e.target.elements.email.value;
-                                        const documents = e.target.elements.documents.value;
+                                        const docText = e.target.elements.documents.value;
                                         if (!name.trim()) return;
-                                        const secret = await addSubManager(name, subManagerPhoto, mobile, email, documents);
+                                        const secret = await addSubManager(name, subManagerPhoto, mobile, email, docText, subManagerDocFile);
                                         setNewSubManagerSecretID(secret);
                                         setSubManagerPhoto('');
+                                        setSubManagerDocFile(null);
+                                        setSubManagerDocFileName('');
                                         e.target.reset();
                                     }}>
                                         <div style={{ marginBottom: '1rem' }}>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Name</label>
-                                            <input
-                                                name="name"
-                                                type="text"
-                                                className="input-field"
-                                                placeholder="Enter Name"
-                                                required
-                                            />
+                                            <input name="name" type="text" className="input-field" placeholder="Enter Name" required />
                                         </div>
                                         <div style={{ marginBottom: '1rem' }}>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
-                                            <input
-                                                name="mobile"
-                                                type="tel"
-                                                className="input-field"
-                                                placeholder="Enter Mobile Number"
-                                                required
-                                            />
+                                            <input name="mobile" type="tel" className="input-field" placeholder="Enter Mobile Number" required />
                                         </div>
                                         <div style={{ marginBottom: '1rem' }}>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Email <span style={{ color: '#ef4444' }}>*</span></label>
-                                            <input
-                                                name="email"
-                                                type="email"
-                                                className="input-field"
-                                                placeholder="Enter Email Address"
-                                                required
-                                            />
+                                            <input name="email" type="email" className="input-field" placeholder="Enter Email Address" required />
                                         </div>
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Documents <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>(Optional – ID/Aadhar no.)</span></label>
+
+                                        {/* Document Upload Section */}
+                                        <div style={{ marginBottom: '1rem', background: 'rgba(99,102,241,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(99,102,241,0.35)' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.78rem', color: 'var(--text-dim)' }}>(Optional)</span>
+                                            </div>
                                             <input
                                                 name="documents"
                                                 type="text"
                                                 className="input-field"
-                                                placeholder="e.g. Aadhar 1234 5678 9012"
+                                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
+                                                style={{ marginBottom: '0.6rem' }}
                                             />
+                                            <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '500' }}>
+                                                Upload Document Photo / Scan <span style={{ fontSize: '0.72rem' }}>(JPG, PNG, PDF – max 2MB)</span>
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="image/*,application/pdf"
+                                                onChange={handleSubManagerDocFileChange}
+                                                style={{
+                                                    width: '100%', padding: '0.45rem',
+                                                    background: 'rgba(0,0,0,0.15)',
+                                                    border: '1px solid var(--glass-border)',
+                                                    borderRadius: '8px', color: 'var(--text-light)',
+                                                    cursor: 'pointer', fontSize: '0.82rem',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                            />
+                                            {subManagerDocFile && (
+                                                <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                                    {subManagerDocPreview && subManagerDocPreview !== 'pdf' ? (
+                                                        <img src={subManagerDocPreview} alt="Doc Preview" style={{
+                                                            height: '65px', maxWidth: '150px', borderRadius: '8px',
+                                                            objectFit: 'cover', border: '2px solid rgba(99,102,241,0.4)'
+                                                        }} />
+                                                    ) : (
+                                                        <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(99,102,241,0.15)', borderRadius: '8px', fontSize: '0.78rem', color: '#818cf8' }}>
+                                                            📄 PDF: {subManagerDocFileName}
+                                                        </div>
+                                                    )}
+                                                    <span style={{ fontSize: '0.73rem', color: '#10b981' }}>✓ Selected: {subManagerDocFileName}</span>
+                                                </div>
+                                            )}
                                         </div>
+
                                         <div style={{ marginBottom: '1.5rem' }}>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Profile Photo</label>
                                             <input
@@ -2017,6 +2061,8 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
     const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [documents, setDocuments] = useState('');
+    const [docFile, setDocFile] = useState(null);      // raw File object
+    const [docPreview, setDocPreview] = useState('');  // object URL for preview
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -2030,10 +2076,29 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setImage(reader.result);
-            };
+            reader.onloadend = () => { setImage(reader.result); };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDocFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select an image (JPG, PNG) or PDF file');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Document file size should be less than 2MB');
+                return;
+            }
+            setDocFile(file); // store raw File object
+            if (file.type.startsWith('image/')) {
+                setDocPreview(URL.createObjectURL(file));
+            } else {
+                setDocPreview('pdf');
+            }
         }
     };
 
@@ -2043,12 +2108,9 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
             alert('Please enter waiter name');
             return;
         }
-        onAdd(name, image, mobile, email, documents);
-        setName('');
-        setImage('');
-        setMobile('');
-        setEmail('');
-        setDocuments('');
+        onAdd(name, image, mobile, email, documents, docFile);
+        setName(''); setImage(''); setMobile(''); setEmail('');
+        setDocuments(''); setDocFile(null); setDocPreview('');
     };
 
     return (
@@ -2167,18 +2229,54 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                         />
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: '500' }}>
-                                Documents <span style={{ fontSize: '0.8rem' }}>(Optional – e.g. Aadhar no.)</span>
-                            </label>
+
+                        {/* Document Section */}
+                        <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(99,102,241,0.35)' }}>
+                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-light)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.8rem', color: 'var(--text-dim)' }}>(Optional)</span>
+                            </div>
                             <input
                                 className="input-field"
                                 type="text"
-                                placeholder="e.g. Aadhar 1234 5678 9012"
+                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
                                 value={documents}
                                 onChange={e => setDocuments(e.target.value)}
+                                style={{ marginBottom: '0.75rem' }}
                             />
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem', color: 'var(--text-dim)', fontWeight: '500' }}>
+                                Upload Document Photo / Scan <span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF – max 2MB)</span>
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={handleDocFileChange}
+                                style={{
+                                    width: '100%', padding: '0.5rem',
+                                    background: 'rgba(0,0,0,0.15)',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: '8px', color: 'var(--text-light)',
+                                    cursor: 'pointer', fontSize: '0.85rem',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                            {docFile && (
+                                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                    {docPreview && docPreview !== 'pdf' ? (
+                                        <img src={docPreview} alt="Document Preview" style={{
+                                            height: '70px', maxWidth: '160px', borderRadius: '8px',
+                                            objectFit: 'cover', border: '2px solid rgba(99,102,241,0.4)'
+                                        }} />
+                                    ) : (
+                                        <div style={{
+                                            padding: '0.5rem 1rem', background: 'rgba(99,102,241,0.15)',
+                                            borderRadius: '8px', fontSize: '0.8rem', color: '#818cf8'
+                                        }}>📄 PDF: {docFile?.name}</div>
+                                    )}
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Selected: {docFile?.name}</span>
+                                </div>
+                            )}
                         </div>
+
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
                             <input
@@ -2210,6 +2308,8 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
     const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [documents, setDocuments] = useState('');
+    const [docFile, setDocFile] = useState(null);      // raw File object
+    const [docPreview, setDocPreview] = useState('');  // object URL for preview
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -2223,10 +2323,29 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setImage(reader.result);
-            };
+            reader.onloadend = () => { setImage(reader.result); };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDocFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select an image (JPG, PNG) or PDF file');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Document file size should be less than 2MB');
+                return;
+            }
+            setDocFile(file); // store raw File object
+            if (file.type.startsWith('image/')) {
+                setDocPreview(URL.createObjectURL(file));
+            } else {
+                setDocPreview('pdf');
+            }
         }
     };
 
@@ -2236,12 +2355,9 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
             alert('Please enter kitchen staff name');
             return;
         }
-        onAdd(name, image, mobile, email, documents);
-        setName('');
-        setImage('');
-        setMobile('');
-        setEmail('');
-        setDocuments('');
+        onAdd(name, image, mobile, email, documents, docFile);
+        setName(''); setImage(''); setMobile(''); setEmail('');
+        setDocuments(''); setDocFile(null); setDocPreview('');
     };
 
     return (
@@ -2360,18 +2476,54 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                         />
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: '500' }}>
-                                Documents <span style={{ fontSize: '0.8rem' }}>(Optional – e.g. Aadhar no.)</span>
-                            </label>
+
+                        {/* Document Section */}
+                        <div style={{ background: 'rgba(245,158,11,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(245,158,11,0.4)' }}>
+                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-light)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.8rem', color: 'var(--text-dim)' }}>(Optional)</span>
+                            </div>
                             <input
                                 className="input-field"
                                 type="text"
-                                placeholder="e.g. Aadhar 1234 5678 9012"
+                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
                                 value={documents}
                                 onChange={e => setDocuments(e.target.value)}
+                                style={{ marginBottom: '0.75rem' }}
                             />
+                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem', color: 'var(--text-dim)', fontWeight: '500' }}>
+                                Upload Document Photo / Scan <span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF – max 2MB)</span>
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={handleDocFileChange}
+                                style={{
+                                    width: '100%', padding: '0.5rem',
+                                    background: 'rgba(0,0,0,0.15)',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: '8px', color: 'var(--text-light)',
+                                    cursor: 'pointer', fontSize: '0.85rem',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                            {docFile && (
+                                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                    {docPreview && docPreview !== 'pdf' ? (
+                                        <img src={docPreview} alt="Document Preview" style={{
+                                            height: '70px', maxWidth: '160px', borderRadius: '8px',
+                                            objectFit: 'cover', border: '2px solid rgba(245,158,11,0.4)'
+                                        }} />
+                                    ) : (
+                                        <div style={{
+                                            padding: '0.5rem 1rem', background: 'rgba(245,158,11,0.15)',
+                                            borderRadius: '8px', fontSize: '0.8rem', color: '#fbbf24'
+                                        }}>📄 PDF: {docFile?.name}</div>
+                                    )}
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Selected: {docFile?.name}</span>
+                                </div>
+                            )}
                         </div>
+
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
                             <input

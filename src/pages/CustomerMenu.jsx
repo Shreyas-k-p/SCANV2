@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { ShoppingCart, X, Info, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
@@ -10,30 +10,26 @@ export default function CustomerMenu() {
     const [searchParams] = useSearchParams();
     const tableIdFromUrl = searchParams.get('table');
 
-    const { menuItems, placeOrder, orders } = useApp();
+    const { menuItems, menuLoading, placeOrder, orders } = useApp();
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [showCart, setShowCart] = useState(false);
     const [showOrders, setShowOrders] = useState(false);
 
-    const [tableNumber, setTableNumber] = useState(tableIdFromUrl || '');
-
-    useEffect(() => {
+    const [tableNumber] = useState(() => {
         if (tableIdFromUrl) {
-            setTableNumber(tableIdFromUrl);
             localStorage.setItem('customerTableNumber', tableIdFromUrl);
-        } else {
-            const saved = localStorage.getItem('customerTableNumber');
-            if (saved) setTableNumber(saved);
+            return tableIdFromUrl;
         }
-    }, [tableIdFromUrl]);
+        return localStorage.getItem('customerTableNumber') || '';
+    });
 
     const [myOrderIds, setMyOrderIds] = useState(() => {
         const saved = localStorage.getItem('myOrderIds');
         try {
             return saved ? JSON.parse(saved) : [];
-        } catch (e) { return []; }
+        } catch { return []; }
     });
 
     const [instructions, setInstructions] = useState('');
@@ -134,7 +130,7 @@ export default function CustomerMenu() {
                         🍽️ Menu <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>(Table {tableNumber || '?'})</span>
                     </h1>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                        {filteredItems.length} items available
+                        {menuLoading ? 'Loading menu...' : `${filteredItems.length} items available`}
                     </p>
                 </div>
 
@@ -179,8 +175,30 @@ export default function CustomerMenu() {
                 ))}
             </div>
 
+            {/* Syncing Indicator */}
+            {menuLoading && menuItems.length > 0 && (
+                <div style={{
+                    position: 'fixed', bottom: '20px', right: '20px', zIndex: 100,
+                    background: 'white', padding: '6px 12px', borderRadius: '30px',
+                    fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)', border: '1px solid #eee',
+                }}>
+                    <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} />
+                    Syncing...
+                </div>
+            )}
+
             <div className="card-grid" style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '15px' }}>
-                {filteredItems.map((item) => (
+                {menuLoading && filteredItems.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
+                        <div className="spinner" style={{ margin: '0 auto 15px' }} />
+                        <p style={{ color: '#666' }}>Fetching delicious items...</p>
+                    </div>
+                ) : filteredItems.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#666' }}>
+                        No items found in this category.
+                    </div>
+                ) : filteredItems.map((item) => (
                     <div
                         key={item.id}
                         onClick={() => handleItemClick(item)}

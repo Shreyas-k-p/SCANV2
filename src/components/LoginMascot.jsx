@@ -45,12 +45,13 @@ export default function LoginMascot({ focusedField, isTyping }) {
             }, 150);
             return () => {
                 clearInterval(scanInterval);
-                setEyeAnimationOffset({ x: 0, y: 0 }); // Reset offset
+                setEyeAnimationOffset({ x: 0, y: 0 }); // Reset offset on cleanup
             };
-        } else {
-            // Reset animation offset when not typing
-            setEyeAnimationOffset({ x: 0, y: 0 });
         }
+
+        // Reset animation offset when not typing — deferred to avoid synchronous setState in effect
+        const resetTimer = setTimeout(() => setEyeAnimationOffset({ x: 0, y: 0 }), 0);
+        return () => clearTimeout(resetTimer);
     }, [isCrying, isTyping]); // focusedField is not needed for animation trigger really
 
     // Random Look Aside and Jump when Idle

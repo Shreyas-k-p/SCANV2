@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
 import { publishMQTT } from '../services/mqttService';
+import './KitchenDashboard.css';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function KitchenDashboard() {
     const { orders, updateOrderStatus, menuItems, updateMenuItemStatus, t, user } = useApp();
     const [activeTab, setActiveTab] = useState('orders'); // orders | menu
-    const [newOrdersCount, setNewOrdersCount] = useState(0);
 
     const activeOrders = orders.filter(o => o.status !== 'completed').sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     const pendingOrders = orders.filter(o => o.status === 'pending');
+    const newOrdersCount = pendingOrders.length;
+    const prevOrdersCountRef = useRef(0);
 
     // Notification for new orders
     useEffect(() => {
         const count = pendingOrders.length;
 
         // Trigger notification if count increased (new order arrived)
-        if (count > newOrdersCount && count > 0) {
+        if (count > prevOrdersCountRef.current && count > 0) {
             // Play notification sound
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -60,8 +62,8 @@ export default function KitchenDashboard() {
 
         }
 
-        setNewOrdersCount(count);
-    }, [orders]);
+        prevOrdersCountRef.current = count;
+    }, [orders]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -190,7 +192,7 @@ export default function KitchenDashboard() {
                             return (
                                 <div
                                     key={order.id}
-                                    className="glass-panel"
+                                    className="glass-panel kitchen-card-hover"
                                     style={{
                                         padding: '1.5rem',
                                         borderLeft: `5px solid`,
@@ -228,17 +230,16 @@ export default function KitchenDashboard() {
                                             }}>
                                                 {order.tableNo}
                                             </div>
-                                            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700' }}>
-                                                Table {order.tableNo}
-                                            </h3>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>
+                                                    Table {order.tableNo}
+                                                </h3>
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                                                    {new Date(order.timestamp).toLocaleTimeString()}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span style={{
-                                            fontSize: '0.85rem',
-                                            color: 'var(--text-dim)',
-                                            fontWeight: '500'
-                                        }}>
-                                            {new Date(order.timestamp).toLocaleTimeString()}
-                                        </span>
+                                        <OrderTimer timestamp={order.timestamp} />
                                     </div>
                                     {order.customerInfo?.instructions && (
                                         <div style={{
@@ -286,13 +287,7 @@ export default function KitchenDashboard() {
                                     </div>
                                     {['pending', 'preparing'].includes(order.status) ? (
                                         <button
-                                            className="btn btn-primary"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.875rem',
-                                                fontSize: '1rem',
-                                                fontWeight: '700'
-                                            }}
+                                            className="btn-mark-ready"
                                             onClick={async () => {
                                                 await updateOrderStatus(order.id, 'ready');
                                                 publishMQTT({
@@ -302,7 +297,7 @@ export default function KitchenDashboard() {
                                                 });
                                             }}
                                         >
-                                            ✅ {t('markReady')}
+                                            ✨ {t('markReady')}
                                         </button>
                                     ) : (
                                         <button
@@ -391,5 +386,30 @@ export default function KitchenDashboard() {
                 </div>
             )}
         </div>
+    );
+}
+
+/* ── Order elapsed-time timer ──────────────────────────────── */
+function OrderTimer({ timestamp }) {
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        const update = () => {
+            const secs = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+            setElapsed(Math.max(0, secs));
+        };
+        update();
+        const id = setInterval(update, 10000);
+        return () => clearInterval(id);
+    }, [timestamp]);
+
+    const mins = Math.floor(elapsed / 60);
+    const urgency = mins >= 10 ? 'urgent' : mins >= 5 ? 'waiting' : 'fresh';
+    const label = mins < 1 ? 'Just now' : `${mins}m ago`;
+
+    return (
+        <span className={`order-timer ${urgency}`}>
+            {urgency === 'urgent' ? '🔴' : urgency === 'waiting' ? '🟡' : '🟢'} {label}
+        </span>
     );
 }

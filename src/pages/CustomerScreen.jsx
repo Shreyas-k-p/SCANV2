@@ -100,8 +100,8 @@ function playBeep(type = "ORDER_READY") {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CustomerScreen() {
-    const { id } = useParams();
-    const tableId = id || "T01";
+    const { tableNo } = useParams();
+    const tableId = tableNo || "T01";
 
     const [statusKey, setStatusKey] = useState("WELCOME");
     const [orderData, setOrderData] = useState(null);

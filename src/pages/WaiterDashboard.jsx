@@ -1,26 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
-import { publishMQTT } from '../services/mqttService'; // Import MQTT helper
+import { publishMQTT } from '../services/mqttService';
+import './WaiterDashboard.css';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import BillPrint from '../components/BillPrint';
 
 export default function WaiterDashboard() {
     const { tables, orders, updateOrderStatus, updateTableStatus, t, user, deleteOrder } = useApp();
-    const [readyOrdersCount, setReadyOrdersCount] = useState(0);
-    const [showBillPrint, setShowBillPrint] = useState(false);
-    const [selectedTable, setSelectedTable] = useState(null);
-    const [billedOrders, setBilledOrders] = useState([]);
-
-    const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed' && o.status !== 'cancelled');
+    const readyOrdersCount = orders.filter(o => o.status === 'ready').length;
+    const prevReadyCountRef = useRef(0);
 
     // Count ready orders and trigger vibration
     useEffect(() => {
         const count = orders.filter(o => o.status === 'ready').length;
 
         // Trigger vibration if count increased (new ready order)
-        if (count > readyOrdersCount && count > 0) {
+        if (count > prevReadyCountRef.current && count > 0) {
             // Vibrate if supported
             if ('vibrate' in navigator) {
                 // Vibration pattern: vibrate for 200ms, pause 100ms, vibrate 200ms
@@ -29,8 +26,14 @@ export default function WaiterDashboard() {
 
         }
 
-        setReadyOrdersCount(count);
+        prevReadyCountRef.current = count;
     }, [orders]);
+
+    const [showBillPrint, setShowBillPrint] = useState(false);
+    const [selectedTable, setSelectedTable] = useState(null);
+    const [billedOrders, setBilledOrders] = useState([]);
+
+    const getTableOrders = (tableNo) => orders.filter(o => String(o.tableNo) === String(tableNo) && o.status !== 'completed' && o.status !== 'cancelled');
 
     const tableColors = [
         'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
@@ -204,7 +207,6 @@ export default function WaiterDashboard() {
                     return (
                         <div
                             key={tableObj.docId || idx}
-                            className=""
                             style={{
                                 padding: '1.5rem',
                                 border: hasOrders ? `3px solid` : '2px solid var(--border-color)',
@@ -217,10 +219,17 @@ export default function WaiterDashboard() {
                                 backdropFilter: 'blur(15px) saturate(180%)',
                                 WebkitBackdropFilter: 'blur(15px) saturate(180%)',
                                 boxShadow: 'var(--shadow-md)',
-                                borderRadius: '20px'
+                                borderRadius: '20px',
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                cursor: 'default'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.28)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                             }}
                         >
                             <div style={{
@@ -322,18 +331,8 @@ export default function WaiterDashboard() {
                                             </ul>
                                             {order.status === 'ready' && (
                                                 <button
-                                                    className="btn "
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.75rem',
-                                                        marginTop: '0.75rem',
-                                                        fontSize: '1rem',
-                                                        fontWeight: '700',
-                                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '12px'
-                                                    }}
+                                                    className="btn-serve"
+                                                    style={{ width: '100%', marginTop: '0.75rem', justifyContent: 'center' }}
                                                     onClick={() => handleServeOrder(order.id)}
                                                 >
                                                     ✅ {t('markServed')}
@@ -392,31 +391,15 @@ export default function WaiterDashboard() {
                                 {hasOrders && (
                                     <>
                                         <button
-                                            className="btn"
-                                            style={{
-                                                flex: 1,
-                                                background: 'var(--accent)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                padding: '10px',
-                                                fontWeight: '700'
-                                            }}
+                                            className="btn-bill"
+                                            style={{ flex: 1, justifyContent: 'center' }}
                                             onClick={() => handleBillTable(tableObj)}
                                         >
                                             🧾 Bill
                                         </button>
                                         <button
-                                            className="btn"
-                                            style={{
-                                                flex: 1,
-                                                background: '#10b981', // Green for cleared/paid
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                padding: '10px',
-                                                fontWeight: '700'
-                                            }}
+                                            className="btn-serve"
+                                            style={{ flex: 1, justifyContent: 'center' }}
                                             onClick={() => handleClearTable(tableObj)}
                                         >
                                             ✅ Paid & Clear

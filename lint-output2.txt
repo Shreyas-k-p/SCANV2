@@ -1,0 +1,41 @@
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\components\DeviceMonitor.jsx[24m[0m
+[0m  [2m80:9[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  78 |[0m
+[0m  79 |     useEffect(() => {[0m
+[0m> 80 |         loadDevices();[0m
+[0m     |         ^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  81 |[0m
+[0m  82 |         const interval = setInterval(() => {[0m
+[0m  83 |             loadDevices();  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\CustomerMenu.jsx[24m[0m
+[0m   [2m1:27[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                [2mno-unused-vars[22m[0m
+[0m  [2m20:25[22m  [31merror[39m  'setTableNumber' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m  [2m32:18[22m  [31merror[39m  '_e' is defined but never used                                                                  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\Menu.jsx[24m[0m
+[0m  [2m1:27[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\pages\WaiterDashboard.jsx[24m[0m
+[0m  [2m30:19[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\menuService.js[24m[0m
+[0m  [2m62:8[22m  [31merror[39m  '_payload' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\services\tableService.js[24m[0m
+[0m  [2m67:8[22m  [31merror[39m  '_payload' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\supabaseClient.js[24m[0m
+[0m  [2m52:14[22m  [31merror[39m  '_e' is defined but never used  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 9 problems (8 errors, 1 warning)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  0 errors and 1 warning potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

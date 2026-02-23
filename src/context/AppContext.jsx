@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { listenToMenu, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB } from "../services/menuService";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { listenToMenu, bulkAddMenuItemsToDB, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB } from "../services/menuService";
 import {
   addTableToDB,
   listenToTables,
@@ -12,14 +12,12 @@ import { playNotificationSound, playUrgentNotificationSound } from '../utils/sou
 import {
   loginStaff,
   logoutStaff,
-  getCurrentUser,
-  getStaffSession,
   createStaffAccount,
   deleteStaffAccount,
   getStaffByRole,
   subscribeToStaffChanges
 } from '../services/authService';
-import { supabase } from '../supabaseClient';
+import { uploadStaffDocument } from '../services/userService';
 
 
 const AppContext = createContext();
@@ -61,11 +59,10 @@ export function AppProvider({ children }) {
   const [language, setLanguage] = useState(() => localStorage.getItem('appLanguage') || 'en');
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'light');
 
-  // Translation helper
-  const t = (key) => {
-    // console.log(`Translating ${key} to ${language}:`, translations[language]?.[key]);
+  // Translation helper — memoized so it doesn't cause unnecessary re-renders
+  const t = useCallback((key) => {
     return translations[language]?.[key] || translations['en']?.[key] || key;
-  };
+  }, [language]);
 
   useEffect(() => {
     localStorage.setItem('appLanguage', language);
@@ -103,12 +100,25 @@ export function AppProvider({ children }) {
     }
   }, [user]);
 
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState(() => {
+    const saved = localStorage.getItem('menuMenuItems');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error("Failed to parse menu items", e);
+      }
+    }
+    return initialMenu;
+  });
 
-  //const [menuItems, setMenuItems] = useState(() => {
-  //  const saved = localStorage.getItem('menuItems');
-  //return saved ? JSON.parse(saved) : initialMenu;
-  //});
+  const [menuLoading, setMenuLoading] = useState(() => {
+    const saved = localStorage.getItem('menuMenuItems');
+    return !saved; // Only show "loading" if we have no cache
+  });
+
+  //    const [tables] = useState([1, 2, 3, 4, 5, 6, 7, 8]); // Mock tables
 
   const [orders, setOrders] = useState([]);
 
@@ -126,33 +136,28 @@ export function AppProvider({ children }) {
   const [subManagers, setSubManagers] = useState([]);
   const [managers, setManagers] = useState([]);
 
-  //const [kitchenStaff, setKitchenStaff] = useState(() => {
-  //  const saved = localStorage.getItem('kitchenStaff');
-  //return saved ? JSON.parse(saved) : [];
-  //});
-
   // --- EFFECT: PERSISTENCE ---
+
+  useEffect(() => {
+    localStorage.setItem('menuMenuItems', JSON.stringify(menuItems));
+  }, [menuItems]);
 
   useEffect(() => {
     const unsubscribe = listenToMenu((data) => {
       if (data && data.length > 0) {
         setMenuItems(data);
+        localStorage.setItem('menuMenuItems', JSON.stringify(data));
       } else {
         // DB is empty, seed it!
-        // We set local state immediately to avoid flicker, AND push to DB
         setMenuItems(initialMenu);
-        initialMenu.forEach(item => {
-          // remove id to let firestore generate it, or keep it if specific IDs needed.
-          // We'll keep the custom ID field but firestore will have its own doc ID.
-          addMenuItemToDB(item);
-        });
+        localStorage.setItem('menuMenuItems', JSON.stringify(initialMenu));
+        bulkAddMenuItemsToDB(initialMenu);
       }
+      setMenuLoading(false);
     });
     return () => unsubscribe();
   }, []);
-  useEffect(() => {
-    localStorage.setItem('menuItems', JSON.stringify(menuItems));
-  }, [menuItems]);
+  // menuItems are NOT persisted to localStorage — Supabase is the source of truth
 
   useEffect(() => {
     const unsubscribe = listenToOrders(setOrders);
@@ -166,8 +171,6 @@ export function AppProvider({ children }) {
       try {
         const parsedOrders = JSON.parse(localOrders);
         if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
-          // eslint-disable-next-line no-console
-
           parsedOrders.forEach((order) => {
             // Only add if it doesn't look like it has a firestore ID yet (though local ones definitely won't)
             addOrderToDB(order);
@@ -487,18 +490,27 @@ export function AppProvider({ children }) {
   };
 
   // Staff Management with Supabase
-  const addWaiter = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
+  const addWaiter = async (name, profilePhoto = '', mobile = '', email = '', docText = '', documentFile = null) => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
+    const staffId = `W-${shortIdSuffix}`;
+
+    // Upload document file to Supabase Storage if provided
+    let documentUrl = null;
+    if (documentFile) {
+      documentUrl = await uploadStaffDocument(documentFile, staffId);
+    }
+
     const staffData = {
-      staff_id: `W-${shortIdSuffix}`,
+      staff_id: staffId,
       role: 'WAITER',
       name: name.trim(),
       profile_photo: profilePhoto,
       secret_id: secretID,
       mobile: mobile.trim(),
       email: email.trim(),
-      documents: documents.trim()
+      documents: docText.trim(),
+      document_url: documentUrl
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -515,18 +527,26 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addKitchenStaff = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
+  const addKitchenStaff = async (name, profilePhoto = '', mobile = '', email = '', docText = '', documentFile = null) => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
+    const staffId = `K-${shortIdSuffix}`;
+
+    let documentUrl = null;
+    if (documentFile) {
+      documentUrl = await uploadStaffDocument(documentFile, staffId);
+    }
+
     const staffData = {
-      staff_id: `K-${shortIdSuffix}`,
+      staff_id: staffId,
       role: 'KITCHEN',
       name: name.trim(),
       profile_photo: profilePhoto,
       secret_id: secretID,
       mobile: mobile.trim(),
       email: email.trim(),
-      documents: documents.trim()
+      documents: docText.trim(),
+      document_url: documentUrl
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -543,18 +563,27 @@ export function AppProvider({ children }) {
     }
   };
 
-  const addSubManager = async (name, profilePhoto = '', mobile = '', email = '', documents = '') => {
+
+  const addSubManager = async (name, profilePhoto = '', mobile = '', email = '', docText = '', documentFile = null) => {
     const secretID = generateSecretID();
     const shortIdSuffix = Math.floor(10000 + Math.random() * 90000);
+    const staffId = `SM-${shortIdSuffix}`;
+
+    let documentUrl = null;
+    if (documentFile) {
+      documentUrl = await uploadStaffDocument(documentFile, staffId);
+    }
+
     const staffData = {
-      staff_id: `SM-${shortIdSuffix}`,
+      staff_id: staffId,
       role: 'SUB_MANAGER',
       name: name.trim(),
       profile_photo: profilePhoto,
       secret_id: secretID,
       mobile: mobile.trim(),
       email: email.trim(),
-      documents: documents.trim()
+      documents: docText.trim(),
+      document_url: documentUrl
     };
     const result = await createStaffAccount(staffData);
     if (result.success) {
@@ -563,6 +592,7 @@ export function AppProvider({ children }) {
       throw new Error(result.error);
     }
   };
+
 
   const removeSubManager = async (profileId) => {
     const result = await deleteStaffAccount(profileId);
@@ -619,7 +649,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       user, login, logout,
-      menuItems, addMenuItem, updateMenuItem, updateMenuItemStatus, deleteMenuItem,
+      menuItems, menuLoading, addMenuItem, updateMenuItem, updateMenuItemStatus, deleteMenuItem,
       orders, placeOrder, updateOrderStatus, deleteOrder, clearAllOrders,
 
       tables,

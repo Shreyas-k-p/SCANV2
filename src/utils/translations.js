@@ -97,6 +97,11 @@ export const translations = {
         remove: "Remove",
         tables: "Tables",
         addTable: "Add Table",
+        waiterDashboard: "Waiter Dashboard",
+        kitchenDashboard: "Kitchen Dashboard",
+        managerDashboard: "Manager Dashboard",
+        loading: "Loading",
+        menu: "Menu",
     },
     hi: {
         // Login
@@ -198,6 +203,10 @@ export const translations = {
         remove: "हटाएं",
         tables: "टेबल्स",
         addTable: "टेबल जोड़ें",
+        waiterDashboard: "वेटर डैशबोर्ड",
+        kitchenDashboard: "रसोई डैशबोर्ड",
+        managerDashboard: "प्रबंधक डैशबोर्ड",
+        loading: "लोड हो रहा है",
     },
     es: {
         // Login

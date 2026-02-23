@@ -1,0 +1,7 @@
+[0m[0m
+[0m[4mC:\Users\shrey\Downloads\scan4serve - Copy\src\components\DeviceMonitor.jsx[24m[0m
+[0m  [2m84:13[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')[0m
+[0m[0m
+[0m[33m[1m✖ 1 problem (0 errors, 1 warning)[22m[39m[0m
+[0m[33m[1m[22m[39m[33m[1m  0 errors and 1 warning potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[33m[1m[22m[39m[0m
