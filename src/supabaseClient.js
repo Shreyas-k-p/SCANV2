@@ -48,14 +48,21 @@ export const supabase = client;
 export const checkSupabaseConnection = async () => {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout to allow wake-up
 
         const { error } = await supabase.from('profiles').select('count', { head: true, count: 'exact' })
             .abortSignal(controller.signal);
 
         clearTimeout(timeoutId);
-        return !error;
+        if (error) {
+            console.warn('Supabase Connection Heartbeat Error:', error);
+            // If it's a specific auth error but the server replied, it's technically "online"
+            if (error.code && error.code.startsWith('PGRST')) return true;
+            return false;
+        }
+        return true;
     } catch (_e) {
+        console.warn('Supabase Connection Heartbeat Failed (Exception)');
         return false;
     }
 };

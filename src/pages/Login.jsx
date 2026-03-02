@@ -130,7 +130,7 @@ const Login = () => {
                                 gap: '8px',
                                 animation: 'pulse 2s infinite'
                             }}>
-                                <Shield size={16} /> Server is currently unreachable.
+                                <Shield size={16} /> Server is currently unreachable. If this persists, please check if your network/ISP (like Railtel) is blocking Supabase or if the project is paused.
                             </div>
                         )}
                     </div>
