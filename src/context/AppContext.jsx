@@ -105,7 +105,7 @@ export function AppProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         console.error("Failed to parse menu items", e);
       }
@@ -115,28 +115,26 @@ export function AppProvider({ children }) {
 
   const [menuLoading, setMenuLoading] = useState(() => {
     const saved = localStorage.getItem('menuMenuItems');
-    return !saved; // Only show "loading" if we have no cache
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      } catch (e) { }
+    }
+    return true; // Still show loading if no cache at all
   });
 
-  //    const [tables] = useState([1, 2, 3, 4, 5, 6, 7, 8]); // Mock tables
-
   const [orders, setOrders] = useState([]);
-
-  //    const [tables] = useState([1, 2, 3, 4, 5, 6, 7, 8]); // Mock tables
 
   const [feedbacks, setFeedbacks] = useState(() => {
     const saved = localStorage.getItem('feedbacks');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Waiters and Kitchen Staff Management
-  // Staff state - now managed by Supabase
   const [waiters, setWaiters] = useState([]);
   const [kitchenStaff, setKitchenStaff] = useState([]);
   const [subManagers, setSubManagers] = useState([]);
   const [managers, setManagers] = useState([]);
-
-  // --- EFFECT: PERSISTENCE ---
 
   useEffect(() => {
     localStorage.setItem('menuMenuItems', JSON.stringify(menuItems));
@@ -147,15 +145,25 @@ export function AppProvider({ children }) {
       if (data && data.length > 0) {
         setMenuItems(data);
         localStorage.setItem('menuMenuItems', JSON.stringify(data));
-      } else {
+      } else if (data && data.length === 0) {
         // DB is empty, seed it!
         setMenuItems(initialMenu);
         localStorage.setItem('menuMenuItems', JSON.stringify(initialMenu));
         bulkAddMenuItemsToDB(initialMenu);
       }
+      // If data is null/undefined (fetch failed), we just keep our initial/cached items
       setMenuLoading(false);
     });
-    return () => unsubscribe();
+
+    // Safety timeout to hide spinner even if Supabase completely hangs
+    const timeout = setTimeout(() => {
+      setMenuLoading(false);
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
   // menuItems are NOT persisted to localStorage — Supabase is the source of truth
 

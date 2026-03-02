@@ -130,7 +130,7 @@ export default function CustomerMenu() {
                         🍽️ Menu <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>(Table {tableNumber || '?'})</span>
                     </h1>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                        {menuLoading ? 'Loading menu...' : `${filteredItems.length} items available`}
+                        {menuLoading && filteredItems.length === 0 ? 'Loading menu...' : `${filteredItems.length} items available`}
                     </p>
                 </div>
 

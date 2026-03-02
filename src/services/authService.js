@@ -23,30 +23,38 @@ export const validateStaffCredentials = async (role, staffId, secretId) => {
             .select('*')
             .eq('role', role.toUpperCase())
             .eq('staff_id', staffId.toUpperCase())
-            .eq('secret_id', secretId.toUpperCase())
             .single();
 
         if (error) {
+            if (error.code === 'PGRST116') {
+                return { success: false, error: 'User not found' };
+            }
             console.error('❌ Validation error:', error);
-            return null;
+            return { success: false, error: `Connection Error: ${error.message || 'Check your internet'}` };
         }
 
         if (data) {
-
-            return {
-                id: data.id,
-                staffId: data.staff_id,
-                name: data.name,
-                role: data.role,
-                profilePhoto: data.profile_photo,
-                email: data.email
-            };
+            // Check secret_id (case insensitive for simplicity, as per docs)
+            if (data.secret_id && secretId && data.secret_id.toUpperCase() === secretId.toUpperCase()) {
+                return {
+                    success: true,
+                    user: {
+                        id: data.id,
+                        staffId: data.staff_id,
+                        name: data.name,
+                        role: data.role,
+                        profilePhoto: data.profile_photo,
+                        email: data.email
+                    }
+                };
+            }
+            return { success: false, error: 'Invalid secret code' };
         }
 
-        return null;
+        return { success: false, error: 'Invalid credentials' };
     } catch (err) {
         console.error('❌ Validation exception:', err);
-        return null;
+        return { success: false, error: 'Network failure' };
     }
 };
 
@@ -134,12 +142,14 @@ export const loginStaff = async (role, staffId, secretId = null, name = null) =>
         }
 
         // For roles with secret ID (MANAGER, SUB_MANAGER, or WAITER/KITCHEN with secret)
-        const validatedUser = await validateStaffCredentials(role, staffId, secretId);
+        const loginResult = await validateStaffCredentials(role, staffId, secretId);
 
-        if (!validatedUser) {
-            toast.error('Invalid credentials');
-            throw new Error('Invalid credentials');
+        if (!loginResult.success) {
+            toast.error(loginResult.error);
+            throw new Error(loginResult.error);
         }
+
+        const validatedUser = loginResult.user;
 
         // Check for active manager session (only one manager at a time)
         if (role === 'MANAGER') {

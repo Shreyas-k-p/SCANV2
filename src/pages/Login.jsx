@@ -19,6 +19,18 @@ const Login = () => {
 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isOnline, setIsOnline] = useState(true);
+
+    React.useEffect(() => {
+        const checkStatus = async () => {
+            const { checkSupabaseConnection } = await import('../supabaseClient');
+            const status = await checkSupabaseConnection();
+            setIsOnline(status);
+        };
+        checkStatus();
+        const interval = setInterval(checkStatus, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     const roles = [
         { id: 'WAITER', label: t('waiter'), icon: User },
@@ -37,7 +49,6 @@ const Login = () => {
         setError('');
         setIsLoading(true);
 
-        await new Promise(resolve => setTimeout(resolve, 800));
 
         const { id, name, role, secretId } = formData;
         const upperId = id ? id.toUpperCase().trim() : '';
@@ -84,6 +95,24 @@ const Login = () => {
                     <div className="form-welcome">
                         <h2>{t('welcome')}</h2>
                         <p>{t('selectRoleMessage')}</p>
+
+                        {!isOnline && (
+                            <div className="connection-warning" style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid #ef4444',
+                                color: '#ef4444',
+                                borderRadius: '12px',
+                                padding: '10px',
+                                marginTop: '15px',
+                                fontSize: '0.85rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                animation: 'pulse 2s infinite'
+                            }}>
+                                <Shield size={16} /> Server is currently unreachable.
+                            </div>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="modern-form">

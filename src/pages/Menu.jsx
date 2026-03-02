@@ -318,7 +318,7 @@ export default function Menu() {
                             style={{
                                 cursor: item.available !== false ? 'pointer' : 'not-allowed',
                                 opacity: item.available !== false ? 1 : 0.7,
-                                animationDelay: `${Math.min(idx * 0.02, 0.4)}s` // Capped and much faster
+                                animationDelay: `0s`
                             }}
                         >
                             <div className="card-image-container">
