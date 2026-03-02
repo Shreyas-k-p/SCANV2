@@ -22,8 +22,14 @@ const Login = () => {
     const [isOnline, setIsOnline] = useState(true);
 
     React.useEffect(() => {
-        // Heartbeat check removed to match standard Supabase boilerplate
-        setIsOnline(true);
+        const checkStatus = async () => {
+            const { checkSupabaseConnection } = await import('../supabaseClient');
+            const status = await checkSupabaseConnection();
+            setIsOnline(status);
+        };
+        checkStatus();
+        const interval = setInterval(checkStatus, 10000);
+        return () => clearInterval(interval);
     }, []);
 
     const roles = [
@@ -55,7 +61,7 @@ const Login = () => {
                 // Add timeout for mobile/slow networks
                 const loginPromise = login(upperRole, upperId, null, name.trim());
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
                 );
 
                 const result = await Promise.race([loginPromise, timeoutPromise]);
@@ -69,7 +75,7 @@ const Login = () => {
                 // Add a local timeout for the login action itself as a safety measure
                 const loginPromise = login(upperRole, upperId, secretId);
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
                 );
 
                 const result = await Promise.race([loginPromise, timeoutPromise]);
@@ -124,7 +130,7 @@ const Login = () => {
                                 gap: '8px',
                                 animation: 'pulse 2s infinite'
                             }}>
-                                <Shield size={16} /> Server is currently unreachable. If this persists, please check if your network/ISP (like Railtel) is blocking Supabase or if the project is paused.
+                                <Shield size={16} /> Server is currently unreachable.
                             </div>
                         )}
                     </div>
@@ -166,7 +172,7 @@ const Login = () => {
                                 <label>{t('staffId')}</label>
                             </div>
 
-                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN') && (
+                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
                                 <div className="floating-input-group">
                                     <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
                                     <input

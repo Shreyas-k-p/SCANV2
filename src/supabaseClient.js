@@ -1,6 +1,61 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = "https://ohkrzxcmueodijbhxxgx.supabase.co"
-const supabaseAnonKey = "sb_publishable_LMW50V2QqdvXgNDefH1AdA_IOnregQK"
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+let client;
+
+try {
+    if (supabaseUrl && supabaseAnonKey) {
+        client = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                storage: window.localStorage,
+            },
+        });
+    } else {
+        throw new Error('Supabase Config Missing');
+    }
+} catch (error) {
+    console.error('Supabase Init Failed:', error);
+    // Minimal dummy
+    client = {
+        from: () => ({
+            select: () => Promise.resolve({ error: { message: 'Supabase Not Connected' }, data: [] }),
+            insert: () => Promise.resolve({ error: { message: 'Supabase Not Connected' }, data: null }),
+            update: () => Promise.resolve({ error: { message: 'Supabase Not Connected' }, data: null }),
+            delete: () => Promise.resolve({ error: { message: 'Supabase Not Connected' }, data: null }),
+            eq: function () { return this; },
+            order: function () { return this; },
+            limit: function () { return this; },
+            single: function () { return Promise.resolve({ error: { message: 'Supabase Not Connected' }, data: null }); }
+        }),
+        channel: () => ({
+            on: function () { return this; },
+            subscribe: () => ({ unsubscribe: () => { } })
+        }),
+        auth: {
+            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } })
+        }
+    };
+}
+
+export const supabase = client;
+
+export const checkSupabaseConnection = async () => {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+        const { error } = await supabase.from('profiles').select('count', { head: true, count: 'exact' })
+            .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
+        return !error;
+    } catch (_e) {
+        return false;
+    }
+};
