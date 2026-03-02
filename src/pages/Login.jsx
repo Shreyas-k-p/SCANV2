@@ -63,13 +63,25 @@ const Login = () => {
             }
             else if (upperRole === 'MANAGER' || upperRole === 'SUB_MANAGER') {
                 if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
-                const result = await login(upperRole, upperId, secretId);
+
+                // Add a local timeout for the login action itself as a safety measure
+                const loginPromise = login(upperRole, upperId, secretId);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
+                );
+
+                const result = await Promise.race([loginPromise, timeoutPromise]);
+
                 if (!result.success) throw new Error(result.error || "Invalid credentials");
                 navigate(upperRole === 'MANAGER' ? '/manager' : '/sub-manager');
             }
         } catch (err) {
             console.error("Login error:", err);
-            setError(err.message);
+            if (err.message.includes('abort') || err.message.includes('timeout') || err.message.includes('Timed Out')) {
+                setError("Network Timeout: The database is taking too long to respond. Please check your internet or try again in a minute as the server might be waking up.");
+            } else {
+                setError(err.message);
+            }
             setIsLoading(false);
         }
     };

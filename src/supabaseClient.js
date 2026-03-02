@@ -47,7 +47,13 @@ export const supabase = client;
 
 export const checkSupabaseConnection = async () => {
     try {
-        const { error } = await supabase.from('profiles').select('count').limit(1);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+        const { error } = await supabase.from('profiles').select('count', { head: true, count: 'exact' })
+            .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
         return !error;
     } catch (_e) {
         return false;

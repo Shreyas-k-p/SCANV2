@@ -16,6 +16,13 @@ import toast from 'react-hot-toast';
 export const validateStaffCredentials = async (role, staffId, secretId) => {
     try {
 
+        console.log(`[AUTH] Validating: Role=${role}, StaffId=${staffId}`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('[AUTH] Validation timed out after 10s');
+            controller.abort();
+        }, 10000); // 10s timeout
 
         // Query profiles table for matching staff
         const { data, error } = await supabase
@@ -23,7 +30,10 @@ export const validateStaffCredentials = async (role, staffId, secretId) => {
             .select('*')
             .eq('role', role.toUpperCase())
             .eq('staff_id', staffId.toUpperCase())
+            .abortSignal(controller.signal)
             .single();
+
+        clearTimeout(timeoutId);
 
         if (error) {
             if (error.code === 'PGRST116') {
@@ -115,6 +125,7 @@ export const clearStaffSession = () => {
  */
 export const loginStaff = async (role, staffId, secretId = null, name = null) => {
     try {
+        console.log(`[AUTH] loginStaff called for Role=${role}, StaffId=${staffId}`);
         // For WAITER and KITCHEN without secret ID system (if they just use ID + name)
         if ((role === 'WAITER' || role === 'KITCHEN') && !secretId && name) {
             // Simple validation - just check if staff_id exists
@@ -156,6 +167,7 @@ export const loginStaff = async (role, staffId, secretId = null, name = null) =>
             localStorage.setItem('activeManager', staffId.toUpperCase());
         }
 
+        console.log(`[AUTH] loginStaff SUCCESS for User=${validatedUser.name}`);
         createStaffSession(validatedUser);
         toast.success(`Welcome back, ${validatedUser.name}!`);
         return { success: true, user: validatedUser };
