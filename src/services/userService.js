@@ -1,4 +1,4 @@
-import supabase from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 
 /**
  * Upload a staff document (raw File object) to Supabase Storage
