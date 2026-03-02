@@ -79,13 +79,18 @@ export function AppProvider({ children }) {
 
 
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    const sessionData = localStorage.getItem('staff_session');
+    if (sessionData) {
       try {
-        return JSON.parse(savedUser);
+        const session = JSON.parse(sessionData);
+        // Check if session expired
+        if (new Date(session.expiresAt) > new Date()) {
+          return session.user;
+        } else {
+          localStorage.removeItem('staff_session');
+        }
       } catch (e) {
-        console.error("Failed to parse user", e);
-        return null;
+        console.error("Failed to parse session", e);
       }
     }
     return null;

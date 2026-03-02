@@ -45,7 +45,7 @@ function App() {
             } />
 
             <Route path="/kitchen" element={
-              <ProtectedRoute allowedRoles={['KITCHEN', 'WAITER']}>
+              <ProtectedRoute allowedRoles={['KITCHEN']}>
                 <KitchenDashboard />
               </ProtectedRoute>
             } />

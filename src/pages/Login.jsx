@@ -57,7 +57,15 @@ const Login = () => {
         try {
             if (upperRole === 'WAITER' || upperRole === 'KITCHEN') {
                 if (!upperId || !name || !name.trim()) throw new Error("ID and Name are required");
-                const result = await login(upperRole, upperId, null, name.trim());
+
+                // Add timeout for mobile/slow networks
+                const loginPromise = login(upperRole, upperId, null, name.trim());
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
+                );
+
+                const result = await Promise.race([loginPromise, timeoutPromise]);
+
                 if (!result.success) throw new Error(result.error || "Invalid credentials");
                 navigate(upperRole === 'WAITER' ? '/waiter' : '/kitchen');
             }
@@ -156,6 +164,10 @@ const Login = () => {
                                     value={formData.id}
                                     onChange={handleChange}
                                     className="floating-input"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    autoCapitalize="none"
                                 />
                                 <label>{t('staffId')}</label>
                             </div>
@@ -170,6 +182,9 @@ const Login = () => {
                                         value={formData.name}
                                         onChange={handleChange}
                                         className="floating-input"
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        spellCheck="false"
                                     />
                                     <label>{t('fullName')}</label>
                                 </div>
@@ -185,6 +200,7 @@ const Login = () => {
                                         value={formData.secretId}
                                         onChange={handleChange}
                                         className="floating-input"
+                                        autoComplete="off"
                                     />
                                     <label>{t('secretKey')}</label>
                                 </div>

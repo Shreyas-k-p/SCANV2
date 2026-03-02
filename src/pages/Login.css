@@ -230,6 +230,8 @@
   color: var(--login-text-dim);
   font-size: 0.9rem;
   font-weight: 600;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .role-pill:hover {
@@ -330,6 +332,8 @@
   gap: 8px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .login-submit-btn:hover {

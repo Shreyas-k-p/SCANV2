@@ -153,7 +153,7 @@ export default function Layout({ children }) {
                         </button>
                     )}
 
-                    {(user?.role === 'KITCHEN' || user?.role === 'WAITER') && (
+                    {user?.role === 'KITCHEN' && (
                         <button
                             onClick={() => handleNavigate('/kitchen')}
                             className={`btn ${location.pathname === '/kitchen' ? 'btn-primary' : 'btn-secondary'}`}
@@ -178,6 +178,19 @@ export default function Layout({ children }) {
                             }}
                         >
                             👔 {t('managerDashboard')}
+                        </button>
+                    )}
+                    {user?.role === 'SUB_MANAGER' && (
+                        <button
+                            onClick={() => handleNavigate('/sub-manager')}
+                            className={`btn ${location.pathname === '/sub-manager' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{
+                                justifyContent: 'flex-start',
+                                padding: '0.875rem 1.25rem',
+                                borderRadius: '12px'
+                            }}
+                        >
+                            💼 {t('subManagerDashboard') || 'Sub-Manager Dashboard'}
                         </button>
                     )}
                 </div>
