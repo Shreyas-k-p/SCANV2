@@ -61,7 +61,7 @@ const Login = () => {
                 // Add timeout for mobile/slow networks
                 const loginPromise = login(upperRole, upperId, null, name.trim());
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
                 );
 
                 const result = await Promise.race([loginPromise, timeoutPromise]);
@@ -75,7 +75,7 @@ const Login = () => {
                 // Add a local timeout for the login action itself as a safety measure
                 const loginPromise = login(upperRole, upperId, secretId);
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 15000)
+                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
                 );
 
                 const result = await Promise.race([loginPromise, timeoutPromise]);
@@ -172,7 +172,7 @@ const Login = () => {
                                 <label>{t('staffId')}</label>
                             </div>
 
-                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN' || formData.role === 'SUB_MANAGER' || formData.role === 'MANAGER') && (
+                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN') && (
                                 <div className="floating-input-group">
                                     <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
                                     <input
