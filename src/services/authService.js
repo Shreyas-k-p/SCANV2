@@ -20,9 +20,9 @@ export const validateStaffCredentials = async (role, staffId, secretId) => {
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-            console.log('[AUTH] Validation timed out after 10s');
+            console.log('[AUTH] Validation timed out after 30s');
             controller.abort();
-        }, 10000); // 10s timeout
+        }, 30000); // 30s timeout
 
         // Query profiles table for matching staff
         const { data, error } = await supabase

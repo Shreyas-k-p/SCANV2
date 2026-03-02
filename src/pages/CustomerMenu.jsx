@@ -188,7 +188,7 @@ export default function CustomerMenu() {
                 </div>
             )}
 
-            <div className="card-grid" style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '15px' }}>
+            <div className="card-grid menu-mobile-1col" style={{ padding: '1rem', gap: '15px' }}>
                 {menuLoading && filteredItems.length === 0 ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
                         <div className="spinner" style={{ margin: '0 auto 15px' }} />
@@ -331,8 +331,8 @@ export default function CustomerMenu() {
 
             {selectedItem && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '24px', overflow: 'hidden' }}>
-                        <div style={{ height: '200px' }}>
+                    <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '24px', overflowX: 'hidden', overflowY: 'auto', maxHeight: '90vh' }}>
+                        <div style={{ height: '200px', flexShrink: 0 }}>
                             <img src={selectedItem.image} alt={selectedItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                         <div style={{ padding: '20px' }}>

@@ -22,8 +22,14 @@ export default function Layout({ children }) {
         closeMenu();
     };
 
-    // Don't show layout details on login page
-    if (location.pathname === '/') {
+    // Don't show layout details on login page or customer facing pages if not logged in
+    const isPublicRoute = !user && (
+        location.pathname === '/menu' ||
+        location.pathname.startsWith('/table') ||
+        location.pathname.startsWith('/screen')
+    );
+
+    if (location.pathname === '/' || isPublicRoute) {
         return children;
     }
 
