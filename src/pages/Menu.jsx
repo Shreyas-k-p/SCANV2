@@ -293,7 +293,7 @@ export default function Menu() {
             }
 
             {/* Grid */}
-            <div className="card-grid menu-mobile-1col" style={{ gap: '2rem' }}>
+            <div className="card-grid" style={{ gap: '2rem' }}>
                 {menuLoading && filteredItems.length === 0 ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem' }}>
                         <div className="spinner" style={{ margin: '0 auto 20px', width: '40px', height: '40px' }} />
@@ -933,9 +933,7 @@ function ItemModal({ item, onClose, onAdd }) {
                 width: '100%',
                 maxWidth: '550px',
                 padding: '0',
-                overflowX: 'hidden',
-                overflowY: 'auto',
-                maxHeight: '90vh',
+                overflow: 'hidden',
                 borderRadius: '24px'
             }}>
                 <div style={{ position: 'relative' }}>

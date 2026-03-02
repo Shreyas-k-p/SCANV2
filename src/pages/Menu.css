@@ -614,8 +614,4 @@
   .menu-grid {
     grid-template-columns: 1fr;
   }
-
-  .menu-mobile-1col {
-    grid-template-columns: 1fr !important;
-  }
 }
