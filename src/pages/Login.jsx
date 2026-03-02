@@ -22,14 +22,8 @@ const Login = () => {
     const [isOnline, setIsOnline] = useState(true);
 
     React.useEffect(() => {
-        const checkStatus = async () => {
-            const { checkSupabaseConnection } = await import('../supabaseClient');
-            const status = await checkSupabaseConnection();
-            setIsOnline(status);
-        };
-        checkStatus();
-        const interval = setInterval(checkStatus, 10000);
-        return () => clearInterval(interval);
+        // Heartbeat check removed to match standard Supabase boilerplate
+        setIsOnline(true);
     }, []);
 
     const roles = [
