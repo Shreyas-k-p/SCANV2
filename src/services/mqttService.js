@@ -6,14 +6,26 @@ const listeners = [];
 export function connectMQTT() {
     if (client) return client;
 
-    // Using public HiveMQ broker via WebSockets
-    client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
-        clientId: "dashboard_" + Math.random().toString(16).substr(2, 8)
-    });
+    // Using EMQX public/private broker via WebSockets
+    const brokerUrl = "wss://y12dbb61.ala.asia-southeast1.emqxsl.com:8084/mqtt";
+    const options = {
+        clientId: "dashboard_" + Math.random().toString(16).substr(2, 8),
+        username: "table_T01",
+        password: "scan4serve",
+        reconnectPeriod: 3000,
+        connectTimeout: 4000,
+        clean: true,
+    };
+
+    client = mqtt.connect(brokerUrl, options);
 
     client.on("connect", () => {
         console.log("✅ MQTT Connected (Production Broker) - Subscribed to restaurant/#");
         client.subscribe("restaurant/#");
+    });
+
+    client.on("reconnect", () => {
+        console.log("🔄 Reconnecting MQTT...");
     });
 
     client.on("message", (topic, message) => {
