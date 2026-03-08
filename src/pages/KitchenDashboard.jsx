@@ -285,14 +285,29 @@ export default function KitchenDashboard() {
                                             </div>
                                         ))}
                                     </div>
-                                    {['pending', 'preparing'].includes(order.status) ? (
+                                    {order.status === 'pending' ? (
+                                        <button
+                                            className="btn-mark-ready"
+                                            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', width: '100%' }}
+                                            onClick={async () => {
+                                                await updateOrderStatus(order.id, 'preparing');
+                                                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
+                                                    type: "ORDER_COOKING",
+                                                    table_id: String(order.tableNo),
+                                                    order_id: order.id
+                                                });
+                                            }}
+                                        >
+                                            👨‍🍳 Start Cooking
+                                        </button>
+                                    ) : order.status === 'preparing' ? (
                                         <button
                                             className="btn-mark-ready"
                                             onClick={async () => {
                                                 await updateOrderStatus(order.id, 'ready');
-                                                publishMQTT({
+                                                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
                                                     type: "ORDER_READY",
-                                                    table_id: order.tableNo,
+                                                    table_id: String(order.tableNo),
                                                     order_id: order.id
                                                 });
                                             }}
