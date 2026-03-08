@@ -1,29 +1,41 @@
 import mqtt from "mqtt";
 
-let client;
+let client = null;
 let connected = false;
+
+// Message queue: stores messages that arrive before connection is ready
+const pendingQueue = [];
 const listeners = [];
 
 export function connectMQTT() {
     if (client) return client;
 
-    // Using EMQX public/private broker via WebSockets
-    const brokerUrl = "wss://y12dbb61.ala.asia-southeast1.emqxsl.com:8084/mqtt";
+    const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || "wss://broker.hivemq.com:8884/mqtt";
     const options = {
         clientId: "dashboard_" + Math.random().toString(16).substr(2, 8),
-        username: "table_T01",
-        password: "scan4serve",
-        reconnectPeriod: 3000,
-        connectTimeout: 4000,
+        username: import.meta.env.VITE_MQTT_USERNAME,
+        password: import.meta.env.VITE_MQTT_PASSWORD,
+        reconnectPeriod: 5000,
+        connectTimeout: 10000,
         clean: true,
     };
 
     client = mqtt.connect(brokerUrl, options);
 
     client.on("connect", () => {
-        console.log("✅ MQTT Connected (Production Broker) - Subscribed to restaurant/#");
+        console.log("✅ MQTT Connected - Subscribed to restaurant/#");
         connected = true;
         client.subscribe("restaurant/#");
+
+        // Flush any messages that were queued before connection was ready
+        if (pendingQueue.length > 0) {
+            console.log(`📬 Flushing ${pendingQueue.length} queued MQTT message(s)...`);
+            pendingQueue.forEach(({ topic, message }) => {
+                client.publish(topic, message, { qos: 1 });
+                console.log(`📤 Flushed to ${topic}`);
+            });
+            pendingQueue.length = 0; // Clear the queue
+        }
     });
 
     client.on("reconnect", () => {
@@ -79,11 +91,15 @@ export function onMQTTMessage(callback) {
 }
 
 export function publishMQTT(topic, data) {
+    const message = typeof data === 'string' ? data : JSON.stringify(data);
+
     if (!client || !connected) {
-        console.warn("MQTT not connected yet, cannot publish");
+        // Queue the message instead of dropping it silently
+        console.warn(`⏳ MQTT not ready — queuing message for topic: ${topic}`);
+        pendingQueue.push({ topic, message });
         return;
     }
-    const message = typeof data === 'string' ? data : JSON.stringify(data);
+
     client.publish(topic, message, { qos: 1 });
     console.log(`📤 Published to ${topic}:`, data);
 }
