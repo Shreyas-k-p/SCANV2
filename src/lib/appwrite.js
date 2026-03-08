@@ -3,8 +3,8 @@ import { Client, Databases, Storage, Account, ID, Query } from "appwrite";
 const client = new Client();
 
 client
-    .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1")
-    .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
+    .setEndpoint("https://fra.cloud.appwrite.io/v1")
+    .setProject("69a719b90037194e110d");
 
 export const databases = new Databases(client);
 export const storage = new Storage(client);
@@ -59,18 +59,18 @@ export const safeSubscribe = (channel, callback) => {
 };
 
 export const APPWRITE_CONFIG = {
-    DATABASE_ID: import.meta.env.VITE_APPWRITE_DATABASE_ID,
+    DATABASE_ID: "69a719f10005e3cf72e2",
     COLLECTIONS: {
-        MENU: import.meta.env.VITE_APPWRITE_MENU_ID || "menu",
-        ORDERS: import.meta.env.VITE_APPWRITE_ORDERS_ID || "orders",
-        STAFF: import.meta.env.VITE_APPWRITE_STAFF_ID || "staff",
-        TABLES: import.meta.env.VITE_APPWRITE_TABLES_ID || "tables",
-        FEEDBACKS: import.meta.env.VITE_APPWRITE_FEEDBACKS_ID || "feedbacks",
-        DEVICES: import.meta.env.VITE_APPWRITE_DEVICE_STATUS_ID || "devices",
-        ANNOUNCEMENTS: import.meta.env.VITE_APPWRITE_ANNOUNCEMENTS_ID || "announcements",
-        ERROR_LOGS: import.meta.env.VITE_APPWRITE_ERROR_LOGS_ID || "errorLogs"
+        MENU: "menu",
+        ORDERS: "orders",
+        STAFF: "staff",
+        TABLES: "tables",
+        FEEDBACKS: "feedbacks",
+        DEVICES: "devices",
+        ANNOUNCEMENTS: "annocements", // Matching .env typo 'annocements'
+        ERROR_LOGS: "errorLogs"
     },
     BUCKETS: {
-        STAFF_PHOTOS: import.meta.env.VITE_APPWRITE_BUCKET_STAFF || "staffPhotos"
+        STAFF_PHOTOS: "staffPhotos"
     }
 };
