@@ -201,11 +201,17 @@ export function AppProvider({ children }) {
     const dbResult = await addOrderToDB(newOrder);
 
     // Broadcast sync sequence via MQTT per user instruction
+    const cleanItems = items.map(item => ({
+      name: item.name,
+      qty: item.quantity || item.qty || 1, // Accommodate standard front-end formatting
+      price: item.price
+    }));
+
     publishMQTT(`restaurant/snmimt/table/${tableNo}`, {
       type: "ORDER_PLACED",
       order_id: dbResult.$id,
-      table_id: Number(tableNo),
-      items: items,
+      table_id: String(tableNo),
+      items: cleanItems,
       total: dbResult.total || 0
     });
 
