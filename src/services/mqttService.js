@@ -1,6 +1,7 @@
 import mqtt from "mqtt";
 
 let client;
+let connected = false;
 const listeners = [];
 
 export function connectMQTT() {
@@ -21,11 +22,21 @@ export function connectMQTT() {
 
     client.on("connect", () => {
         console.log("✅ MQTT Connected (Production Broker) - Subscribed to restaurant/#");
+        connected = true;
         client.subscribe("restaurant/#");
     });
 
     client.on("reconnect", () => {
         console.log("🔄 Reconnecting MQTT...");
+    });
+
+    client.on("close", () => {
+        console.log("❌ MQTT Closed");
+        connected = false;
+    });
+
+    client.on("offline", () => {
+        connected = false;
     });
 
     client.on("message", (topic, message) => {
@@ -51,6 +62,7 @@ export function connectMQTT() {
 
     client.on("error", (err) => {
         console.error("MQTT Error:", err);
+        connected = false;
     });
 
     return client;
@@ -67,8 +79,8 @@ export function onMQTTMessage(callback) {
 }
 
 export function publishMQTT(topic, data) {
-    if (!client || !client.connected) {
-        console.warn("MQTT not connected, cannot publish");
+    if (!client || !connected) {
+        console.warn("MQTT not connected yet, cannot publish");
         return;
     }
     const message = typeof data === 'string' ? data : JSON.stringify(data);
