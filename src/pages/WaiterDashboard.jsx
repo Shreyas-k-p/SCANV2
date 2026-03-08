@@ -64,9 +64,9 @@ export default function WaiterDashboard() {
 
             const order = orders.find(o => o.id === orderId);
             if (order) {
-                publishMQTT({
+                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
                     type: "ORDER_SERVED",
-                    table_id: order.tableNo,
+                    table_id: String(order.tableNo),
                     order_id: order.id
                 });
             }
@@ -84,9 +84,9 @@ export default function WaiterDashboard() {
             // Mark orders as completed so they disappear from the active view
             await Promise.all(tableOrders.map(o => updateOrderStatus(o.id, 'completed')));
 
-            await publishMQTT({
+            publishMQTT(`restaurant/snmimt/table/${table.tableNo}`, {
                 type: "PAYMENT_REQUEST",
-                table_id: table.tableNo,
+                table_id: String(table.tableNo),
                 total: totalAmount
             });
 
@@ -115,9 +115,9 @@ export default function WaiterDashboard() {
             // Clear the table - Set to 'available'
             await updateTableStatus(selectedTable.docId, 'available');
 
-            await publishMQTT({
+            publishMQTT(`restaurant/snmimt/table/${selectedTable.tableNo}`, {
                 type: "THANK_YOU",
-                table_id: selectedTable.tableNo
+                table_id: String(selectedTable.tableNo)
             });
 
             setShowBillPrint(false);
