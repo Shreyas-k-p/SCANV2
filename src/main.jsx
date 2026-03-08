@@ -5,10 +5,10 @@ import "./registerSW";
 
 import App from './App.jsx'
 
-// Temporary error handler to alert user of crash
-window.onerror = function (msg, url, line) {
-  alert("Application Error: " + msg + "\nLine: " + line);
-};
+import { setupGlobalErrorHandler } from './services/errorLoggingService';
+
+// Initialize professional error logging (no more scary alerts for background errors)
+setupGlobalErrorHandler();
 
 
 

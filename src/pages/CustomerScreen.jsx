@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { databases, APPWRITE_CONFIG, Query, client } from "../lib/appwrite";
+import { databases, APPWRITE_CONFIG, Query, client, safeSubscribe } from "../lib/appwrite";
 import "./CustomerScreen.css";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export default function CustomerScreen() {
 
         // Subscribe to changes in the orders collection
         const channel = `databases.${dbId}.collections.${collectionId}.documents`;
-        const unsubscribe = client.subscribe(channel, (response) => {
+        const unsubscribe = safeSubscribe(channel, (response) => {
             const order = response.payload;
             if (String(order.tableNumber) === String(tableId)) {
                 console.log("🔥 Order Updated via Realtime:", order.status);

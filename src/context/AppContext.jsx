@@ -23,7 +23,7 @@ import {
 } from '../services/announcementService';
 import { addFeedbackToDB, getFeedbacksFromDB } from "../services/feedbackService";
 import { fetchDeviceStatus } from "../services/deviceService";
-import { client, APPWRITE_CONFIG } from '../lib/appwrite';
+import { client, APPWRITE_CONFIG, safeSubscribe } from '../lib/appwrite';
 
 const AppContext = createContext();
 
@@ -42,7 +42,10 @@ export function AppProvider({ children }) {
     return null;
   });
 
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState(() => {
+    const saved = localStorage.getItem('cachedMenuItems');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [menuLoading, setMenuLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [waiters, setWaiters] = useState([]);
@@ -69,7 +72,9 @@ export function AppProvider({ children }) {
       // 1. Menu
       const menuData = await getMenuItemsFromDB();
       if (Array.isArray(menuData)) {
-        setMenuItems(menuData.map(m => ({ ...m, id: m.$id || m.id })));
+        const mappedData = menuData.map(m => ({ ...m, id: m.$id || m.id }));
+        setMenuItems(mappedData);
+        localStorage.setItem('cachedMenuItems', JSON.stringify(mappedData));
       }
       setMenuLoading(false);
 
@@ -147,7 +152,7 @@ export function AppProvider({ children }) {
     const dbId = APPWRITE_CONFIG.DATABASE_ID;
 
     // Appwrite realtime collection sync
-    const unsubscribe = client.subscribe(`databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.*.documents`, (response) => {
+    const unsubscribe = safeSubscribe(`databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.*.documents`, (response) => {
       console.log("🔥 Appwrite Real-time Update:", response.events);
       fetchData();
     });

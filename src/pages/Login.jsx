@@ -23,7 +23,6 @@ const Login = () => {
     const [isOnline, setIsOnline] = useState(true);
 
     React.useEffect(() => {
-        // Heartbeat check removed to match standard Supabase boilerplate
         setIsOnline(true);
     }, []);
 
@@ -44,7 +43,6 @@ const Login = () => {
         setError('');
         setIsLoading(true);
 
-
         const { id, name, role, secretId } = formData;
         const upperId = id ? id.toUpperCase().trim() : '';
         const upperRole = role.toUpperCase();
@@ -52,12 +50,7 @@ const Login = () => {
         try {
             if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
 
-            const loginPromise = login(upperRole, upperId, secretId);
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
-            );
-
-            const result = await Promise.race([loginPromise, timeoutPromise]);
+            const result = await login(upperRole, upperId, secretId);
 
             if (!result.success) throw new Error(result.error || "Invalid credentials");
 
@@ -67,11 +60,7 @@ const Login = () => {
             else if (upperRole === 'SUB_MANAGER') navigate('/sub-manager');
         } catch (err) {
             console.error("Login error:", err);
-            if (err.message.includes('abort') || err.message.includes('timeout') || err.message.includes('Timed Out')) {
-                setError("Network Timeout: The database is taking too long to respond. Please check your internet or try again in a minute as the server might be waking up.");
-            } else {
-                setError(err.message);
-            }
+            setError(err.message);
             setIsLoading(false);
         }
     };
@@ -84,7 +73,6 @@ const Login = () => {
                 <div className="card-corner bottom-left"></div>
                 <div className="card-corner bottom-right"></div>
 
-                {/* Brand Header */}
                 <div className="login-brand">
                     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
                         <BrandLogo size={90} />
@@ -102,20 +90,8 @@ const Login = () => {
                         <p>{t('selectRoleMessage')}</p>
 
                         {!isOnline && (
-                            <div className="connection-warning" style={{
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid #ef4444',
-                                color: '#ef4444',
-                                borderRadius: '12px',
-                                padding: '10px',
-                                marginTop: '15px',
-                                fontSize: '0.85rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                animation: 'pulse 2s infinite'
-                            }}>
-                                <Shield size={16} /> Server is currently unreachable. If this persists, please check if your network/ISP (like Railtel) is blocking Supabase or if the project is paused.
+                            <div className="connection-warning">
+                                <Shield size={16} /> Server is currently unreachable.
                             </div>
                         )}
                     </div>
@@ -150,9 +126,6 @@ const Login = () => {
                                     onChange={handleChange}
                                     className="floating-input"
                                     autoComplete="off"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    autoCapitalize="none"
                                 />
                                 <label>{t('staffId')}</label>
                             </div>
@@ -168,11 +141,11 @@ const Login = () => {
                                     className="floating-input"
                                     autoComplete="off"
                                 />
-                                <label>{t('secretCode')}</label>
+                                <label>{t('secretCode') || t('secretKey')}</label>
                             </div>
                         </div>
 
-                        {error && <div className="error-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{error}</div>}
+                        {error && <div className="error-banner">{error}</div>}
 
                         <button type="submit" className="login-submit-btn" disabled={isLoading}>
                             {isLoading ? (

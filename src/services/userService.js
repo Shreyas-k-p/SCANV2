@@ -1,4 +1,4 @@
-import { databases, storage, APPWRITE_CONFIG, Query, ID, client } from '../lib/appwrite';
+import { databases, storage, APPWRITE_CONFIG, Query, ID, client, safeSubscribe } from '../lib/appwrite';
 
 /**
  * Upload a staff document to Appwrite Storage
@@ -151,7 +151,7 @@ export const searchStaff = async (searchTerm) => {
  */
 export const subscribeToUserChanges = (userId, callback) => {
     const channel = `databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.${APPWRITE_CONFIG.COLLECTIONS.STAFF}.documents.${userId}`;
-    const unsubscribe = client.subscribe(channel, (response) => {
+    const unsubscribe = safeSubscribe(channel, (response) => {
         callback(response);
     });
     return { unsubscribe };
@@ -162,7 +162,7 @@ export const subscribeToUserChanges = (userId, callback) => {
  */
 export const subscribeToAllStaffChanges = (callback) => {
     const channel = `databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.${APPWRITE_CONFIG.COLLECTIONS.STAFF}.documents`;
-    const unsubscribe = client.subscribe(channel, (response) => {
+    const unsubscribe = safeSubscribe(channel, (response) => {
         callback(response);
     });
     return { unsubscribe };

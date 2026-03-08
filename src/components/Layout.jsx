@@ -125,7 +125,7 @@ export default function Layout({ children }) {
                                 textTransform: 'capitalize',
                                 marginTop: '2px'
                             }}>
-                                {user?.role || t('customer')}
+                                {user?.role ? t(user.role.toLowerCase()) : t('customer')}
                             </div>
                         </div>
                     </div>

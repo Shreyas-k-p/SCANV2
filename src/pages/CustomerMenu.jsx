@@ -10,7 +10,7 @@ export default function CustomerMenu() {
     const [searchParams] = useSearchParams();
     const tableIdFromUrl = searchParams.get('table');
 
-    const { menuItems, menuLoading, placeOrder, orders } = useApp();
+    const { menuItems, menuLoading, placeOrder, orders, t } = useApp();
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
@@ -36,7 +36,7 @@ export default function CustomerMenu() {
 
     const categories = ['All', ...new Set((menuItems || []).map(item => item.category))];
 
-    const filteredItems = activeCategory === 'All'
+    const filteredItems = (activeCategory === 'All')
         ? (menuItems || [])
         : (menuItems || []).filter(item => item.category === activeCategory);
 
@@ -54,7 +54,7 @@ export default function CustomerMenu() {
             setCart([...cart, { ...item, quantity, notes }]);
         }
         setSelectedItem(null);
-        toast.success(`${item.name} added to cart`);
+        toast.success(`${t(item.name)} ${t('addedToCart') || 'added to cart'}`);
     };
 
     const updateQuantity = (index, newQuantity) => {
@@ -73,285 +73,144 @@ export default function CustomerMenu() {
     };
 
     const submitOrder = async () => {
-        if (!tableNumber) {
-            toast.error('Table number is missing!');
+        const trimmedTableNumber = tableNumber?.trim();
+        if (!trimmedTableNumber) {
+            toast.error(t('tableNumberRequired') || 'Table number is missing!');
             return;
         }
 
         if (cart.length === 0) {
-            toast.error('Your cart is empty');
+            toast.error(t('cartEmpty') || 'Your cart is empty');
             return;
         }
 
         try {
-            const newOrder = await placeOrder(tableNumber, cart);
-
+            const newOrder = await placeOrder(trimmedTableNumber, cart);
             setCart([]);
             setShowCart(false);
             setInstructions('');
-
             const updatedOrderIds = [...myOrderIds, newOrder.id];
             setMyOrderIds(updatedOrderIds);
             localStorage.setItem('myOrderIds', JSON.stringify(updatedOrderIds));
-
-            toast.success('Order placed successfully! Kitchen notified.');
+            toast.success(t('orderPlacedToast') || 'Order placed! Kitchen notified.');
             setShowOrders(true);
         } catch (error) {
             console.error(error);
-            toast.error('Failed to place order. Please try again.');
-        }
-    };
-
-    const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-
-    const myOrdersList = (orders || []).filter(o =>
-        myOrderIds.includes(o.id) && String(o.tableNo) === String(tableNumber || '')
-    ).sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'pending': return '#f97316';
-            case 'preparing': return '#3b82f6';
-            case 'ready': return '#10b981';
-            case 'served': return '#6b7280';
-            default: return '#6b7280';
+            toast.error(t('orderFailed') || 'Order failed');
         }
     };
 
     return (
         <div className="menu-page-container">
-            <header className="sticky-header" style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem',
-                background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)', zIndex: 100
-            }}>
+            <header className="sticky-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        🍽️ Menu <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>(Table {tableNumber || '?'})</span>
-                    </h1>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                        {menuLoading && filteredItems.length === 0 ? 'Loading menu...' : `${filteredItems.length} items available`}
-                    </p>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0, color: 'var(--accent)' }}>🍽️ {t('ourMenu')}</h1>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>{filteredItems.length} {t('items')}</p>
                 </div>
-
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                        onClick={() => setShowOrders(true)}
-                        style={{ padding: '8px 12px', borderRadius: '12px', border: 'none', background: '#f0f9ff', color: '#0ea5e9', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}
-                    >
-                        <ClipboardList size={18} />
-                    </button>
-
-                    <button
-                        onClick={() => setShowCart(true)}
-                        style={{ position: 'relative', padding: '8px 12px', borderRadius: '12px', border: 'none', background: 'var(--gradient-primary)', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}
-                    >
-                        <ShoppingCart size={18} />
-                        {cart.length > 0 && <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px' }}>{cart.length}</span>}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <LanguageSwitcher />
+                    <button className="btn btn-secondary interactive-btn" onClick={() => setShowOrders(true)}><ClipboardList size={20} /></button>
+                    <button className="btn btn-primary interactive-btn" onClick={() => setShowCart(true)} style={{ position: 'relative' }}>
+                        <ShoppingCart size={20} />
+                        {cart.length > 0 && <span className="cart-count-badge" style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--error)', color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>{cart.length}</span>}
                     </button>
                 </div>
             </header>
 
-            <div className="category-scroll-container" style={{ padding: '0 1rem 1rem 1rem', display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px' }}>
+            <div className="category-scroll-container">
                 {categories.map((cat) => (
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            border: 'none',
-                            background: activeCategory === cat ? 'var(--gradient-primary)' : '#f3f4f6',
-                            color: activeCategory === cat ? 'white' : '#374151',
-                            whiteSpace: 'nowrap',
-                            fontWeight: '600',
-                            fontSize: '0.9rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                        }}
+                        className={`btn btn-secondary ${activeCategory === cat ? 'active' : ''}`}
+                        style={{ whiteSpace: 'nowrap', borderRadius: '30px', padding: '0.6rem 1.2rem', background: activeCategory === cat ? 'var(--accent)' : 'var(--card-bg)', color: activeCategory === cat ? 'white' : 'var(--text-light)', border: 'none' }}
                     >
-                        {cat}
+                        {t(cat)}
                     </button>
                 ))}
             </div>
 
-            {/* Syncing Indicator */}
-            {menuLoading && menuItems.length > 0 && (
-                <div style={{
-                    position: 'fixed', bottom: '20px', right: '20px', zIndex: 100,
-                    background: 'white', padding: '6px 12px', borderRadius: '30px',
-                    fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)', border: '1px solid #eee',
-                }}>
-                    <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} />
-                    Syncing...
-                </div>
-            )}
-
-            <div className="card-grid menu-mobile-1col" style={{ padding: '1rem', gap: '15px' }}>
-                {menuLoading && filteredItems.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
-                        <div className="spinner" style={{ margin: '0 auto 15px' }} />
-                        <p style={{ color: '#666' }}>Fetching delicious items...</p>
-                    </div>
-                ) : filteredItems.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#666' }}>
-                        No items found in this category.
-                    </div>
-                ) : filteredItems.map((item) => (
-                    <div
-                        key={item.id}
-                        onClick={() => handleItemClick(item)}
-                        style={{
-                            background: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-                            transition: 'transform 0.2s', cursor: 'pointer', position: 'relative'
-                        }}
-                    >
-                        <div style={{ height: '140px', overflow: 'hidden' }}>
-                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        {item.available === false && (
-                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>SOLD OUT</div>
-                        )}
-                        <div style={{ padding: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>{item.name}</h3>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0ea5e9' }}>₹{item.price}</div>
+            <div className="card-grid" style={{ gap: '1.5rem' }}>
+                {filteredItems.map(item => (
+                    <div key={item.id} className="dynamic-card" onClick={() => handleItemClick(item)} style={{ cursor: item.available !== false ? 'pointer' : 'not-allowed', opacity: item.available !== false ? 1 : 0.6 }}>
+                        <img src={item.image} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '15px 15px 0 0' }} />
+                        <div style={{ padding: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <h3 style={{ margin: 0 }}>{t(item.name)}</h3>
+                                <span style={{ fontWeight: '700', color: 'var(--accent)' }}>₹{item.price}</span>
                             </div>
-                            <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {item.benefits}
-                            </p>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{t(item.benefits)}</p>
+                            {item.available === false && <p style={{ color: 'var(--error)', fontWeight: '700', marginTop: '0.5rem' }}>{t('soldOut')}</p>}
                         </div>
-                        <button style={{
-                            width: '100%', padding: '10px', border: 'none', background: '#f9fafb', color: '#0ea5e9', fontWeight: '600',
-                            borderTop: '1px solid #f3f4f6'
-                        }}>
-                            Add to Cart
-                        </button>
                     </div>
                 ))}
             </div>
 
-            {showCart && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-                    <div style={{ width: '100%', background: 'white', borderRadius: '24px 24px 0 0', padding: '20px', maxHeight: '80vh', overflowY: 'auto', animation: 'slideUp 0.3s ease-out' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Your Cart</h2>
-                            <button onClick={() => setShowCart(false)} style={{ background: 'none', border: 'none' }}><X /></button>
-                        </div>
-
-                        {cart.length === 0 ? (
-                            <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Cart is empty</p>
-                        ) : (
-                            cart.map((item, idx) => (
-                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f3f4f6' }}>
-                                    <div>
-                                        <div style={{ fontWeight: '600' }}>{item.name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>₹{item.price} x {item.quantity}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <button onClick={() => updateQuantity(idx, item.quantity - 1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #e5e7eb', background: 'white' }}>-</button>
-                                        <span>{item.quantity}</span>
-                                        <button onClick={() => updateQuantity(idx, item.quantity + 1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #e5e7eb', background: 'white' }}>+</button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-
-                        {cart.length > 0 && (
-                            <>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', margin: '20px 0' }}>
-                                    <span>Total</span>
-                                    <span>₹{cartTotal}</span>
-                                </div>
-                                <textarea
-                                    placeholder="Special instructions..."
-                                    value={instructions}
-                                    onChange={(e) => setInstructions(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '20px', fontSize: '0.9rem' }}
-                                />
-                                <button
-                                    onClick={submitOrder}
-                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1rem' }}
-                                >
-                                    Place Order - ₹{cartTotal}
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {showOrders && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-                    <div style={{ width: '100%', background: 'white', borderRadius: '24px 24px 0 0', padding: '20px', maxHeight: '80vh', overflowY: 'auto', animation: 'slideUp 0.3s ease-out' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>My Orders</h2>
-                            <button onClick={() => setShowOrders(false)} style={{ background: 'none', border: 'none' }}><X /></button>
-                        </div>
-
-                        {myOrdersList.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                                <Info size={40} style={{ marginBottom: '10px', opacity: 0.5 }} />
-                                <p>No active orders found.</p>
+            <Modal isOpen={showCart} onClose={() => setShowCart(false)}>
+                <div style={{ padding: '20px', background: 'var(--card-bg)', borderRadius: '20px' }}>
+                    <h2>🛒 {t('yourOrder')}</h2>
+                    <div style={{ maxHeight: '40vh', overflowY: 'auto', marginBottom: '1.5rem' }}>
+                        {cart.length === 0 ? <p style={{ textAlign: 'center', padding: '2rem' }}>{t('cartEmpty')}</p> : cart.map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
+                                <div>{t(item.name)} x{item.quantity}</div>
+                                <div style={{ fontWeight: '700' }}>₹{item.price * item.quantity} <button onClick={() => removeItem(idx)} style={{ color: 'var(--error)', background: 'none', border: 'none' }}><Trash2 size={16} /></button></div>
                             </div>
-                        ) : (
-                            myOrdersList.map((order) => (
-                                <div key={order.id} style={{ marginBottom: '15px', padding: '15px', borderRadius: '12px', border: '1px solid #f3f4f6', background: '#f9fafb' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                        <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Order #{typeof order.id === 'string' ? order.id.slice(-4) : order.id}</span>
-                                        <span style={{
-                                            background: getStatusColor(order.status), color: 'white', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase'
-                                        }}>
-                                            {order.status}
-                                        </span>
-                                    </div>
-                                    <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '10px' }}>
-                                        {/* Items List */}
-                                        {order.items.map((i, idx) => (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span>{i.quantity}x {i.name}</span>
-                                                <span>₹{i.price * i.quantity}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
-                                        <span>Total</span>
-                                        <span>₹{order.totalAmount}</span>
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px' }}>
-                                        {new Date(order.createdAt || order.timestamp).toLocaleTimeString()}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                        ))}
                     </div>
-                </div>
-            )}
-
-            {selectedItem && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '24px', overflowX: 'hidden', overflowY: 'auto', maxHeight: '90vh' }}>
-                        <div style={{ height: '200px', flexShrink: 0 }}>
-                            <img src={selectedItem.image} alt={selectedItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        <div style={{ padding: '20px' }}>
-                            <h2 style={{ margin: '0 0 10px 0' }}>{selectedItem.name}</h2>
-                            <p style={{ color: '#6b7280', lineHeight: 1.5 }}>{selectedItem.benefits}</p>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0ea5e9' }}>₹{selectedItem.price}</div>
-                                <button
-                                    onClick={() => addToCart(selectedItem, 1)}
-                                    style={{ padding: '10px 20px', borderRadius: '12px', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 'bold' }}
-                                >
-                                    Add to Order
-                                </button>
+                    {cart.length > 0 && (
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '800', marginBottom: '1rem' }}>
+                                <span>{t('total')}:</span>
+                                <span>₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
                             </div>
-                            <button onClick={() => setSelectedItem(null)} style={{ marginTop: '15px', width: '100%', padding: '10px', background: '#f3f4f6', border: 'none', borderRadius: '12px' }}>Close</button>
+                            <button className="btn btn-primary" style={{ width: '100%', padding: '1rem' }} onClick={submitOrder}>🚀 {t('placeOrder')}</button>
+                        </>
+                    )}
+                </div>
+            </Modal>
+
+            <Modal isOpen={!!selectedItem} onClose={() => setSelectedItem(null)}>
+                {selectedItem && (
+                    <div style={{ padding: '20px', background: 'var(--card-bg)', borderRadius: '20px' }}>
+                        <img src={selectedItem.image} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '15px' }} />
+                        <h2 style={{ marginTop: '1rem' }}>{t(selectedItem.name)}</h2>
+                        <p style={{ color: 'var(--text-dim)' }}>{t(selectedItem.benefits)}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+                            <span style={{ fontSize: '1.5rem', fontWeight: '800' }}>₹{selectedItem.price}</span>
+                            <button className="btn btn-primary" onClick={() => addToCart(selectedItem)}>{t('addToOrder')}</button>
                         </div>
                     </div>
+                )}
+            </Modal>
+
+            <Modal isOpen={showOrders} onClose={() => setShowOrders(false)}>
+                <div style={{ padding: '20px', background: 'var(--card-bg)', borderRadius: '20px' }}>
+                    <h2>📋 {t('myOrders')}</h2>
+                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        {orders.filter(o => myOrderIds.includes(o.$id || o.id)).length === 0 ? <p>{t('noOrders')}</p> : orders.filter(o => myOrderIds.includes(o.$id || o.id)).map(order => (
+                            <div key={order.$id} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '10px', marginBottom: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>#{order.$id.slice(-4)}</span>
+                                    <span style={{ fontWeight: '700' }}>{order.status.toUpperCase()}</span>
+                                </div>
+                                {order.items.map((it, i) => <div key={i} style={{ fontSize: '0.8rem' }}>• {t(it.name)} x{it.quantity}</div>)}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            )}
+            </Modal>
+        </div>
+    );
+}
+
+function Modal({ isOpen, onClose, children }) {
+    if (!isOpen) return null;
+    return (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ position: 'relative', maxWidth: '500px', width: '100%' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: '-40px', right: 0, background: 'none', border: 'none', color: 'white' }}><X /></button>
+                {children}
+            </div>
         </div>
     );
 }
