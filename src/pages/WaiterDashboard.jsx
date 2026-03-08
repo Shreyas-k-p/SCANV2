@@ -8,26 +8,39 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import BillPrint from '../components/BillPrint';
 
 export default function WaiterDashboard() {
-    const { tables, orders, updateOrderStatus, updateTableStatus, t, user, deleteOrder } = useApp();
+    const { tables, orders, updateOrderStatus, updateTableStatus, clearTableCall, t, user, deleteOrder } = useApp();
     const readyOrdersCount = orders.filter(o => o.status === 'ready').length;
     const prevReadyCountRef = useRef(0);
 
-    // Count ready orders and trigger vibration
+    // Count ready orders and Table Calls for notifications
     useEffect(() => {
-        const count = orders.filter(o => o.status === 'ready').length;
+        const readyCount = orders.filter(o => o.status === 'ready').length;
+        const callingCount = tables.filter(t => t.isCalling).length;
 
-        // Trigger vibration if count increased (new ready order)
-        if (count > prevReadyCountRef.current && count > 0) {
-            // Vibrate if supported
-            if ('vibrate' in navigator) {
-                // Vibration pattern: vibrate for 200ms, pause 100ms, vibrate 200ms
-                navigator.vibrate([200, 100, 200]);
-            }
-
+        // Trigger notification if ready orders increased
+        if (readyCount > prevReadyCountRef.current && readyCount > 0) {
+            if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         }
 
-        prevReadyCountRef.current = count;
-    }, [orders]);
+        // Trigger notification for Table Calls
+        if (callingCount > 0) {
+            // Play notification sound
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 440;
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+                osc.start();
+                osc.stop(ctx.currentTime + 1);
+            } catch (e) { }
+        }
+
+        prevReadyCountRef.current = readyCount;
+    }, [orders, tables]);
 
     const [showBillPrint, setShowBillPrint] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
@@ -207,20 +220,23 @@ export default function WaiterDashboard() {
                     return (
                         <div
                             key={tableObj.docId || idx}
+                            className={tableObj.isCalling ? 'calling-flash' : ''}
                             style={{
                                 padding: '1.5rem',
-                                border: hasOrders ? `3px solid` : '2px solid var(--border-color)',
-                                borderImage: hasOrders ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}) 1` : 'none',
-                                background: hasOrders
-                                    ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}15, var(--card-bg))`
-                                    : 'var(--glass-bg)',
+                                border: (hasOrders || tableObj.isCalling) ? `3px solid` : '2px solid var(--border-color)',
+                                borderImage: (hasOrders || tableObj.isCalling) ? `linear-gradient(135deg, ${extractGradientContent(tableObj.isCalling ? '#ff0000' : tableColor)}) 1` : 'none',
+                                background: tableObj.isCalling
+                                    ? 'linear-gradient(135deg, rgba(255, 0, 0, 0.1), var(--card-bg))'
+                                    : hasOrders
+                                        ? `linear-gradient(135deg, ${extractGradientContent(tableColor)}15, var(--card-bg))`
+                                        : 'var(--glass-bg)',
                                 position: 'relative',
                                 overflow: 'visible',
                                 backdropFilter: 'blur(15px) saturate(180%)',
                                 WebkitBackdropFilter: 'blur(15px) saturate(180%)',
-                                boxShadow: 'var(--shadow-md)',
+                                boxShadow: tableObj.isCalling ? '0 0 30px rgba(255, 0, 0, 0.4)' : 'var(--shadow-md)',
                                 borderRadius: '20px',
-                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                transition: 'all 0.3s ease',
                                 cursor: 'default'
                             }}
                             onMouseEnter={(e) => {
@@ -264,7 +280,20 @@ export default function WaiterDashboard() {
                                         Table {tableNo}
                                     </h2>
                                 </div>
-                                {hasOrders && tableObj.status !== 'billed' && (
+                                {tableObj.isCalling && (
+                                    <span style={{
+                                        background: '#ff0000',
+                                        color: 'white',
+                                        padding: '4px 12px',
+                                        borderRadius: '20px',
+                                        fontWeight: '800',
+                                        fontSize: '0.8rem',
+                                        animation: 'pulse 1s infinite'
+                                    }}>
+                                        🚨 CALLING
+                                    </span>
+                                )}
+                                {!tableObj.isCalling && hasOrders && tableObj.status !== 'billed' && (
                                     <span className="badge badge-warning" style={{ animation: 'pulse 2s ease-in-out infinite' }}>
                                         🔔 Active
                                     </span>
@@ -388,6 +417,24 @@ export default function WaiterDashboard() {
 
                             {/* Table Actions */}
                             <div style={{ marginTop: '1.5rem', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                {tableObj.isCalling && (
+                                    <button
+                                        className="btn"
+                                        style={{
+                                            flex: 1,
+                                            background: 'linear-gradient(135deg, #ff0000, #cc0000)',
+                                            color: 'white',
+                                            fontWeight: '800',
+                                            padding: '0.8rem',
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={() => clearTableCall(tableObj.docId)}
+                                    >
+                                        ✋ Close Call
+                                    </button>
+                                )}
                                 {hasOrders && (
                                     <>
                                         <button
@@ -412,6 +459,16 @@ export default function WaiterDashboard() {
                 })}
             </div>
 
+            <style>{`
+                .calling-flash {
+                    animation: flash 1s infinite alternate;
+                }
+                @keyframes flash {
+                    from { border-color: #ff0000; box-shadow: 0 0 10px rgba(255, 0, 0, 0.2); }
+                    to { border-color: #ff5555; box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); }
+                }
+            `}</style>
+
             {/* Bill Print Modal */}
             {showBillPrint && selectedTable && (
                 <BillPrint
@@ -426,7 +483,7 @@ export default function WaiterDashboard() {
                     onDelete={handleDeleteRecord}
                 />
             )}
-        </div >
+        </div>
     );
 }
 

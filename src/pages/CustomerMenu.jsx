@@ -84,7 +84,7 @@ export default function CustomerMenu() {
         }
 
         try {
-            const newOrder = await placeOrder(tableNumber, cart, { instructions });
+            const newOrder = await placeOrder(tableNumber, cart);
 
             setCart([]);
             setShowCart(false);

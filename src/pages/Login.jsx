@@ -4,11 +4,12 @@ import { useApp } from '../context/AppContext';
 import { User, Utensils, Shield, Users, Lock, ChevronRight } from 'lucide-react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import BrandLogo from '../components/BrandLogo';
+import AnnouncementBanner from '../components/AnnouncementBanner';
 import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login, t } = useApp();
+    const { login, t, announcements } = useApp();
 
     const [formData, setFormData] = useState({
         role: 'WAITER',
@@ -49,34 +50,21 @@ const Login = () => {
         const upperRole = role.toUpperCase();
 
         try {
-            if (upperRole === 'WAITER' || upperRole === 'KITCHEN') {
-                if (!upperId || !name || !name.trim()) throw new Error("ID and Name are required");
+            if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
 
-                // Add timeout for mobile/slow networks
-                const loginPromise = login(upperRole, upperId, null, name.trim());
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
-                );
+            const loginPromise = login(upperRole, upperId, secretId);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
+            );
 
-                const result = await Promise.race([loginPromise, timeoutPromise]);
+            const result = await Promise.race([loginPromise, timeoutPromise]);
 
-                if (!result.success) throw new Error(result.error || "Invalid credentials");
-                navigate(upperRole === 'WAITER' ? '/waiter' : '/kitchen');
-            }
-            else if (upperRole === 'MANAGER' || upperRole === 'SUB_MANAGER') {
-                if (!upperId || !secretId) throw new Error("ID and Secret Code are required");
+            if (!result.success) throw new Error(result.error || "Invalid credentials");
 
-                // Add a local timeout for the login action itself as a safety measure
-                const loginPromise = login(upperRole, upperId, secretId);
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Login Request Timed Out")), 30000)
-                );
-
-                const result = await Promise.race([loginPromise, timeoutPromise]);
-
-                if (!result.success) throw new Error(result.error || "Invalid credentials");
-                navigate(upperRole === 'MANAGER' ? '/manager' : '/sub-manager');
-            }
+            if (upperRole === 'WAITER') navigate('/waiter');
+            else if (upperRole === 'KITCHEN') navigate('/kitchen');
+            else if (upperRole === 'MANAGER') navigate('/manager');
+            else if (upperRole === 'SUB_MANAGER') navigate('/sub-manager');
         } catch (err) {
             console.error("Login error:", err);
             if (err.message.includes('abort') || err.message.includes('timeout') || err.message.includes('Timed Out')) {
@@ -106,6 +94,9 @@ const Login = () => {
                 </div>
 
                 <div className="login-content">
+                    {announcements && announcements.length > 0 && (
+                        <AnnouncementBanner announcement={announcements[0]} />
+                    )}
                     <div className="form-welcome">
                         <h2>{t('welcome')}</h2>
                         <p>{t('selectRoleMessage')}</p>
@@ -166,39 +157,19 @@ const Login = () => {
                                 <label>{t('staffId')}</label>
                             </div>
 
-                            {(formData.role === 'WAITER' || formData.role === 'KITCHEN') && (
-                                <div className="floating-input-group">
-                                    <span className="input-icon" style={{ fontSize: '18px' }}>Aa</span>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        placeholder=" "
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className="floating-input"
-                                        autoComplete="off"
-                                        autoCorrect="off"
-                                        spellCheck="false"
-                                    />
-                                    <label>{t('fullName')}</label>
-                                </div>
-                            )}
-
-                            {(formData.role === 'MANAGER' || formData.role === 'SUB_MANAGER') && (
-                                <div className="floating-input-group">
-                                    <Lock className="input-icon" size={18} />
-                                    <input
-                                        type="password"
-                                        name="secretId"
-                                        placeholder=" "
-                                        value={formData.secretId}
-                                        onChange={handleChange}
-                                        className="floating-input"
-                                        autoComplete="off"
-                                    />
-                                    <label>{t('secretKey')}</label>
-                                </div>
-                            )}
+                            <div className="floating-input-group">
+                                <Lock className="input-icon" size={18} />
+                                <input
+                                    type="password"
+                                    name="secretId"
+                                    placeholder=" "
+                                    value={formData.secretId}
+                                    onChange={handleChange}
+                                    className="floating-input"
+                                    autoComplete="off"
+                                />
+                                <label>{t('secretCode')}</label>
+                            </div>
                         </div>
 
                         {error && <div className="error-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{error}</div>}

@@ -1,128 +1,57 @@
-import { supabase } from "../supabaseClient";
+import { databases, APPWRITE_CONFIG, ID, Query } from "../lib/appwrite";
 
-/**
- * Table Service - Supabase Implementation
- * Replaces Firebase tableService.js
- */
+const db = APPWRITE_CONFIG.DATABASE_ID;
+const collection = APPWRITE_CONFIG.COLLECTIONS.TABLES;
 
-// ADD TABLE
-export const addTableToDB = async (tableNo) => {
+export const getTablesFromDB = async () => {
   try {
-    const { data, error } = await supabase
-      .from('tables')
-      .insert([{
-        table_number: String(tableNo),
-        capacity: 4,
-        status: 'available'
-      }])
-      .select()
-      .single();
+    const response = await databases.listDocuments(db, collection);
+    return response.documents;
+  } catch (error) {
+    console.error("Error fetching tables:", error);
+    return [];
+  }
+};
 
-    if (error) throw error;
-    return data;
+export const addTableToDB = async (tableNumber) => {
+  try {
+    const response = await databases.createDocument(
+      db,
+      collection,
+      ID.unique(),
+      {
+        tableNumber: Number(tableNumber),
+        status: "available",
+        isCalling: false,
+        createdAt: new Date().toISOString()
+      }
+    );
+    return response;
   } catch (error) {
     console.error("Error adding table:", error);
     throw error;
   }
 };
 
-// LISTEN TO TABLES (REAL-TIME)
-export const listenToTables = (setTables) => {
-  // Initial fetch
-  const fetchTables = async () => {
-    const { data, error } = await supabase
-      .from('tables')
-      .select('*')
-      .order('table_number', { ascending: true });
-
-    if (error) {
-      console.error("Error fetching tables:", error);
-      return;
-    }
-
-    // Transform to match Firebase format
-    const transformedTables = (data || []).map(table => ({
-      docId: table.id,
-      tableNo: table.table_number,
-      capacity: table.capacity,
-      status: table.status,
-      qrCode: table.qr_code
-    }));
-
-    setTables(transformedTables);
-  };
-
-  fetchTables();
-
-  // Subscribe to real-time changes
-  const subscription = supabase
-    .channel('tables_changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'tables'
-      },
-      (_payload) => {
-
-        fetchTables();
-      }
-    )
-    .subscribe();
-
-  // Return unsubscribe function
-  return () => {
-    subscription.unsubscribe();
-  };
-};
-
-// UPDATE TABLE STATUS
-export const updateTableStatusInDB = async (docId, status) => {
+export const updateTableInDB = async (docId, updatedData) => {
   try {
-    const { data, error } = await supabase
-      .from('tables')
-      .update({ status })
-      .eq('id', docId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await databases.updateDocument(
+      db,
+      collection,
+      docId,
+      updatedData
+    );
+    return response;
   } catch (error) {
-    console.error("Error updating table status:", error);
+    console.error("Error updating table:", error);
     throw error;
   }
 };
 
-// UPDATE TABLE STATUS BY NUMBER
-export const updateTableStatusByNumber = async (tableNo, status) => {
-  try {
-    const { data, error } = await supabase
-      .from('tables')
-      .update({ status })
-      .eq('table_number', String(tableNo))
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error updating table status by number:", error);
-    // Don't throw, just log, to avoid blocking order creation flow
-    return null;
-  }
-};
-
-// REMOVE TABLE
 export const removeTableFromDB = async (docId) => {
   try {
-    const { error } = await supabase
-      .from('tables')
-      .delete()
-      .eq('id', docId);
-
-    if (error) throw error;
+    await databases.deleteDocument(db, collection, docId);
+    return true;
   } catch (error) {
     console.error("Error removing table:", error);
     throw error;

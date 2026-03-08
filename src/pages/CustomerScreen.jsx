@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
-import mqtt from "mqtt";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { databases, APPWRITE_CONFIG, Query, client } from "../lib/appwrite";
 import "./CustomerScreen.css";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
         accent: "#e94560",
         pulse: false,
     },
-    ORDER_PLACED: {
+    PENDING: {
         icon: "🧾",
         label: "Order Placed",
         message: "Your order has been placed successfully",
@@ -29,7 +29,7 @@ const STATUS_CONFIG = {
         accent: "#fff",
         pulse: true,
     },
-    ORDER_READY: {
+    READY: {
         icon: "🔔",
         label: "Order Ready!",
         message: "Your order is ready — please collect it",
@@ -37,7 +37,7 @@ const STATUS_CONFIG = {
         accent: "#fff",
         pulse: true,
     },
-    ORDER_SERVED: {
+    DELIVERED: {
         icon: "🍛",
         label: "Enjoy Your Meal",
         message: "Food served — bon appétit!",
@@ -53,7 +53,7 @@ const STATUS_CONFIG = {
         accent: "#ffd700",
         pulse: true,
     },
-    THANK_YOU: {
+    COMPLETED: {
         icon: "🙏",
         label: "Thank You!",
         message: "Thank you for visiting — see you again!",
@@ -64,20 +64,20 @@ const STATUS_CONFIG = {
 };
 
 // ─── Web Audio beep (no MP3 file needed, works on all devices) ─────────────
-function playBeep(type = "ORDER_READY") {
+function playBeep(type = "READY") {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
         const configs = {
-            ORDER_PLACED: [{ freq: 520, dur: 0.12 }, { freq: 660, dur: 0.18 }],
+            PENDING: [{ freq: 520, dur: 0.12 }, { freq: 660, dur: 0.18 }],
             PREPARING: [{ freq: 440, dur: 0.15 }],
-            ORDER_READY: [{ freq: 880, dur: 0.15 }, { freq: 880, dur: 0.15 }, { freq: 1100, dur: 0.25 }],
-            ORDER_SERVED: [{ freq: 660, dur: 0.2 }, { freq: 880, dur: 0.2 }],
+            READY: [{ freq: 880, dur: 0.15 }, { freq: 880, dur: 0.15 }, { freq: 1100, dur: 0.25 }],
+            DELIVERED: [{ freq: 660, dur: 0.2 }, { freq: 880, dur: 0.2 }],
             PAYMENT_REQUEST: [{ freq: 330, dur: 0.2 }, { freq: 330, dur: 0.2 }, { freq: 440, dur: 0.3 }],
-            THANK_YOU: [{ freq: 660, dur: 0.15 }, { freq: 880, dur: 0.25 }],
+            COMPLETED: [{ freq: 660, dur: 0.15 }, { freq: 880, dur: 0.25 }],
         };
 
-        const tones = configs[type] || configs["ORDER_READY"];
+        const tones = configs[type] || configs["READY"];
         let time = ctx.currentTime;
 
         tones.forEach(({ freq, dur }) => {
@@ -110,7 +110,8 @@ export default function CustomerScreen() {
     const [lastUpdate, setLastUpdate] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WELCOME;
+    const config = STATUS_CONFIG[statusKey.toUpperCase()] || STATUS_CONFIG.WELCOME;
+    const prevStatusRef = useRef(null);
 
     // ─── Flash helper ──────────────────────────────────────────────────────────
     const triggerFlash = useCallback(() => {
@@ -118,61 +119,76 @@ export default function CustomerScreen() {
         setTimeout(() => setFlash(false), 1000);
     }, []);
 
-    // ─── MQTT ──────────────────────────────────────────────────────────────────
+    // ─── Appwrite Realtime Logic ──────────────────────────────────────────────
     useEffect(() => {
-        const url = "wss://y12dbb61.ala.asia-southeast1.emqxsl.com:8084/mqtt";
+        const dbId = APPWRITE_CONFIG.DATABASE_ID;
+        const collectionId = APPWRITE_CONFIG.COLLECTIONS.ORDERS;
 
-        const options = {
-            username: "dashboard_user",
-            password: "dashboard_password",
-            clientId: "web_" + Math.random().toString(16).substr(2, 8),
-            clean: true,
-            reconnectPeriod: 2000,
-            connectTimeout: 4000,
+        const findActiveOrder = async () => {
+            try {
+                const response = await databases.listDocuments(
+                    dbId,
+                    collectionId,
+                    [
+                        Query.equal("tableNumber", String(tableId)),
+                        Query.orderDesc("$createdAt"),
+                        Query.limit(1)
+                    ]
+                );
+
+                if (response.documents.length > 0) {
+                    const order = response.documents[0];
+                    // If order is old (e.g. completed more than 1 hour ago), ignore it
+                    const orderDate = new Date(order.createdAt);
+                    if (order.status === 'completed' && (new Date() - orderDate > 3600000)) {
+                        setStatusKey("WELCOME");
+                        setOrderData(null);
+                    } else {
+                        processOrderUpdate(order);
+                    }
+                }
+                setConnected(true);
+            } catch (err) {
+                console.error("❌ Error fetching order:", err);
+            }
         };
 
-        console.log("🔌 Connecting to MQTT...");
-        const client = mqtt.connect(url, options);
+        const processOrderUpdate = (order) => {
+            const status = order.status.toUpperCase();
 
-        client.on("connect", () => {
-            console.log("✅ MQTT Connected");
-            setConnected(true);
-            const topic = `restaurant/snmimt/table/${tableId}`;
-            client.subscribe(topic, (err) => {
-                if (err) {
-                    console.error("❌ Subscribe error:", err);
-                } else {
-                    console.log("📡 Subscribed to:", topic);
-                }
-            });
-        });
-
-        client.on("message", (_topic, message) => {
-            console.log("📥 Message received:", message.toString());
-            try {
-                const data = JSON.parse(message.toString());
-                setOrderData(data);
-                setStatusKey(data.type || "WELCOME");
+            // Only trigger notifications if status actually changed
+            if (status !== prevStatusRef.current) {
+                setStatusKey(status);
+                setOrderData({
+                    order_id: order.$id,
+                    total: order.total_amount || 0,
+                    items: typeof order.items === 'string' ? JSON.parse(order.items || "[]") : (order.items || []),
+                    status: order.status
+                });
                 setLastUpdate(new Date().toLocaleTimeString());
-                triggerFlash();
-                playBeep(data.type);
-            } catch (e) {
-                console.error("❌ JSON parse error:", e);
+
+                if (prevStatusRef.current !== null) {
+                    triggerFlash();
+                    playBeep(status);
+                }
+                prevStatusRef.current = status;
+            }
+        };
+
+        findActiveOrder();
+
+        // Subscribe to changes in the orders collection
+        const channel = `databases.${dbId}.collections.${collectionId}.documents`;
+        const unsubscribe = client.subscribe(channel, (response) => {
+            const order = response.payload;
+            if (String(order.tableNumber) === String(tableId)) {
+                console.log("🔥 Order Updated via Realtime:", order.status);
+                processOrderUpdate(order);
             }
         });
 
-        client.on("error", (err) => {
-            console.error("MQTT Error:", err);
-            setConnected(false);
-        });
-
-        client.on("reconnect", () => {
-            console.log("🔄 Reconnecting...");
-            setConnected(false);
-        });
-
         return () => {
-            client.end();
+            unsubscribe();
         };
     }, [tableId, triggerFlash]);
 
@@ -216,7 +232,7 @@ export default function CustomerScreen() {
             {/* Main card */}
             <div className={`cs-card ${config.pulse ? "cs-card--pulse" : ""}`}>
                 {/* Icon */}
-                <div className={`cs-icon ${statusKey === "ORDER_READY" || statusKey === "PAYMENT_REQUEST" ? "cs-icon--bounce" : ""}`}>
+                <div className={`cs-icon ${statusKey === "READY" || statusKey === "PAYMENT_REQUEST" ? "cs-icon--bounce" : ""}`}>
                     {config.icon}
                 </div>
 
@@ -234,10 +250,10 @@ export default function CustomerScreen() {
                         {orderData.order_id && (
                             <div className="cs-detail-row">
                                 <span className="cs-detail-key">Order ID</span>
-                                <span className="cs-detail-val">#{orderData.order_id}</span>
+                                <span className="cs-detail-val">#{orderData.order_id.slice(-6).toUpperCase()}</span>
                             </div>
                         )}
-                        {orderData.total && (
+                        {orderData.total > 0 && (
                             <div className="cs-detail-row">
                                 <span className="cs-detail-key">Total</span>
                                 <span className="cs-detail-val cs-total">₹{orderData.total}</span>
@@ -247,7 +263,7 @@ export default function CustomerScreen() {
                             <div className="cs-items">
                                 {orderData.items.map((item, i) => (
                                     <span key={i} className="cs-item-chip">
-                                        {item.name || item} {item.qty ? `×${item.qty}` : ""}
+                                        {item.name || item} {item.quantity ? `×${item.quantity}` : ""}
                                     </span>
                                 ))}
                             </div>

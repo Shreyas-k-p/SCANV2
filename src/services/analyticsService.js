@@ -1,8 +1,7 @@
-import { supabase } from '../supabaseClient';
+import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
 
 /**
  * Analytics Service - Manager Dashboard Insights
- * Provides business intelligence and reporting
  */
 
 /**
@@ -10,13 +9,28 @@ import { supabase } from '../supabaseClient';
  */
 export const getDailyRevenue = async () => {
     try {
-        const { data, error } = await supabase
-            .from('daily_revenue')
-            .select('*')
-            .limit(30);
+        // Since Appwrite doesn't have views, we'll fetch completed orders and aggregate
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.limit(100) // Adjust limit as needed
+            ]
+        );
 
-        if (error) throw error;
-        return { success: true, data };
+        const revenueByDate = {};
+        response.documents.forEach(order => {
+            const date = order.$createdAt.split('T')[0];
+            revenueByDate[date] = (revenueByDate[date] || 0) + parseFloat(order.total_amount || 0);
+        });
+
+        const formattedData = Object.entries(revenueByDate).map(([date, revenue]) => ({
+            date,
+            revenue
+        })).sort((a, b) => b.date.localeCompare(a.date));
+
+        return { success: true, data: formattedData };
     } catch (error) {
         console.error('Error fetching daily revenue:', error);
         return { success: false, error: error.message, data: [] };
@@ -30,24 +44,25 @@ export const getTodayRevenue = async () => {
     try {
         const today = new Date().toISOString().split('T')[0];
 
-        const { data, error } = await supabase
-            .from('orders')
-            .select('total_amount')
-            .eq('status', 'completed')
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`);
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.greaterThanEqual('$createdAt', `${today}T00:00:00.000Z`),
+                Query.lessThanEqual('$createdAt', `${today}T23:59:59.999Z`)
+            ]
+        );
 
-        if (error) throw error;
-
-        const total = data.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
+        const total = response.documents.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
 
         return {
             success: true,
             data: {
                 date: today,
-                total_orders: data.length,
+                total_orders: response.documents.length,
                 total_revenue: total,
-                avg_order_value: data.length > 0 ? total / data.length : 0
+                avg_order_value: response.documents.length > 0 ? total / response.documents.length : 0
             }
         };
     } catch (error) {
@@ -61,19 +76,23 @@ export const getTodayRevenue = async () => {
  */
 export const getTopSellingItems = async (limit = 10) => {
     try {
-        // Get all completed orders
-        const { data: orders, error } = await supabase
-            .from('orders')
-            .select('items')
-            .eq('status', 'completed');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.limit(100)
+            ]
+        );
 
-        if (error) throw error;
-
-        // Count items
         const itemCounts = {};
-        orders.forEach(order => {
-            if (order.items && Array.isArray(order.items)) {
-                order.items.forEach(item => {
+        response.documents.forEach(order => {
+            let items = order.items;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { items = []; }
+            }
+            if (Array.isArray(items)) {
+                items.forEach(item => {
                     const key = item.name || item.id;
                     if (!itemCounts[key]) {
                         itemCounts[key] = {
@@ -88,7 +107,6 @@ export const getTopSellingItems = async (limit = 10) => {
             }
         });
 
-        // Convert to array and sort
         const topItems = Object.values(itemCounts)
             .sort((a, b) => b.count - a.count)
             .slice(0, limit);
@@ -105,12 +123,23 @@ export const getTopSellingItems = async (limit = 10) => {
  */
 export const getOrderStatsByStatus = async () => {
     try {
-        const { data, error } = await supabase
-            .from('order_stats_by_status')
-            .select('*');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [Query.limit(100)]
+        );
 
-        if (error) throw error;
-        return { success: true, data };
+        const stats = response.documents.reduce((acc, order) => {
+            acc[order.status] = (acc[order.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        const formattedStats = Object.entries(stats).map(([status, count]) => ({
+            status,
+            order_count: count
+        }));
+
+        return { success: true, data: formattedStats };
     } catch (error) {
         console.error('Error fetching order stats:', error);
         return { success: false, error: error.message, data: [] };
@@ -122,12 +151,30 @@ export const getOrderStatsByStatus = async () => {
  */
 export const getWaiterPerformance = async () => {
     try {
-        const { data, error } = await supabase
-            .from('waiter_performance')
-            .select('*');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.limit(100)
+            ]
+        );
 
-        if (error) throw error;
-        return { success: true, data };
+        const performance = {};
+        response.documents.forEach(order => {
+            const waiter = order.assigned_waiter || 'Unassigned';
+            if (!performance[waiter]) {
+                performance[waiter] = {
+                    waiter_name: waiter,
+                    total_orders: 0,
+                    total_revenue: 0
+                };
+            }
+            performance[waiter].total_orders++;
+            performance[waiter].total_revenue += parseFloat(order.total_amount || 0);
+        });
+
+        return { success: true, data: Object.values(performance) };
     } catch (error) {
         console.error('Error fetching waiter performance:', error);
         return { success: false, error: error.message, data: [] };
@@ -139,12 +186,23 @@ export const getWaiterPerformance = async () => {
  */
 export const getTableUtilization = async () => {
     try {
-        const { data, error } = await supabase
-            .from('table_utilization')
-            .select('*');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.TABLES,
+            [Query.limit(100)]
+        );
 
-        if (error) throw error;
-        return { success: true, data };
+        const stats = response.documents.reduce((acc, table) => {
+            acc[table.status] = (acc[table.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        const formattedStats = Object.entries(stats).map(([status, count]) => ({
+            status,
+            table_count: count
+        }));
+
+        return { success: true, data: formattedStats };
     } catch (error) {
         console.error('Error fetching table utilization:', error);
         return { success: false, error: error.message, data: [] };
@@ -156,20 +214,20 @@ export const getTableUtilization = async () => {
  */
 export const getRevenueByDateRange = async (startDate, endDate) => {
     try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('created_at, total_amount')
-            .eq('status', 'completed')
-            .gte('created_at', startDate)
-            .lte('created_at', endDate)
-            .order('created_at', { ascending: true });
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.greaterThanEqual('$createdAt', startDate),
+                Query.lessThanEqual('$createdAt', endDate),
+                Query.limit(100)
+            ]
+        );
 
-        if (error) throw error;
-
-        // Group by date
         const revenueByDate = {};
-        data.forEach(order => {
-            const date = order.created_at.split('T')[0];
+        response.documents.forEach(order => {
+            const date = order.$createdAt.split('T')[0];
             if (!revenueByDate[date]) {
                 revenueByDate[date] = {
                     date,
@@ -181,8 +239,7 @@ export const getRevenueByDateRange = async (startDate, endDate) => {
             revenueByDate[date].total_revenue += parseFloat(order.total_amount || 0);
         });
 
-        const result = Object.values(revenueByDate);
-        return { success: true, data: result };
+        return { success: true, data: Object.values(revenueByDate) };
     } catch (error) {
         console.error('Error fetching revenue by date range:', error);
         return { success: false, error: error.message, data: [] };
@@ -194,17 +251,18 @@ export const getRevenueByDateRange = async (startDate, endDate) => {
  */
 export const getPeakHours = async () => {
     try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('created_at')
-            .eq('status', 'completed');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [
+                Query.equal('status', 'completed'),
+                Query.limit(100)
+            ]
+        );
 
-        if (error) throw error;
-
-        // Group by hour
         const hourCounts = Array(24).fill(0);
-        data.forEach(order => {
-            const hour = new Date(order.created_at).getHours();
+        response.documents.forEach(order => {
+            const hour = new Date(order.$createdAt).getHours();
             hourCounts[hour]++;
         });
 
@@ -225,23 +283,19 @@ export const getPeakHours = async () => {
  */
 export const getFeedbackSummary = async () => {
     try {
-        const { data, error } = await supabase
-            .from('feedbacks')
-            .select('rating, message')
-            .order('created_at', { ascending: false });
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.FEEDBACKS,
+            [Query.orderDesc('$createdAt'), Query.limit(100)]
+        );
 
-        if (error) throw error;
-
-        // Calculate average rating
+        const data = response.documents;
         const totalRating = data.reduce((sum, feedback) => sum + (feedback.rating || 0), 0);
         const avgRating = data.length > 0 ? totalRating / data.length : 0;
 
-        // Count by rating
         const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         data.forEach(feedback => {
-            if (feedback.rating) {
-                ratingCounts[feedback.rating]++;
-            }
+            if (feedback.rating) ratingCounts[feedback.rating]++;
         });
 
         return {
@@ -260,7 +314,7 @@ export const getFeedbackSummary = async () => {
 };
 
 /**
- * Get dashboard overview (all key metrics)
+ * Get dashboard overview
  */
 export const getDashboardOverview = async () => {
     try {
@@ -296,12 +350,13 @@ export const getDashboardOverview = async () => {
  */
 export const getOrderCompletionRate = async () => {
     try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('status');
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ORDERS,
+            [Query.limit(100)]
+        );
 
-        if (error) throw error;
-
+        const data = response.documents;
         const total = data.length;
         const completed = data.filter(o => o.status === 'completed').length;
         const cancelled = data.filter(o => o.status === 'cancelled').length;

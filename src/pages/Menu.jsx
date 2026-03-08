@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { ShoppingCart, Filter, X, Info, MessageSquare, Trash2, Plus, Minus, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Modal from '../components/Modal';
 
 
 import './Menu.css';
@@ -83,13 +84,23 @@ export default function Menu() {
         }
 
         // Validate table number against active tables
-        const validTable = tables.find(t => String(t.tableNo) === trimmedTableNumber);
+        // Tables from Appwrite use 'tableNumber' (number type), so compare with both Number and String
+        const validTable = tables.find(t =>
+            String(t.tableNumber) === trimmedTableNumber ||
+            String(t.tableNo) === trimmedTableNumber ||
+            String(t.number) === trimmedTableNumber
+        );
         if (!validTable) {
-            alert(`Invalid Table Number: ${trimmedTableNumber}. Please check the number on your table.`);
-            return;
+            // If no tables loaded yet, allow order to proceed (avoid blocking on network delay)
+            if (!tables || tables.length === 0) {
+                console.warn('No tables loaded yet — skipping table validation');
+            } else {
+                alert(`Invalid Table Number: ${trimmedTableNumber}. Please check the number on your table.`);
+                return;
+            }
         }
 
-        if (validTable.status === 'billed') {
+        if (validTable && validTable.status === 'billed') {
             alert(`This table has already been billed. Please ask the waiter to clear the table or start a new session.`);
             return;
         }
@@ -101,7 +112,7 @@ export default function Menu() {
 
         try {
             // Place the order
-            const newOrder = await placeOrder(trimmedTableNumber, cart, { instructions: instructions.trim() || '' });
+            const newOrder = await placeOrder(trimmedTableNumber, cart);
 
             // Clear form only on success
             setCart([]);
@@ -122,6 +133,8 @@ export default function Menu() {
         }
     };
 
+
+    // Scroll Lock is now handled by the Modal component
 
     const submitFeedback = (feedbackData) => {
         addFeedback({
@@ -441,474 +454,195 @@ export default function Menu() {
 
 
 
+            {/* --- MODALS --- */}
+
             {/* Cart Modal */}
-            {
-                showCart && (
-                    <div className="glass-modal-overlay" style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 100,
+            <Modal
+                isOpen={showCart}
+                onClose={() => setShowCart(false)}
+                maxWidth="550px"
+            >
+                <div className="glass-modal-content">
+                    <div className="modal-header-gradient" style={{
+                        padding: '1.25rem',
+                        background: 'var(--gradient-accent)',
                         display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '20px'
+                        color: 'white'
                     }}>
-                        <div className="glass-modal-content" style={{
-                            width: '100%',
-                            maxWidth: '500px',
-                            maxHeight: '90vh',
-                            borderRadius: '24px',
-                            padding: '0',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                padding: '1.5rem',
-                                background: 'var(--gradient-accent)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
-                            }}>
-                                <h2 style={{
-                                    margin: 0,
-                                    color: '#ffffff',
-                                    fontSize: '1.75rem',
-                                    fontWeight: '800',
-                                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                                }}>
-                                    🛒 {t('yourOrder')}
-                                </h2>
-                                <button
-                                    onClick={() => setShowCart(false)}
-                                    style={{
-                                        background: 'rgba(255, 255, 255, 0.2)',
-                                        border: 'none',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        width: '36px',
-                                        height: '36px',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                                        e.currentTarget.style.transform = 'rotate(90deg)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                                        e.currentTarget.style.transform = 'rotate(0deg)';
-                                    }}
-                                >
-                                    <X size={20} />
-                                </button>
+                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                            🛒 {t('yourOrder')}
+                        </h2>
+                        <button onClick={() => setShowCart(false)} className="close-btn-circle" style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div style={{ padding: '1.5rem', maxHeight: '50vh', overflowY: 'auto' }}>
+                        {cart.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-dim)' }}>
+                                <ShoppingCart size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                                <p>{t('cartEmpty')}</p>
                             </div>
-
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', minHeight: 0 }}>
-                                {cart.length === 0 ? (
-                                    <div style={{
-                                        textAlign: 'center',
-                                        padding: '4rem 2rem',
-                                        color: 'var(--text-dim)'
-                                    }}>
-                                        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛒</div>
-                                        <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-                                            Your cart is empty
-                                        </p>
-                                        <p style={{ fontSize: '0.9rem' }}>Add items from the menu to get started!</p>
-                                    </div>
-                                ) : (
-                                    cart.map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                marginBottom: '1rem',
-                                                padding: '1rem',
-                                                background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
-                                                borderRadius: '12px',
-                                                border: '2px solid var(--accent-light)',
-                                                animation: `fadeInUp 0.4s ease - out ${idx * 0.1}s both`,
-                                                flexWrap: 'wrap',
-                                                gap: '10px'
-                                            }}
-                                        >
-                                            <div style={{ flex: 1, minWidth: '150px' }}>
-                                                <h4 style={{
-                                                    margin: 0,
-                                                    marginBottom: '0.5rem',
-                                                    fontSize: '1.1rem',
-                                                    fontWeight: '700',
-                                                    color: 'var(--text-light)'
-                                                }}>
-                                                    {t(item.name)}
-                                                </h4>
-                                                {item.notes && (
-                                                    <small style={{
-                                                        color: 'var(--accent)',
-                                                        fontSize: '0.85rem',
-                                                        fontStyle: 'italic',
-                                                        display: 'block',
-                                                        marginTop: '0.25rem'
-                                                    }}>
-                                                        📝 {item.notes}
-                                                    </small>
-                                                )}
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                padding: '4px',
-                                                borderRadius: '8px'
-                                            }}>
-                                                <button
-                                                    onClick={() => updateQuantity(idx, item.quantity - 1)}
-                                                    style={{
-                                                        width: '28px',
-                                                        height: '28px',
-                                                        borderRadius: '6px',
-                                                        border: 'none',
-                                                        background: 'rgba(255, 255, 255, 0.2)',
-                                                        color: 'var(--text-light)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    <Minus size={14} />
-                                                </button>
-                                                <span style={{
-                                                    fontWeight: '700',
-                                                    minWidth: '20px',
-                                                    textAlign: 'center',
-                                                    color: 'var(--text-light)'
-                                                }}>
-                                                    {item.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() => updateQuantity(idx, item.quantity + 1)}
-                                                    style={{
-                                                        width: '28px',
-                                                        height: '28px',
-                                                        borderRadius: '6px',
-                                                        border: 'none',
-                                                        background: 'var(--gradient-accent)',
-                                                        color: 'white',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    <Plus size={14} />
-                                                </button>
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'flex-end',
-                                                gap: '4px',
-                                                marginLeft: '8px'
-                                            }}>
-                                                <span style={{
-                                                    fontSize: '1.1rem',
-                                                    fontWeight: '800',
-                                                    background: 'var(--gradient-accent)',
-                                                    WebkitBackgroundClip: 'text',
-                                                    WebkitTextFillColor: 'transparent',
-                                                    backgroundClip: 'text',
-                                                }}>
-                                                    ₹{item.price * item.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() => removeItem(idx)}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        color: '#ef4444',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        fontSize: '0.8rem',
-                                                        padding: '4px',
-                                                        borderRadius: '4px'
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                            <div style={{ marginTop: 'auto', padding: '1.5rem', paddingTop: '20px', borderTop: '1px solid var(--glass-border)', flexShrink: 0 }}>
-                                <div style={{ marginBottom: '15px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                                        {t('tableNumber')} <span style={{ color: 'var(--accent)' }}>*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder={t('tableNumber')}
-                                        className="input-field"
-                                        value={tableNumber}
-                                        onChange={e => setTableNumber(e.target.value)}
-                                        required
-                                        style={{
-                                            border: tableNumber ? '1px solid var(--glass-border)' : '2px solid var(--accent)',
-                                            fontSize: '1rem'
-                                        }}
-                                    />
-                                </div>
-                                <div style={{ marginBottom: '15px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-light)', fontSize: '0.9rem' }}>
-                                        Special Instructions (Optional)
-                                    </label>
-                                    <textarea
-                                        className="input-field"
-                                        placeholder="Any special cooking instructions or dietary requirements?"
-                                        value={instructions}
-                                        onChange={e => setInstructions(e.target.value)}
-                                        rows="3"
-                                    ></textarea>
-                                </div>
-                                <div style={{
+                        ) : (
+                            cart.map((item, idx) => (
+                                <div key={idx} style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
-                                    fontSize: '1.5rem',
-                                    fontWeight: '800',
-                                    margin: '1.5rem 0',
-                                    padding: '1.25rem',
-                                    background: 'var(--gradient-accent)',
-                                    borderRadius: '16px',
-                                    color: '#ffffff',
-                                    boxShadow: '0 4px 20px rgba(233, 69, 96, 0.4)',
-                                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                                    alignItems: 'center',
+                                    padding: '1rem',
+                                    marginBottom: '10px',
+                                    background: 'var(--glass-bg)',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--border-color)'
                                 }}>
-                                    <span>{t('total')}:</span>
-                                    <span>₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
+                                    <div>
+                                        <h4 style={{ margin: 0, color: 'var(--text-light)' }}>{t(item.name)}</h4>
+                                        <span style={{ color: 'var(--accent)', fontWeight: '700' }}>₹{item.price * item.quantity}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="qty-btn-small"><Minus size={12} /></button>
+                                        <span style={{ minWidth: '20px', textAlign: 'center', color: 'var(--text-light)' }}>{item.quantity}</span>
+                                        <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="qty-btn-small"><Plus size={12} /></button>
+                                        <button onClick={() => removeItem(idx)} style={{ marginLeft: '10px', border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                    </div>
                                 </div>
-                                <button
-                                    className="btn btn-primary"
-                                    style={{
-                                        width: '100%',
-                                        justifyContent: 'center',
-                                        padding: '1.25rem',
-                                        fontSize: '1.1rem',
-                                        fontWeight: '800',
-                                        borderRadius: '16px',
-                                        boxShadow: cart.length > 0 && tableNumber.trim()
-                                            ? '0 6px 25px rgba(233, 69, 96, 0.5)'
-                                            : 'none',
-                                        opacity: cart.length === 0 || !tableNumber.trim() ? 0.6 : 1
-                                    }}
-                                    onClick={submitOrder}
-                                    disabled={cart.length === 0 || !tableNumber.trim()}
-                                >
-                                    {cart.length === 0 ? `🛒 ${t('cartEmpty')} ` : !tableNumber.trim() ? `📝 ${t('tableNumber')} ` : `✅ ${t('placeOrder')} `}
-                                </button>
-                            </div>
-                        </div>
+                            ))
+                        )}
                     </div>
-                )
-            }
 
-            {/* Item Modal */}
-            {
-                selectedItem && (
+                    {cart.length > 0 && (
+                        <div style={{ padding: '1.5rem', background: 'var(--card-bg)', borderTop: '1px solid var(--border-color)' }}>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-dim)' }}>{t('tableNumber')} *</label>
+                                <input
+                                    className="input-field"
+                                    placeholder={t('tableNumber')}
+                                    value={tableNumber}
+                                    onChange={e => setTableNumber(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-dim)' }}>Special Instructions</label>
+                                <textarea
+                                    className="input-field"
+                                    placeholder="Any allergies or spice level?"
+                                    value={instructions}
+                                    onChange={e => setInstructions(e.target.value)}
+                                    style={{ minHeight: '80px' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: '800', marginBottom: '1.5rem', color: 'var(--text-light)' }}>
+                                <span>{t('total')}:</span>
+                                <span>₹{cart.reduce((a, b) => a + (b.price * b.quantity), 0)}</span>
+                            </div>
+                            <button
+                                onClick={submitOrder}
+                                className="btn btn-primary"
+                                style={{ width: '100%', padding: '1.25rem', fontSize: '1.1rem', justifyContent: 'center' }}
+                                disabled={!tableNumber || cart.length === 0}
+                            >
+                                ✅ {t('placeOrder')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </Modal>
+
+            {/* Item Details Modal */}
+            <Modal
+                isOpen={!!selectedItem}
+                onClose={() => setSelectedItem(null)}
+            >
+                {selectedItem && (
                     <ItemModal
                         item={selectedItem}
                         onClose={() => setSelectedItem(null)}
-                        onAdd={addToCart}
+                        onAdd={(item, qty, note) => {
+                            addToCart(item, qty, note);
+                            setSelectedItem(null);
+                        }}
                     />
-                )
-            }
+                )}
+            </Modal>
+
+            {/* My Orders (Summary) Modal */}
+            <Modal
+                isOpen={showOrders}
+                onClose={() => setShowOrders(false)}
+            >
+                <div className="glass-modal-content">
+                    <div style={{
+                        padding: '1.25rem',
+                        background: 'var(--gradient-accent)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        color: 'white'
+                    }}>
+                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                            📋 {t('myOrders')}
+                        </h2>
+                        <button onClick={() => setShowOrders(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                        {(() => {
+                            const myOrders = orders.filter(o =>
+                                myOrderIds.includes(o.$id || o.id) ||
+                                String(o.tableNumber || o.tableNo) === String(tableNumber)
+                            );
+
+                            if (myOrders.length === 0) {
+                                return <p style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '2rem' }}>{t('noOrders')}</p>;
+                            }
+
+                            return myOrders.map(order => (
+                                <div key={order.$id || order.id} style={{
+                                    padding: '1rem',
+                                    marginBottom: '10px',
+                                    background: 'var(--glass-bg)',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--border-color)',
+                                    borderLeft: `5px solid ${order.status === 'ready' ? '#fbbf24' : order.status === 'completed' ? '#10b981' : '#3b82f6'}`
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontWeight: '700', color: 'var(--text-light)' }}>#{String(order.$id || order.id).slice(-4)}</span>
+                                        <span className={`badge badge-${order.status === 'ready' ? 'warning' : order.status === 'completed' ? 'success' : 'primary'}`}>
+                                            {order.status.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    {(order.items || []).map((it, i) => (
+                                        <div key={i} style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>
+                                            • {it.name} x{it.quantity}
+                                        </div>
+                                    ))}
+                                </div>
+                            ));
+                        })()}
+                    </div>
+                </div>
+            </Modal>
 
             {/* Feedback Modal */}
-            {
-                showFeedbackModal && (
-                    <FeedbackModal
-                        onClose={() => setShowFeedbackModal(false)}
-                        onSubmit={submitFeedback}
-                        t={t}
-                    />
-                )
-            }
-
-            {/* Order Summary Modal */}
-            {
-                showOrders && (
-                    <div className="glass-modal-overlay" style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 100,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '20px'
-                    }}>
-                        <div className="glass-modal-content" style={{
-                            width: '100%',
-                            maxWidth: '500px',
-                            maxHeight: '90vh',
-                            borderRadius: '24px',
-                            padding: '0',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                padding: '1.5rem',
-                                background: 'var(--gradient-accent)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)'
-                            }}>
-                                <h2 style={{
-                                    margin: 0,
-                                    color: '#ffffff',
-                                    fontSize: '1.5rem',
-                                    fontWeight: '800',
-                                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                                }}>
-                                    🧾 Order Summary
-                                </h2>
-                                <button
-                                    onClick={() => setShowOrders(false)}
-                                    style={{
-                                        background: 'rgba(255, 255, 255, 0.2)',
-                                        border: 'none',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        width: '36px',
-                                        height: '36px',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', minHeight: '300px' }}>
-                                {myOrderIds.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-                                        <Info size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                                        <p>You haven't placed any orders yet.</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {(() => {
-                                            // Stricter filter: Match myOrderIds AND the current table number
-                                            const myOrders = orders
-                                                .filter(o =>
-                                                    myOrderIds.includes(o.id) &&
-                                                    String(o.tableNo) === String(tableNumber).trim() &&
-                                                    o.status !== 'completed' && o.status !== 'billed'
-                                                )
-                                                .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
-
-                                            if (myOrders.length === 0) {
-                                                return (
-                                                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-                                                        <p>No orders found for Table {tableNumber}.</p>
-                                                    </div>
-                                                );
-                                            }
-
-                                            const grandTotal = myOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-
-                                            return (
-                                                <>
-
-                                                    <div style={{ padding: '1rem', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                                            <span style={{ fontWeight: '600', color: 'var(--text-dim)' }}>Session Total:</span>
-                                                            <span style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--accent)' }}>₹{grandTotal}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <h4 style={{ margin: '1.5rem 0 1rem 0', color: 'var(--text-dim)' }}>Order Details</h4>
-
-                                                    {myOrders.map(order => (
-                                                        <div key={order.id} style={{
-                                                            marginBottom: '1rem',
-                                                            padding: '1rem',
-                                                            borderRadius: '16px',
-                                                            background: 'var(--glass-bg)',
-                                                            border: '1px solid var(--border-color)',
-                                                            position: 'relative',
-                                                            overflow: 'hidden'
-                                                        }}>
-                                                            <div style={{
-                                                                position: 'absolute',
-                                                                left: 0,
-                                                                top: 0,
-                                                                bottom: 0,
-                                                                width: '4px',
-                                                                background: order.status === 'ready' ? '#f59e0b' : order.status === 'completed' ? '#10b981' : '#3b82f6'
-                                                            }} />
-
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', paddingLeft: '10px' }}>
-                                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-                                                                    {new Date(order.createdAt || order.timestamp).toLocaleTimeString()}
-                                                                </span>
-                                                                <span className={`badge ${order.status === 'ready' ? 'badge-warning' : order.status === 'completed' ? 'badge-success' : 'badge-primary'}`} style={{ fontSize: '0.75rem' }}>
-                                                                    {order.status.toUpperCase()}
-                                                                </span>
-                                                            </div>
-
-                                                            <div style={{ paddingLeft: '10px' }}>
-                                                                {order.items.map((item, idx) => (
-                                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.95rem' }}>
-                                                                        <span>{item.quantity}x {t(item.name)}</span>
-                                                                        <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
-                                                                    </div>
-                                                                ))}
-                                                                {order.customerInfo?.instructions && (
-                                                                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--accent)', fontStyle: 'italic' }}>
-                                                                        " {order.customerInfo.instructions} "
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </>
-                                            );
-                                        })()}
-                                    </>
-                                )
-                                }
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-
-
-
-        </div >
+            <Modal
+                isOpen={showFeedbackModal}
+                onClose={() => setShowFeedbackModal(false)}
+                maxWidth="500px"
+            >
+                <FeedbackModal
+                    onClose={() => setShowFeedbackModal(false)}
+                    onSubmit={(feedback) => {
+                        addFeedback(feedback);
+                        setShowFeedbackModal(false);
+                    }}
+                    tableNumber={tableNumber}
+                />
+            </Modal>
+        </div>
     );
 }
 
@@ -920,257 +654,112 @@ function ItemModal({ item, onClose, onAdd }) {
     if (item.available === false) return null;
 
     return (
-        <div className="glass-modal-overlay" style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-        }}>
-            <div className="glass-modal-content" style={{
-                width: '100%',
-                maxWidth: '550px',
-                padding: '0',
-                overflowX: 'hidden',
-                overflowY: 'auto',
-                maxHeight: '90vh',
-                borderRadius: '24px'
+        <div style={{ position: 'relative' }}>
+            <img
+                src={item.image}
+                style={{
+                    width: '100%',
+                    height: '220px',
+                    objectFit: 'cover',
+                    display: 'block'
+                }}
+            />
+            <div style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'var(--gradient-accent)',
+                padding: '10px 18px',
+                borderRadius: '25px',
+                color: 'white',
+                fontWeight: '800',
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 20px rgba(233, 69, 96, 0.5)',
+                border: '2px solid rgba(255, 255, 255, 0.3)'
             }}>
-                <div style={{ position: 'relative' }}>
-                    <img
-                        src={item.image}
-                        style={{
-                            width: '100%',
-                            height: '280px',
-                            objectFit: 'cover',
-                            display: 'block'
-                        }}
-                    />
-                    <div style={{
-                        position: 'absolute',
-                        top: '15px',
-                        right: '15px',
-                        background: 'var(--gradient-accent)',
-                        padding: '10px 18px',
-                        borderRadius: '25px',
-                        color: 'white',
-                        fontWeight: '800',
-                        fontSize: '1.1rem',
-                        boxShadow: '0 4px 20px rgba(233, 69, 96, 0.5)',
-                        border: '2px solid rgba(255, 255, 255, 0.3)'
-                    }}>
-                        ₹{item.price}
-                    </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            position: 'absolute',
-                            top: '15px',
-                            left: '15px',
-                            background: 'var(--glass-bg)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '40px',
-                            height: '40px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-                            transition: 'all 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--accent)';
-                            e.currentTarget.style.color = 'white';
-                            e.currentTarget.style.transform = 'rotate(90deg)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'var(--glass-bg)';
-                            e.currentTarget.style.color = 'var(--text-light)';
-                            e.currentTarget.style.transform = 'rotate(0deg)';
-                        }}
-                    >
-                        <X size={20} />
-                    </button>
+                ₹{item.price}
+            </div>
+            <button
+                onClick={onClose}
+                style={{
+                    position: 'absolute',
+                    top: '15px',
+                    left: '15px',
+                    background: 'var(--glass-bg)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                    transition: 'all 0.3s ease'
+                }}
+            >
+                <X />
+            </button>
+
+            <div style={{ padding: '30px' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-light)', marginBottom: '0.75rem', letterSpacing: '-0.5px' }}>
+                        {t(item.name)}
+                    </h2>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '1.1rem', lineHeight: '1.6' }}>
+                        {t(item.description)}
+                    </p>
                 </div>
-                <div style={{ padding: '2rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <h2 style={{
-                            margin: 0,
-                            marginBottom: '0.5rem',
-                            fontSize: '2rem',
-                            fontWeight: '800',
-                            background: 'var(--gradient-accent)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text'
-                        }}>
-                            {t(item.name)}
-                        </h2>
-                        <p style={{
-                            color: 'var(--text-dim)',
-                            fontSize: '1rem',
-                            lineHeight: '1.6',
-                            margin: 0
-                        }}>
-                            {t(item.benefits)}
-                        </p>
-                    </div>
-                    <div style={{ margin: '1.5rem 0' }}>
-                        <label style={{
-                            display: 'block',
-                            marginBottom: '1rem',
-                            fontWeight: '700',
-                            color: 'var(--text-light)',
-                            fontSize: '1rem',
-                            textAlign: 'left'
-                        }}>
-                            {t('quantity') || 'Quantity'}
-                        </label>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-start',
-                            gap: '1rem',
-                            width: '100%'
-                        }}>
-                            <button
-                                onClick={() => setQty(Math.max(1, qty - 1))}
-                                disabled={qty <= 1}
-                                style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '12px',
-                                    padding: 0,
-                                    fontSize: '1.75rem',
-                                    fontWeight: '700',
-                                    background: qty <= 1
-                                        ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)'
-                                        : 'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
-                                    color: qty <= 1 ? '#9ca3af' : 'white',
-                                    border: 'none',
-                                    cursor: qty <= 1 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    boxShadow: qty <= 1
-                                        ? '0 2px 8px rgba(0, 0, 0, 0.1)'
-                                        : '0 4px 15px rgba(233, 69, 96, 0.4)',
-                                    transition: 'all 0.3s ease',
-                                    lineHeight: 1
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (qty > 1) {
-                                        e.currentTarget.style.transform = 'scale(0.95)';
-                                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.5)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (qty > 1) {
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(233, 69, 96, 0.4)';
-                                    }
-                                }}
-                            >
-                                −
-                            </button>
-                            <div style={{
-                                minWidth: '80px',
-                                height: '48px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: 'linear-gradient(135deg, rgba(233, 69, 96, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
-                                borderRadius: '12px',
-                                border: '2px solid var(--accent-light)',
-                                padding: '0 1rem'
-                            }}>
-                                <span style={{
-                                    fontSize: '1.75rem',
-                                    fontWeight: '800',
-                                    background: 'var(--gradient-accent)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    backgroundClip: 'text',
-                                    textAlign: 'center',
-                                    userSelect: 'none'
-                                }}>
-                                    {qty}
-                                </span>
-                            </div>
-                            <button
-                                onClick={() => setQty(qty + 1)}
-                                style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '12px',
-                                    padding: 0,
-                                    fontSize: '1.75rem',
-                                    fontWeight: '700',
-                                    background: 'linear-gradient(135deg, #e94560 0%, #ff5c7a 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    boxShadow: '0 4px 15px rgba(233, 69, 96, 0.4)',
-                                    transition: 'all 0.3s ease',
-                                    lineHeight: 1
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(0.95)';
-                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.5)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(233, 69, 96, 0.4)';
-                                }}
-                            >
-                                +
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        className="input-field"
-                        placeholder={`📝 ${t('specialInstructions')} `}
-                        value={note}
-                        onChange={e => setNote(e.target.value)}
-                        style={{ marginBottom: '1.5rem' }}
-                    />
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+
+                <div style={{ background: 'var(--glass-bg)', padding: '20px', borderRadius: '20px', border: '1px solid var(--glass-border)', marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '700', color: 'var(--text-light)', fontSize: '1rem' }}>
+                        {t('quantity') || 'Quantity'}
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button
+                            onClick={() => setQty(Math.max(1, qty - 1))}
                             className="btn btn-secondary"
-                            style={{
-                                flex: 1,
-                                justifyContent: 'center',
-                                padding: '1.25rem',
-                                fontSize: '1.1rem',
-                                fontWeight: '800',
-                                borderRadius: '16px',
-                                border: '2px solid var(--border-color)'
-                            }}
-                            onClick={onClose}
+                            style={{ width: '50px', height: '50px', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            disabled={qty <= 1}
                         >
-                            ← {t('back') || 'Back'}
+                            −
                         </button>
+                        <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-light)', minWidth: '40px', textAlign: 'center' }}>
+                            {qty}
+                        </span>
                         <button
+                            onClick={() => setQty(qty + 1)}
                             className="btn btn-primary"
-                            style={{
-                                flex: 2,
-                                justifyContent: 'center',
-                                padding: '1.25rem',
-                                fontSize: '1.1rem',
-                                fontWeight: '800',
-                                borderRadius: '16px'
-                            }}
-                            onClick={() => onAdd(item, qty, note)}
+                            style={{ width: '50px', height: '50px', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                            🛒 {t('addToOrder')} - ₹{item.price * qty}
+                            +
                         </button>
                     </div>
+                </div>
+
+                <input
+                    className="input-field"
+                    placeholder={`📝 ${t('specialInstructions')} `}
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    style={{ marginBottom: '2rem' }}
+                />
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        className="btn btn-secondary"
+                        style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem', fontWeight: '800' }}
+                        onClick={onClose}
+                    >
+                        {t('back') || 'Back'}
+                    </button>
+                    <button
+                        className="btn btn-primary"
+                        style={{ flex: 2, padding: '1.25rem', fontSize: '1.1rem', fontWeight: '800' }}
+                        onClick={() => onAdd(item, qty, note)}
+                    >
+                        🛒 {t('addToOrder')} - ₹{item.price * qty}
+                    </button>
                 </div>
             </div>
         </div>
@@ -1197,57 +786,60 @@ function FeedbackModal({ onClose, onSubmit, tableNumber }) {
     };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '30px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2>{t('shareFeedback')}</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X /></button>
-                </div>
-
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    <input
-                        className="input-field"
-                        placeholder={`${t('name')} (${t('optional') || 'Optional'})`}
-                        value={formData.customerName}
-                        onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                    />
-                    <input
-                        className="input-field"
-                        placeholder={`${t('tableNumber')} (${t('optional') || 'Optional'})`}
-                        value={formData.tableNo}
-                        onChange={e => setFormData({ ...formData, tableNo: e.target.value })}
-                    />
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '10px' }}>{t('rating') || 'Rating'}</label>
-                        <div style={{ display: 'flex', gap: '5px', fontSize: '1.5rem' }}>
-                            {[1, 2, 3, 4, 5].map(rating => (
-                                <span
-                                    key={rating}
-                                    onClick={() => setFormData({ ...formData, rating })}
-                                    style={{
-                                        cursor: 'pointer',
-                                        color: rating <= formData.rating ? '#f1c40f' : '#555',
-                                        transition: 'color 0.2s'
-                                    }}
-                                >
-                                    ★
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                    <textarea
-                        className="input-field"
-                        placeholder={t('feedback')}
-                        rows="5"
-                        required
-                        value={formData.message}
-                        onChange={e => setFormData({ ...formData, message: e.target.value })}
-                    />
-                    <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} type="submit">
-                        {t('submitFeedback')}
-                    </button>
-                </form>
+        <div className="glass-panel" style={{ width: '100%', padding: '30px', margin: '0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2>{t('shareFeedback')}</h2>
+                <button
+                    onClick={onClose}
+                    style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+                >
+                    <X />
+                </button>
             </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <input
+                    className="input-field"
+                    placeholder={`${t('name')} (${t('optional') || 'Optional'})`}
+                    value={formData.customerName}
+                    onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                />
+                <input
+                    className="input-field"
+                    placeholder={`${t('tableNumber')} (${t('optional') || 'Optional'})`}
+                    value={formData.tableNo}
+                    onChange={e => setFormData({ ...formData, tableNo: e.target.value })}
+                />
+                <div>
+                    <label style={{ display: 'block', marginBottom: '10px' }}>{t('rating') || 'Rating'}</label>
+                    <div style={{ display: 'flex', gap: '5px', fontSize: '1.5rem' }}>
+                        {[1, 2, 3, 4, 5].map(rating => (
+                            <span
+                                key={rating}
+                                onClick={() => setFormData({ ...formData, rating })}
+                                style={{
+                                    cursor: 'pointer',
+                                    color: rating <= formData.rating ? '#f1c40f' : '#555',
+                                    transition: 'color 0.2s'
+                                }}
+                            >
+                                ★
+                            </span>
+                        ))}
+                    </div>
+                </div>
+                <textarea
+                    className="input-field"
+                    placeholder={t('feedback')}
+                    rows="5"
+                    required
+                    value={formData.message}
+                    onChange={e => setFormData({ ...formData, message: e.target.value })}
+                />
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} type="submit">
+                    {t('submitFeedback')}
+                </button>
+            </form>
         </div>
     );
 }

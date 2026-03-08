@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { BarChart, TrendingUp, Users, Plus, X, MessageSquare, Calendar, Edit, Settings, UserPlus, ChefHat, Copy, Trash2 } from 'lucide-react';
 import { extractGradientContent } from '../utils/gradientUtils';
 
-import { onMQTTMessage } from "../services/mqttClient";
+import mqttService from "../services/mqttService";
 import { toast } from "react-hot-toast";
 import DeviceMonitor from '../components/DeviceMonitor';
 
@@ -32,7 +32,10 @@ export default function ManagerDashboard() {
         removeSubManager,
         managers,
         addManager,
-        removeManager
+        removeManager,
+        announcements,
+        addAnnouncement,
+        deleteAnnouncement
     } = useApp();
 
     const [showClearDialog, setShowClearDialog] = useState(false);
@@ -46,22 +49,28 @@ export default function ManagerDashboard() {
     const today = new Date().toDateString();
 
     // Daily Stats
-    const todayOrders = orders.filter(o => {
+    const todayOrders = (orders || []).filter(o => {
+        if (!o.timestamp) return false;
         const orderDate = new Date(o.timestamp).toDateString();
-        return orderDate === today && o.status === 'completed';
+        return orderDate === today && (o.status === 'completed' || o.status === 'delivered');
     });
-    const dailyRevenue = todayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const dailyRevenue = todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     const dailyCustomers = new Set(todayOrders.map(o => o.tableNo)).size;
 
     // Total Stats
-    const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.totalAmount, 0);
-    const totalCustomers = new Set(orders.filter(o => o.status === 'completed').map(o => o.tableNo)).size;
+    const totalRevenue = (orders || []).filter(o => o.status === 'completed' || o.status === 'delivered').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const totalCustomers = new Set((orders || []).filter(o => o.status === 'completed' || o.status === 'delivered').map(o => o.tableNo)).size;
 
     // Most Ordered Item (All Time)
     const itemCounts = {};
-    orders.forEach(o => o.items.forEach(i => {
-        itemCounts[i.name] = (itemCounts[i.name] || 0) + i.quantity;
-    }));
+    (orders || []).forEach(o => {
+        const items = Array.isArray(o.items) ? o.items : [];
+        items.forEach(i => {
+            if (i.name) {
+                itemCounts[i.name] = (itemCounts[i.name] || 0) + (i.quantity || 1);
+            }
+        });
+    });
     const sortedItems = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]);
     const topItem = sortedItems.length > 0 ? `${sortedItems[0][0]} (${sortedItems[0][1]}x)` : 'N/A';
 
@@ -81,11 +90,16 @@ export default function ManagerDashboard() {
     const [newKitchenSecretID, setNewKitchenSecretID] = useState(null);
     const [newSubManagerSecretID, setNewSubManagerSecretID] = useState(null);
     const [newManagerSecretID, setNewManagerSecretID] = useState(null);
+    const [showAddAnnouncementModal, setShowAddAnnouncementModal] = useState(false);
+    const [announcementFormData, setAnnouncementFormData] = useState({ title: '', content: '', type: 'info' });
+    const [announcementLoading, setAnnouncementLoading] = useState(false);
     const [subManagerPhoto, setSubManagerPhoto] = useState('');
+    const [subManagerPhotoFile, setSubManagerPhotoFile] = useState(null);
     const [subManagerDocFile, setSubManagerDocFile] = useState(null);
     const [subManagerDocFileName, setSubManagerDocFileName] = useState('');
     const [subManagerDocPreview, setSubManagerDocPreview] = useState('');
     const [managerPhoto, setManagerPhoto] = useState('');
+    const [managerPhotoFile, setManagerPhotoFile] = useState(null);
 
     const handleSubManagerImageChange = (e) => {
         const file = e.target.files[0];
@@ -126,43 +140,23 @@ export default function ManagerDashboard() {
         }
     };
 
-    const handleManagerImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
-                return;
-            }
-            if (file.size > 800 * 1024) {
-                alert('Image size should be less than 800KB');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setManagerPhoto(reader.result);
-            };
-            reader.readAsDataURL(file);
+
+    const handleAddAnnouncement = async (e) => {
+        e.preventDefault();
+        setAnnouncementLoading(true);
+        try {
+            await addAnnouncement(announcementFormData.title, announcementFormData.content, announcementFormData.type);
+            setShowAddAnnouncementModal(false);
+            setAnnouncementFormData({ title: '', content: '', type: 'info' });
+            toast.success('Announcement posted successfully!');
+        } catch (error) {
+            toast.error('Failed to post announcement');
+        } finally {
+            setAnnouncementLoading(false);
         }
     };
 
-    // MQTT Listener
-    React.useEffect(() => {
-        const unsubscribe = onMQTTMessage((topic, msg) => {
-            if (msg.type === "CALL_WAITER") {
-                toast.success(`🔔 Table ${msg.table} is calling waiter`, {
-                    duration: 6000,
-                    icon: '🔔',
-                    style: {
-                        background: '#333',
-                        color: '#fff',
-                        fontWeight: 'bold',
-                        fontSize: '1.2rem'
-                    }
-                });
-            }
-        });
-        return () => unsubscribe();
-    }, []);
+    // Manager Dashboard specific logic continues...
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -254,6 +248,7 @@ export default function ManagerDashboard() {
                     { key: 'kitchen', label: `🍳 ${t('kitchenStaff')} (${kitchenStaff.length})`, gradient: tabGradients.kitchen },
                     { key: 'subManagers', label: `🤵 Sub Managers (${subManagers.length})`, gradient: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' },
                     { key: 'managers', label: `👔 Managers (${managers.length})`, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' },
+                    { key: 'announcements', label: `📢 Announcements (${announcements.length || 0})`, gradient: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' },
                     { key: 'feedback', label: `💬 ${t('feedback')} (${feedbacks.length})`, gradient: tabGradients.feedback }
                 ].map(tab => (
 
@@ -870,6 +865,88 @@ export default function ManagerDashboard() {
                     )}
                 </div>
             )}
+            {activeTab === 'announcements' && (
+                <div>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1.5rem',
+                        flexWrap: 'wrap',
+                        gap: '1rem'
+                    }}>
+                        <h2 style={{
+                            margin: 0,
+                            fontSize: '1.75rem',
+                            fontWeight: '700',
+                            background: 'var(--gradient-accent)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}>
+                            📢 Announcements Management
+                        </h2>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setShowAddAnnouncementModal(true)}
+                            style={{
+                                borderRadius: '12px',
+                                padding: '0.75rem 1.5rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600'
+                            }}
+                        >
+                            <Plus size={18} style={{ marginRight: '8px' }} /> Post New Announcement
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                        {announcements.length === 0 ? (
+                            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+                                <p style={{ color: 'var(--text-dim)' }}>No announcements posted yet.</p>
+                            </div>
+                        ) : (
+                            announcements.map(ann => (
+                                <div key={ann.$id} className="glass-panel" style={{
+                                    padding: '1.5rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    borderLeft: `6px solid ${ann.type === 'info' ? '#3b82f6' : ann.type === 'warning' ? '#f59e0b' : '#10b981'}`
+                                }}>
+                                    <div>
+                                        <h3 style={{ margin: '0 0 0.5rem', color: 'var(--text-light)' }}>{ann.title}</h3>
+                                        <p style={{
+                                            margin: '0 0 0.5rem',
+                                            color: 'var(--text-dim)',
+                                            fontSize: '0.95rem',
+                                            whiteSpace: 'pre-wrap'
+                                        }}>
+                                            {ann.content}
+                                        </p>
+                                        <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                                            {new Date(ann.created_at).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => deleteAnnouncement(ann.$id)}
+                                        style={{
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            color: '#ef4444',
+                                            border: 'none',
+                                            padding: '8px',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
             {activeTab === 'tables' && (
                 <div>
                     <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '1rem' }}>
@@ -1054,6 +1131,32 @@ export default function ManagerDashboard() {
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>
+                                        <div style={{
+                                            padding: '1rem',
+                                            background: 'rgba(0, 0, 0, 0.05)',
+                                            borderRadius: '12px',
+                                            border: '2px dashed rgba(16, 185, 129, 0.3)'
+                                        }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
+                                                Secret ID:
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <code style={{
+                                                    flex: 1,
+                                                    display: 'block',
+                                                    padding: '0.75rem',
+                                                    background: 'var(--bg-dark)',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    borderRadius: '8px',
+                                                    color: 'var(--text-light)',
+                                                    fontSize: '1.1rem',
+                                                    letterSpacing: '1px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {waiter.secretID}
+                                                </code>
+                                            </div>
+                                        </div>
 
                                     </div>
                                 ))}
@@ -1146,6 +1249,32 @@ export default function ManagerDashboard() {
                                             >
                                                 <Trash2 size={18} />
                                             </button>
+                                        </div>
+                                        <div style={{
+                                            padding: '1rem',
+                                            background: 'rgba(0, 0, 0, 0.05)',
+                                            borderRadius: '12px',
+                                            border: '2px dashed rgba(245, 158, 11, 0.3)'
+                                        }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dim)' }}>
+                                                Secret ID:
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <code style={{
+                                                    flex: 1,
+                                                    display: 'block',
+                                                    padding: '0.75rem',
+                                                    background: 'var(--bg-dark)',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    borderRadius: '8px',
+                                                    color: 'var(--text-light)',
+                                                    fontSize: '1.1rem',
+                                                    letterSpacing: '1px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {staff.secretID}
+                                                </code>
+                                            </div>
                                         </div>
 
                                     </div>
@@ -1492,9 +1621,10 @@ export default function ManagerDashboard() {
                                         const email = e.target.elements.email.value;
                                         const docText = e.target.elements.documents.value;
                                         if (!name.trim()) return;
-                                        const secret = await addSubManager(name, subManagerPhoto, mobile, email, docText, subManagerDocFile);
+                                        const secret = await addSubManager(name, subManagerPhotoFile, mobile, email, docText, subManagerDocFile);
                                         setNewSubManagerSecretID(secret);
                                         setSubManagerPhoto('');
+                                        setSubManagerPhotoFile(null);
                                         setSubManagerDocFile(null);
                                         setSubManagerDocFileName('');
                                         e.target.reset();
@@ -1512,50 +1642,7 @@ export default function ManagerDashboard() {
                                             <input name="email" type="email" className="input-field" placeholder="Enter Email Address" required />
                                         </div>
 
-                                        {/* Document Upload Section */}
-                                        <div style={{ marginBottom: '1rem', background: 'rgba(99,102,241,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(99,102,241,0.35)' }}>
-                                            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.78rem', color: 'var(--text-dim)' }}>(Optional)</span>
-                                            </div>
-                                            <input
-                                                name="documents"
-                                                type="text"
-                                                className="input-field"
-                                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
-                                                style={{ marginBottom: '0.6rem' }}
-                                            />
-                                            <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '500' }}>
-                                                Upload Document Photo / Scan <span style={{ fontSize: '0.72rem' }}>(JPG, PNG, PDF – max 2MB)</span>
-                                            </label>
-                                            <input
-                                                type="file"
-                                                accept="image/*,application/pdf"
-                                                onChange={handleSubManagerDocFileChange}
-                                                style={{
-                                                    width: '100%', padding: '0.45rem',
-                                                    background: 'rgba(0,0,0,0.15)',
-                                                    border: '1px solid var(--glass-border)',
-                                                    borderRadius: '8px', color: 'var(--text-light)',
-                                                    cursor: 'pointer', fontSize: '0.82rem',
-                                                    boxSizing: 'border-box'
-                                                }}
-                                            />
-                                            {subManagerDocFile && (
-                                                <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                                    {subManagerDocPreview && subManagerDocPreview !== 'pdf' ? (
-                                                        <img src={subManagerDocPreview} alt="Doc Preview" style={{
-                                                            height: '65px', maxWidth: '150px', borderRadius: '8px',
-                                                            objectFit: 'cover', border: '2px solid rgba(99,102,241,0.4)'
-                                                        }} />
-                                                    ) : (
-                                                        <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(99,102,241,0.15)', borderRadius: '8px', fontSize: '0.78rem', color: '#818cf8' }}>
-                                                            📄 PDF: {subManagerDocFileName}
-                                                        </div>
-                                                    )}
-                                                    <span style={{ fontSize: '0.73rem', color: '#10b981' }}>✓ Selected: {subManagerDocFileName}</span>
-                                                </div>
-                                            )}
-                                        </div>
+
 
                                         <div style={{ marginBottom: '1.5rem' }}>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Profile Photo</label>
@@ -1637,9 +1724,10 @@ export default function ManagerDashboard() {
                                         e.preventDefault();
                                         const name = e.target.elements.name.value;
                                         if (!name.trim()) return;
-                                        const secret = await addManager(name, managerPhoto);
+                                        const secret = await addManager(name, managerPhotoFile);
                                         setNewManagerSecretID(secret);
                                         setManagerPhoto('');
+                                        setManagerPhotoFile(null);
                                         e.target.reset();
                                     }}>
                                         <div style={{ marginBottom: '1rem' }}>
@@ -1702,6 +1790,69 @@ export default function ManagerDashboard() {
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                )
+            }
+            {
+                showAddAnnouncementModal && (
+                    <div style={{
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
+                    }}>
+                        <div className="glass-panel" style={{
+                            width: '100%', maxWidth: '500px', padding: '2rem', background: 'var(--card-bg)', borderRadius: '24px'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>📢 Post Announcement</h2>
+                                <button onClick={() => setShowAddAnnouncementModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleAddAnnouncement} style={{ display: 'grid', gap: '1.25rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Title</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="input-field"
+                                        value={announcementFormData.title}
+                                        onChange={(e) => setAnnouncementFormData({ ...announcementFormData, title: e.target.value })}
+                                        placeholder="e.g. Special Holiday Offer"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Content</label>
+                                    <textarea
+                                        required
+                                        className="input-field"
+                                        rows="4"
+                                        value={announcementFormData.content}
+                                        onChange={(e) => setAnnouncementFormData({ ...announcementFormData, content: e.target.value })}
+                                        placeholder="Write your announcement message here..."
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Type</label>
+                                    <select
+                                        className="input-field"
+                                        value={announcementFormData.type}
+                                        onChange={(e) => setAnnouncementFormData({ ...announcementFormData, type: e.target.value })}
+                                    >
+                                        <option value="info">Information (Blue)</option>
+                                        <option value="warning">Warning (Orange)</option>
+                                        <option value="success">Success (Green)</option>
+                                    </select>
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={announcementLoading}
+                                    style={{ width: '100%', padding: '1rem', justifyContent: 'center', fontSize: '1.1rem' }}
+                                >
+                                    {announcementLoading ? 'Posting...' : 'Post Now'}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 )
@@ -2057,7 +2208,8 @@ function AddMenuModal({ onClose, onSave, item }) {
 
 function AddWaiterModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
-    const [image, setImage] = useState('');
+    const [image, setImage] = useState(''); // preview
+    const [photoFile, setPhotoFile] = useState(null); // raw File object
     const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [documents, setDocuments] = useState('');
@@ -2067,14 +2219,7 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
-                return;
-            }
-            if (file.size > 800 * 1024) {
-                alert('Image size should be less than 800KB');
-                return;
-            }
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => { setImage(reader.result); };
             reader.readAsDataURL(file);
@@ -2084,16 +2229,7 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
     const handleDocFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select an image (JPG, PNG) or PDF file');
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) {
-                alert('Document file size should be less than 2MB');
-                return;
-            }
-            setDocFile(file); // store raw File object
+            setDocFile(file);
             if (file.type.startsWith('image/')) {
                 setDocPreview(URL.createObjectURL(file));
             } else {
@@ -2104,12 +2240,8 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!name.trim()) {
-            alert('Please enter waiter name');
-            return;
-        }
-        onAdd(name, image, mobile, email, documents, docFile);
-        setName(''); setImage(''); setMobile(''); setEmail('');
+        onAdd(name, photoFile, mobile, email, documents, docFile);
+        setName(''); setImage(''); setPhotoFile(null); setMobile(''); setEmail('');
         setDocuments(''); setDocFile(null); setDocPreview('');
     };
 
@@ -2149,152 +2281,32 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
 
                 {secretID ? (
                     <div>
-                        <div style={{
-                            padding: '1.5rem',
-                            background: 'var(--card-bg)',
-                            borderRadius: '12px',
-                            border: '2px solid rgba(16, 185, 129, 0.3)',
-                            marginBottom: '1.5rem'
-                        }}>
+                        <div style={{ padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', border: '2px solid rgba(16, 185, 129, 0.3)', marginBottom: '1.5rem' }}>
                             <p style={{ margin: 0, marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-dim)', fontWeight: '600' }}>
-                                ⚠️ Save this Secret ID! It will only be shown once.
+                                ⚠️ Save this Secret ID!
                             </p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <code style={{
-                                    flex: 1,
-                                    padding: '1rem',
-                                    background: 'white',
-                                    borderRadius: '8px',
-                                    fontSize: '1.5rem',
-                                    fontWeight: '800',
-                                    letterSpacing: '3px',
-                                    color: 'var(--accent)',
-                                    border: '2px solid var(--accent-light)',
-                                    textAlign: 'center'
-                                }}>
-                                    {secretID}
-                                </code>
-                                <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(secretID);
-                                        alert('Secret ID copied to clipboard!');
-                                    }}
-                                    style={{
-                                        padding: '1rem',
-                                        background: 'var(--gradient-accent)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    <Copy size={20} />
-                                </button>
+                                <code style={{ flex: 1, padding: '1rem', background: 'white', borderRadius: '8px', fontSize: '1.5rem', fontWeight: '800', textAlign: 'center' }}>{secretID}</code>
+                                <button onClick={() => { navigator.clipboard.writeText(secretID); alert('Copied!'); }} style={{ padding: '1rem', background: 'var(--gradient-accent)', color: 'white', border: 'none', borderRadius: '8px' }}><Copy size={20} /></button>
                             </div>
                         </div>
-                        <button
-                            className="btn btn-primary"
-                            onClick={onClose}
-                            style={{ width: '100%', justifyContent: 'center' }}
-                        >
-                            Done
-                        </button>
+                        <button className="btn btn-primary" onClick={onClose} style={{ width: '100%', justifyContent: 'center' }}>Done</button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <input
-                            className="input-field"
-                            placeholder="Waiter Name"
-                            required
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            autoFocus
-                        />
-                        <input
-                            className="input-field"
-                            type="tel"
-                            placeholder="Mobile Number *"
-                            required
-                            value={mobile}
-                            onChange={e => setMobile(e.target.value)}
-                        />
-                        <input
-                            className="input-field"
-                            type="email"
-                            placeholder="Email Address *"
-                            required
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                        />
-
-                        {/* Document Section */}
-                        <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(99,102,241,0.35)' }}>
-                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-light)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.8rem', color: 'var(--text-dim)' }}>(Optional)</span>
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '100px', height: '100px', margin: '0 auto 1rem', borderRadius: '50%', background: 'var(--glass-bg)', overflow: 'hidden', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {image ? <img src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Users size={40} style={{ opacity: 0.3 }} />}
                             </div>
-                            <input
-                                className="input-field"
-                                type="text"
-                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
-                                value={documents}
-                                onChange={e => setDocuments(e.target.value)}
-                                style={{ marginBottom: '0.75rem' }}
-                            />
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem', color: 'var(--text-dim)', fontWeight: '500' }}>
-                                Upload Document Photo / Scan <span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF – max 2MB)</span>
+                            <label className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                                Upload Photo
+                                <input type="file" hidden accept="image/*" onChange={handleImageChange} />
                             </label>
-                            <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={handleDocFileChange}
-                                style={{
-                                    width: '100%', padding: '0.5rem',
-                                    background: 'rgba(0,0,0,0.15)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px', color: 'var(--text-light)',
-                                    cursor: 'pointer', fontSize: '0.85rem',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                            {docFile && (
-                                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                    {docPreview && docPreview !== 'pdf' ? (
-                                        <img src={docPreview} alt="Document Preview" style={{
-                                            height: '70px', maxWidth: '160px', borderRadius: '8px',
-                                            objectFit: 'cover', border: '2px solid rgba(99,102,241,0.4)'
-                                        }} />
-                                    ) : (
-                                        <div style={{
-                                            padding: '0.5rem 1rem', background: 'rgba(99,102,241,0.15)',
-                                            borderRadius: '8px', fontSize: '0.8rem', color: '#818cf8'
-                                        }}>📄 PDF: {docFile?.name}</div>
-                                    )}
-                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Selected: {docFile?.name}</span>
-                                </div>
-                            )}
                         </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="input-field"
-                                style={{ padding: '0.5rem' }}
-                            />
-                            {image && <img src={image} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '50%', marginTop: '10px', objectFit: 'cover' }} />}
-                        </div>
-                        <button
-                            className="btn btn-primary"
-                            style={{ width: '100%', justifyContent: 'center' }}
-                            type="submit"
-                        >
-                            Add Waiter
-                        </button>
+                        <input className="input-field" placeholder="Waiter Name" required value={name} onChange={e => setName(e.target.value)} />
+                        <input className="input-field" type="tel" placeholder="Mobile Number" required value={mobile} onChange={e => setMobile(e.target.value)} />
+                        <input className="input-field" type="email" placeholder="Email Address" required value={email} onChange={e => setEmail(e.target.value)} />
+                        <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} type="submit">Add Waiter</button>
                     </form>
                 )}
             </div>
@@ -2305,23 +2317,17 @@ function AddWaiterModal({ onClose, onAdd, secretID }) {
 function AddKitchenModal({ onClose, onAdd, secretID }) {
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
+    const [photoFile, setPhotoFile] = useState(null);
     const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [documents, setDocuments] = useState('');
-    const [docFile, setDocFile] = useState(null);      // raw File object
-    const [docPreview, setDocPreview] = useState('');  // object URL for preview
+    const [docFile, setDocFile] = useState(null);
+    const [docPreview, setDocPreview] = useState('');
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
-                return;
-            }
-            if (file.size > 800 * 1024) {
-                alert('Image size should be less than 800KB');
-                return;
-            }
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => { setImage(reader.result); };
             reader.readAsDataURL(file);
@@ -2331,16 +2337,7 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
     const handleDocFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select an image (JPG, PNG) or PDF file');
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) {
-                alert('Document file size should be less than 2MB');
-                return;
-            }
-            setDocFile(file); // store raw File object
+            setDocFile(file);
             if (file.type.startsWith('image/')) {
                 setDocPreview(URL.createObjectURL(file));
             } else {
@@ -2351,25 +2348,14 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!name.trim()) {
-            alert('Please enter kitchen staff name');
-            return;
-        }
-        onAdd(name, image, mobile, email, documents, docFile);
-        setName(''); setImage(''); setMobile(''); setEmail('');
+        onAdd(name, photoFile, mobile, email, documents, docFile);
+        setName(''); setImage(''); setPhotoFile(null); setMobile(''); setEmail('');
         setDocuments(''); setDocFile(null); setDocPreview('');
     };
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="glass-panel" style={{
-                width: '100%',
-                maxWidth: '500px',
-                maxHeight: '90vh',
-                padding: '30px',
-                position: 'relative',
-                overflowY: 'auto'
-            }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', padding: '30px', position: 'relative', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ margin: 0, color: 'var(--text-light)' }}>
                         {secretID ? '✅ Kitchen Staff Added!' : '🍳 Add Kitchen Staff'}
@@ -2396,13 +2382,7 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
 
                 {secretID ? (
                     <div>
-                        <div style={{
-                            padding: '1.5rem',
-                            background: 'var(--card-bg)',
-                            borderRadius: '12px',
-                            border: '2px solid rgba(245, 158, 11, 0.3)',
-                            marginBottom: '1.5rem'
-                        }}>
+                        <div style={{ padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', border: '2px solid rgba(16, 185, 129, 0.3)', marginBottom: '1.5rem' }}>
                             <p style={{ margin: 0, marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-dim)', fontWeight: '600' }}>
                                 ⚠️ Save this Secret ID! It will only be shown once.
                             </p>
@@ -2441,7 +2421,7 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                                     <Copy size={20} />
                                 </button>
                             </div>
-                        </div>
+                        </div >
                         <button
                             className="btn btn-primary"
                             onClick={onClose}
@@ -2449,9 +2429,18 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                         >
                             Done
                         </button>
-                    </div>
+                    </div >
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '100px', height: '100px', margin: '0 auto 1rem', borderRadius: '50%', background: 'var(--glass-bg)', overflow: 'hidden', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {image ? <img src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ChefHat size={40} style={{ opacity: 0.3 }} />}
+                            </div>
+                            <label className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                                Upload Photo
+                                <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                            </label>
+                        </div>
                         <input
                             className="input-field"
                             placeholder="Kitchen Staff Name"
@@ -2477,52 +2466,7 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                             onChange={e => setEmail(e.target.value)}
                         />
 
-                        {/* Document Section */}
-                        <div style={{ background: 'rgba(245,158,11,0.07)', borderRadius: '12px', padding: '1rem', border: '1.5px dashed rgba(245,158,11,0.4)' }}>
-                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-light)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                📄 ID / Document <span style={{ fontWeight: '400', fontSize: '0.8rem', color: 'var(--text-dim)' }}>(Optional)</span>
-                            </div>
-                            <input
-                                className="input-field"
-                                type="text"
-                                placeholder="Document No. – e.g. Aadhar 1234 5678 9012"
-                                value={documents}
-                                onChange={e => setDocuments(e.target.value)}
-                                style={{ marginBottom: '0.75rem' }}
-                            />
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem', color: 'var(--text-dim)', fontWeight: '500' }}>
-                                Upload Document Photo / Scan <span style={{ fontSize: '0.75rem' }}>(JPG, PNG, PDF – max 2MB)</span>
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={handleDocFileChange}
-                                style={{
-                                    width: '100%', padding: '0.5rem',
-                                    background: 'rgba(0,0,0,0.15)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px', color: 'var(--text-light)',
-                                    cursor: 'pointer', fontSize: '0.85rem',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                            {docFile && (
-                                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                    {docPreview && docPreview !== 'pdf' ? (
-                                        <img src={docPreview} alt="Document Preview" style={{
-                                            height: '70px', maxWidth: '160px', borderRadius: '8px',
-                                            objectFit: 'cover', border: '2px solid rgba(245,158,11,0.4)'
-                                        }} />
-                                    ) : (
-                                        <div style={{
-                                            padding: '0.5rem 1rem', background: 'rgba(245,158,11,0.15)',
-                                            borderRadius: '8px', fontSize: '0.8rem', color: '#fbbf24'
-                                        }}>📄 PDF: {docFile?.name}</div>
-                                    )}
-                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Selected: {docFile?.name}</span>
-                                </div>
-                            )}
-                        </div>
+
 
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Profile Photo</label>
@@ -2544,9 +2488,9 @@ function AddKitchenModal({ onClose, onAdd, secretID }) {
                         </button>
                     </form>
                 )}
-            </div>
-        </div>
-    )
+            </div >
+        </div >
+    );
 }
 
 

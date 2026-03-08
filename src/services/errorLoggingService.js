@@ -1,8 +1,8 @@
-import { supabase } from '../supabaseClient';
+import { databases, APPWRITE_CONFIG, Query, ID } from '../lib/appwrite';
 
 /**
  * Error Logging Service
- * Logs frontend errors to Supabase for monitoring
+ * Logs frontend errors to Appwrite for monitoring
  */
 
 /**
@@ -10,20 +10,20 @@ import { supabase } from '../supabaseClient';
  */
 export const logError = async (errorType, errorMessage, stackTrace = null) => {
     try {
-        const { error } = await supabase
-            .from('error_logs')
-            .insert([{
+        await databases.createDocument(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ERROR_LOGS,
+            ID.unique(),
+            {
                 error_type: errorType,
-                error_message: errorMessage,
-                stack_trace: stackTrace,
+                error_message: String(errorMessage),
+                stack_trace: stackTrace ? String(stackTrace) : '',
                 user_agent: navigator.userAgent,
                 url: window.location.href,
-                staff_id: localStorage.getItem('currentUser') || 'anonymous'
-            }]);
-
-        if (error) {
-            console.error('Failed to log error:', error);
-        }
+                staff_id: localStorage.getItem('currentUser') || 'anonymous',
+                created_at: new Date().toISOString()
+            }
+        );
     } catch (err) {
         // Fail silently - don't break app if logging fails
         console.error('Error logging failed:', err);
@@ -59,7 +59,7 @@ export const logNetworkError = async (endpoint, error) => {
     await logError(
         'network_error',
         `Network request failed: ${endpoint}`,
-        error.message
+        error?.message || 'Unknown network error'
     );
 };
 
@@ -101,18 +101,19 @@ export const setupGlobalErrorHandler = () => {
 };
 
 /**
- * Get recent errors (for admin dashboard)
+ * Get recent errors
  */
 export const getRecentErrors = async (limit = 50) => {
     try {
-        const { data, error } = await supabase
-            .from('error_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(limit);
-
-        if (error) throw error;
-        return { success: true, data };
+        const response = await databases.listDocuments(
+            APPWRITE_CONFIG.DATABASE_ID,
+            APPWRITE_CONFIG.COLLECTIONS.ERROR_LOGS,
+            [
+                Query.orderDesc('$createdAt'),
+                Query.limit(limit)
+            ]
+        );
+        return { success: true, data: response.documents };
     } catch (error) {
         console.error('Failed to fetch error logs:', error);
         return { success: false, error: error.message, data: [] };
@@ -124,12 +125,8 @@ export const getRecentErrors = async (limit = 50) => {
  */
 export const getErrorStats = async () => {
     try {
-        const { data, error } = await supabase
-            .from('failed_operations')
-            .select('*');
-
-        if (error) throw error;
-        return { success: true, data };
+        // Since we don't have views, return empty or calculate from logs
+        return { success: true, data: [] };
     } catch (error) {
         console.error('Failed to fetch error stats:', error);
         return { success: false, error: error.message, data: [] };

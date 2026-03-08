@@ -11,6 +11,8 @@ import KitchenDashboard from './pages/KitchenDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import SubManagerDashboard from './pages/SubManagerDashboard';
 import CustomerScreen from './pages/CustomerScreen';
+import { useEffect } from 'react';
+import { testConnection } from './services/dbTest';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -29,6 +31,10 @@ function ProtectedRoute({ children, allowedRoles }) {
 }
 
 function App() {
+  useEffect(() => {
+    testConnection();
+  }, []);
+
   return (
     <AppProvider>
       <Toaster position="top-right" />
