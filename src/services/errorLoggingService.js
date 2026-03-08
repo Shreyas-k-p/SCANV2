@@ -26,7 +26,10 @@ export const logError = async (errorType, errorMessage, stackTrace = null) => {
         );
     } catch (err) {
         // Fail silently - don't break app if logging fails
-        console.error('Error logging failed:', err);
+        // If collection doesn't exist (404), stop logging to console to avoid spam
+        if (err.code !== 404) {
+            console.error('Error logging failed:', err);
+        }
     }
 };
 

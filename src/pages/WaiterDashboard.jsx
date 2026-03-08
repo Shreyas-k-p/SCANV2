@@ -8,7 +8,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import BillPrint from '../components/BillPrint';
 
 export default function WaiterDashboard() {
-    const { tables, orders, updateOrderStatus, updateTableStatus, clearTableCall, t, user, deleteOrder } = useApp();
+    const { tables, orders, updateOrderStatus, updateTableStatus, clearTableCall, t, user, deleteOrder, fetchData } = useApp();
     const readyOrdersCount = orders.filter(o => o.status === 'ready').length;
     const prevReadyCountRef = useRef(0);
 
@@ -90,6 +90,9 @@ export default function WaiterDashboard() {
                 total: totalAmount
             });
 
+            // Refresh UI
+            fetchData();
+
             // Automatically open print modal
             setSelectedTable(table);
             setShowBillPrint(true);
@@ -111,6 +114,8 @@ export default function WaiterDashboard() {
             const tableOrders = getTableOrders(selectedTable.tableNo);
             for (const order of tableOrders) {
                 await updateOrderStatus(order.id, 'completed');
+                // Small delay to prevent rate limiting
+                await new Promise(r => setTimeout(r, 200));
             }
             // Clear the table - Set to 'available'
             await updateTableStatus(selectedTable.docId, 'available');
@@ -119,6 +124,9 @@ export default function WaiterDashboard() {
                 type: "THANK_YOU",
                 table_id: String(selectedTable.tableNo)
             });
+
+            // Force clear/resync after mass updates
+            fetchData();
 
             setShowBillPrint(false);
             setSelectedTable(null);
@@ -131,9 +139,15 @@ export default function WaiterDashboard() {
             // Delete all orders for this table
             for (const order of tableOrders) {
                 await deleteOrder(order.id);
+                // Small delay to prevent rate limiting
+                await new Promise(r => setTimeout(r, 200));
             }
             // Reset table to active
             await updateTableStatus(selectedTable.docId, 'available');
+
+            // Force clear/resync after mass updates
+            fetchData();
+
             setShowBillPrint(false);
             setSelectedTable(null);
         }

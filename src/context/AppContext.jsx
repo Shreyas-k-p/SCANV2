@@ -157,24 +157,33 @@ export function AppProvider({ children }) {
       fetchData();
     });
 
-    // MQTT subscription for the Waiter Call system
+    // MQTT subscription for the sync system
     const mqttUnsub = onMQTTMessage(async (topic, msg) => {
-      if (msg.type === "CALL_WAITER" || msg.type === "waiter_call") {
-        console.log("🛎️ Waiter call via MQTT:", msg.table);
-        const rawTableNo = msg.table ? String(msg.table).replace('T', '').padStart(2, '0') : null;
-        const altTableNo = msg.table ? String(msg.table).replace('T', '') : null;
+      // Logic: If any MQTT event happens (Order, Status, Call), force a database re-sync
+      // This is a robust fallback for Appwrite Realtime delays.
+      const syncEvents = ["ORDER_PLACED", "ORDER_STATUS", "CALL_WAITER", "waiter_call", "PAYMENT_REQUEST", "THANK_YOU"];
 
-        const allTables = await getTablesFromDB();
-        const table = allTables.find(t =>
-          String(t.tableNumber) === String(msg.table) ||
-          String(t.tableNumber) === rawTableNo ||
-          String(t.tableNumber) === altTableNo
-        );
+      if (syncEvents.includes(msg.type)) {
+        console.log(`📡 MQTT Sync Signal [${msg.type}] → Re-fetching DB...`);
 
-        if (table) {
-          await updateTableInDB(table.$id, { isCalling: true });
-          fetchData();
+        if (msg.type === "CALL_WAITER" || msg.type === "waiter_call") {
+          const rawTableNo = msg.table ? String(msg.table).replace('T', '').padStart(2, '0') : null;
+          const altTableNo = msg.table ? String(msg.table).replace('T', '') : null;
+
+          const allTables = await getTablesFromDB();
+          const table = allTables.find(t =>
+            String(t.tableNumber) === String(msg.table) ||
+            String(t.tableNumber) === rawTableNo ||
+            String(t.tableNumber) === altTableNo
+          );
+
+          if (table) {
+            await updateTableInDB(table.$id, { isCalling: true });
+          }
         }
+
+        // Force Global Data Refresh
+        fetchData();
       }
     });
 
@@ -235,15 +244,35 @@ export function AppProvider({ children }) {
         status: status
       });
     }
+
+    // Proactive refresh to handle cases where realtime might be slow/broken
+    setTimeout(() => fetchData(), 500);
+
     return res;
   };
   const deleteOrder = async (id) => await deleteOrderFromDB(id);
   const clearAllOrders = async () => await clearAllOrdersInDB();
 
-  const addTable = async (tableNo) => await addTableToDB(tableNo);
-  const removeTable = async (docId) => await removeTableFromDB(docId);
-  const updateTableStatus = async (docId, status) => await updateTableInDB(docId, { status });
-  const clearTableCall = async (docId) => await updateTableInDB(docId, { isCalling: false });
+  const addTable = async (tableNo) => {
+    const res = await addTableToDB(tableNo);
+    fetchData();
+    return res;
+  };
+  const removeTable = async (docId) => {
+    const res = await removeTableFromDB(docId);
+    fetchData();
+    return res;
+  };
+  const updateTableStatus = async (docId, status) => {
+    const res = await updateTableInDB(docId, { status });
+    fetchData();
+    return res;
+  };
+  const clearTableCall = async (docId) => {
+    const res = await updateTableInDB(docId, { isCalling: false });
+    fetchData();
+    return res;
+  };
 
   // Staff Management
   const addWaiter = async (name, photoFile, mobile, email) => {
@@ -286,7 +315,8 @@ export function AppProvider({ children }) {
       announcements, addAnnouncement, deleteAnnouncement,
       feedbacks, addFeedback,
       language, setLanguage, t, translations,
-      theme, toggleTheme
+      theme, toggleTheme,
+      fetchData
     }}>
       {children}
     </AppContext.Provider>

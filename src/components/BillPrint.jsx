@@ -1,6 +1,8 @@
 import React from 'react';
+import { useApp } from '../context/AppContext';
 
 const BillPrint = ({ table, orders, onClose, onConfirmClear, onDelete }) => {
+    const { user } = useApp();
     const calculateTotal = () => {
         return orders.reduce((total, order) => {
             return total + (order.totalAmount || 0);
@@ -407,26 +409,28 @@ const BillPrint = ({ table, orders, onClose, onConfirmClear, onDelete }) => {
                     gap: '1rem',
                     justifyContent: 'space-between'
                 }}>
-                    <button
-                        onClick={() => {
-                            if (window.confirm("WARNING: This will PERMANENTLY delete the order record from the database. It will disappear for everyone. Are you sure?")) {
-                                onDelete();
-                            }
-                        }}
-                        style={{
-                            flex: 1,
-                            padding: '1rem',
-                            background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontSize: '1rem',
-                            fontWeight: '700',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        🗑️ Clear Record
-                    </button>
+                    {user?.role === 'MANAGER' && (
+                        <button
+                            onClick={() => {
+                                if (window.confirm("WARNING: This will PERMANENTLY delete the order record from the database. It will disappear for everyone. Are you sure?")) {
+                                    onDelete();
+                                }
+                            }}
+                            style={{
+                                flex: 1,
+                                padding: '1rem',
+                                background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '1rem',
+                                fontWeight: '700',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🗑️ Clear Record
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         style={{
