@@ -15,7 +15,7 @@ const MQTT_PUBLISHER_URL = `${SUPABASE_URL}/functions/v1/mqtt-publisher`;
 export function connectMQTT() {
     if (client) return client;
 
-    const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || "wss://broker.hivemq.com:8884/mqtt";
+    const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || "wss://y12dbb61.ala.asia-southeast1.emqxsl.com:8084/mqtt";
     const username = import.meta.env.VITE_MQTT_USERNAME || "table_T01";
     const password = import.meta.env.VITE_MQTT_PASSWORD || "scan4serve";
 
