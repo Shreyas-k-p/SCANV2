@@ -1,14 +1,14 @@
-import { databases, APPWRITE_CONFIG, Query } from "../lib/appwrite";
+import { supabase } from '../lib/supabase';
 
 export const testConnection = async () => {
     try {
-        const res = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [Query.limit(1)]
-        );
-        console.log("✅ Appwrite connection verified:", res.total);
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true });
+        
+        if (error) throw error;
+        console.log("✅ Supabase connection verified, profiles count:", count);
     } catch (error) {
-        console.error("❌ Appwrite connection failed:", error.message);
+        console.error("❌ Supabase connection failed:", error.message);
     }
 };

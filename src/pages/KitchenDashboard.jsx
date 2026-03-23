@@ -21,45 +21,34 @@ export default function KitchenDashboard() {
 
         // Trigger notification if count increased (new order arrived)
         if (count > prevOrdersCountRef.current && count > 0) {
-            // Play notification sound
+            // Play "pep pep" notification sound
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const playPep = (time) => {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, time); // A5 note
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
+                    gain.gain.linearRampToValueAtTime(0, time + 0.15);
+                    osc.start(time);
+                    osc.stop(time + 0.2);
+                };
 
-                // Create urgent notification sound (higher pitch, faster)
-                const oscillator1 = audioContext.createOscillator();
-                const oscillator2 = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator1.connect(gainNode);
-                oscillator2.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                // Urgent alarm sound (higher frequencies)
-                oscillator1.frequency.value = 800; // High pitch
-                oscillator2.frequency.value = 1000; // Even higher
-                oscillator1.type = 'square'; // Sharp sound
-                oscillator2.type = 'square';
-
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-                oscillator1.start(audioContext.currentTime);
-                oscillator2.start(audioContext.currentTime);
-                oscillator1.stop(audioContext.currentTime + 0.5);
-                oscillator2.stop(audioContext.currentTime + 0.5);
-
-
+                // Pep Pep!
+                playPep(audioContext.currentTime);
+                playPep(audioContext.currentTime + 0.25);
             } catch (error) {
                 console.error("Error playing notification sound:", error);
             }
 
             // Vibrate if supported
             if ('vibrate' in navigator) {
-                // Urgent vibration pattern: long-short-long
-                navigator.vibrate([400, 100, 400, 100, 400]);
+                navigator.vibrate([200, 100, 200]);
             }
-
-
         }
 
         prevOrdersCountRef.current = count;
@@ -290,13 +279,13 @@ export default function KitchenDashboard() {
                                             className="btn-mark-ready"
                                             style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', width: '100%' }}
                                             onClick={async () => {
-                                                await updateOrderStatus(order.id, 'preparing');
-                                                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
-                                                    type: "ORDER_COOKING",
-                                                    table_id: String(order.tableNo),
-                                                    order_id: order.id
-                                                });
-                                            }}
+                                                    await updateOrderStatus(order.id, 'preparing');
+                                                 publishMQTT(`restaurant/${order.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
+                                                     type: "ORDER_COOKING",
+                                                     table_id: String(order.tableNo),
+                                                     order_id: order.id
+                                                 });
+                                             }}
                                         >
                                             👨‍🍳 Start Cooking
                                         </button>
@@ -304,13 +293,13 @@ export default function KitchenDashboard() {
                                         <button
                                             className="btn-mark-ready"
                                             onClick={async () => {
-                                                await updateOrderStatus(order.id, 'ready');
-                                                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
-                                                    type: "ORDER_READY",
-                                                    table_id: String(order.tableNo),
-                                                    order_id: order.id
-                                                });
-                                            }}
+                                                    await updateOrderStatus(order.id, 'ready');
+                                                 publishMQTT(`restaurant/${order.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
+                                                     type: "ORDER_READY",
+                                                     table_id: String(order.tableNo),
+                                                     order_id: order.id
+                                                 });
+                                             }}
                                         >
                                             ✨ {t('markReady')}
                                         </button>

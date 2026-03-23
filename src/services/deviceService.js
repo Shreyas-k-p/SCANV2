@@ -1,62 +1,74 @@
-import { databases, APPWRITE_CONFIG, ID, Query } from "../lib/appwrite";
+import { supabase } from '../lib/supabase';
 
-const db = APPWRITE_CONFIG.DATABASE_ID;
-const collection = APPWRITE_CONFIG.COLLECTIONS.DEVICES;
-
-export const fetchDeviceStatus = async () => {
+export const fetchDeviceStatus = async (restaurantId) => {
     try {
-        const response = await databases.listDocuments(
-            db,
-            collection,
-            [Query.limit(100)]
-        );
-
-        return response.documents.map(d => ({
-            id: d.$id,
-            device_id: d.deviceId,
-            table_id: d.tableNumber,
-            status: d.status,
-            last_seen: d.lastPing,
-            battery: d.battery || 100
-        }));
+        let query = supabase.from('device_status').select('*');
+        // if (restaurantId) {
+        //     query = query.eq('restaurant_id', restaurantId);
+        // }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
     } catch (error) {
-        console.error("Error fetching device status:", error);
+        console.error('Error fetching device status from Supabase:', error);
         return [];
     }
 };
 
-export const pairDeviceWithTable = async (deviceId, tableNumber) => {
+export const updateDeviceStatus = async (deviceId, status) => {
     try {
-        // Check if device already exists
-        const existing = await databases.listDocuments(
-            db,
-            collection,
-            [Query.equal('deviceId', deviceId), Query.limit(1)]
-        );
+        const { data, error } = await supabase
+            .from('device_status')
+            .update({ status, last_active: new Date().toISOString() })
+            .eq('id', deviceId)
+            .select()
+            .single();
 
-        const payload = {
-            tableNumber: String(tableNumber),
-            status: 'online',
-            lastPing: new Date().toISOString()
-        };
-
-        if (existing.documents.length > 0) {
-            return await databases.updateDocument(
-                db,
-                collection,
-                existing.documents[0].$id,
-                payload
-            );
-        } else {
-            return await databases.createDocument(
-                db,
-                collection,
-                ID.unique(),
-                { ...payload, deviceId, battery: 100 }
-            );
-        }
+        if (error) throw error;
+        return data;
     } catch (error) {
-        console.error("Error pairing device:", error);
+        console.error('Error updating device status in Supabase:', error);
         throw error;
     }
 };
+
+export const pairDeviceWithTable = async (deviceId, tableNumber, restaurantId) => {
+    try {
+        // Use the pair-device edge function
+        const response = await fetch('https://ohkrzxcmueodijbhxxgx.supabase.co/functions/v1/pair-device', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabase.supabaseKey}`
+            },
+            body: JSON.stringify({ deviceId, tableNumber, restaurantId })
+        });
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`Edge function failed: ${errBody}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.warn('Edge function pair-device failed, falling back to direct DB insert:', error);
+        
+        // Fallback to direct DB insert
+        const { data, error: dbError } = await supabase
+            .from('device_status')
+            .upsert({ 
+                id: deviceId, 
+                table_number: tableNumber, 
+                // restaurant_id: restaurantId,
+                status: 'online',
+                last_active: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (dbError) throw dbError;
+        return data;
+    }
+};
+

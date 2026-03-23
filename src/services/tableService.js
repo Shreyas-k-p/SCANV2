@@ -1,59 +1,67 @@
-import { databases, APPWRITE_CONFIG, ID, Query } from "../lib/appwrite";
+import { supabase } from '../lib/supabase';
 
-const db = APPWRITE_CONFIG.DATABASE_ID;
-const collection = APPWRITE_CONFIG.COLLECTIONS.TABLES;
-
-export const getTablesFromDB = async () => {
+export const getTablesFromDB = async (restaurantId) => {
   try {
-    const response = await databases.listDocuments(db, collection);
-    return response.documents;
+    let query = supabase.from('tables').select('*');
+    // if (restaurantId) {
+    //   query = query.eq('restaurant_id', restaurantId);
+    // }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   } catch (error) {
-    console.error("Error fetching tables:", error);
+    console.error("Error fetching tables from Supabase:", error);
     return [];
   }
 };
 
-export const addTableToDB = async (tableNumber) => {
+export const addTableToDB = async (tableNumber, restaurantId) => {
   try {
-    const response = await databases.createDocument(
-      db,
-      collection,
-      ID.unique(),
-      {
-        tableNumber: Number(tableNumber),
-        status: "available",
-        isCalling: false,
-        createdAt: new Date().toISOString()
-      }
-    );
-    return response;
+    const { data, error } = await supabase
+      .from('tables')
+      .insert([{ 
+        table_number: tableNumber, 
+        // restaurant_id: restaurantId 
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error("Error adding table:", error);
+    console.error("Error adding table in Supabase:", error);
     throw error;
   }
 };
 
 export const updateTableInDB = async (docId, updatedData) => {
   try {
-    const response = await databases.updateDocument(
-      db,
-      collection,
-      docId,
-      updatedData
-    );
-    return response;
+    const { data, error } = await supabase
+      .from('tables')
+      .update(updatedData)
+      .eq('id', docId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error("Error updating table:", error);
+    console.error("Error updating table in Supabase:", error);
     throw error;
   }
 };
 
 export const removeTableFromDB = async (docId) => {
   try {
-    await databases.deleteDocument(db, collection, docId);
+    const { error } = await supabase
+      .from('tables')
+      .delete()
+      .eq('id', docId);
+
+    if (error) throw error;
     return true;
   } catch (error) {
-    console.error("Error removing table:", error);
+    console.error("Error removing table from Supabase:", error);
     throw error;
   }
 };

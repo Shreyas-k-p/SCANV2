@@ -1,25 +1,28 @@
-import { client, APPWRITE_CONFIG, safeSubscribe } from "../lib/appwrite";
-
-const db = APPWRITE_CONFIG.DATABASE_ID;
-const collection = APPWRITE_CONFIG.COLLECTIONS.ORDERS;
+import { supabase } from '../lib/supabase';
 
 export const subscribeOrders = (callback) => {
-    // Only subscribe if db and collection IDs exist
-    if (!db || !collection) {
-        console.warn("Realtime: Missing Database or Collection ID for orders subscription.");
-        return () => { };
-    }
+    console.log(`🔌 Supabase Realtime: Subscribing to all orders`);
 
-    const channel = `databases.${db}.collections.${collection}.documents`;
+    const channel = supabase
+        .channel('orders-all-realtime')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'orders',
+            },
+            (payload) => {
+                console.log(`📡 Realtime Event: ${payload.eventType}`, payload.new || payload.old);
+                // Adapt payload to match what the callback expects
+                // Appwrite payload was response.payload
+                callback({ payload: payload.new || payload.old, events: [`databases.*.collections.*.documents.*.${payload.eventType.toLowerCase()}`] });
+            }
+        )
+        .subscribe();
 
-    console.log(`🔌 Realtime: Subscribing to ${channel}`);
-
-    const unsubscribe = safeSubscribe(channel, (response) => {
-        // Filter events: create, update, delete
-        const eventType = response.events[0]; // e.g., databases.*.collections.*.documents.*.create
-        console.log(`📡 Realtime Event: ${eventType}`, response.payload);
-        callback(response);
-    });
-
-    return unsubscribe;
+    return () => {
+        console.log(`🔌 Supabase Realtime: Unsubscribing from all orders`);
+        supabase.removeChannel(channel);
+    };
 };

@@ -17,26 +17,37 @@ export default function WaiterDashboard() {
         const readyCount = orders.filter(o => o.status === 'ready').length;
         const callingCount = tables.filter(t => t.isCalling).length;
 
+        const playPepPep = () => {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const playBeep = (time) => {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, time);
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
+                    gain.gain.linearRampToValueAtTime(0, time + 0.15);
+                    osc.start(time);
+                    osc.stop(time + 0.2);
+                };
+                playBeep(audioContext.currentTime);
+                playBeep(audioContext.currentTime + 0.25);
+            } catch (e) { console.error(e); }
+        };
+
         // Trigger notification if ready orders increased
         if (readyCount > prevReadyCountRef.current && readyCount > 0) {
+            playPepPep();
             if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         }
 
         // Trigger notification for Table Calls
         if (callingCount > 0) {
-            // Play notification sound
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.value = 440;
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
-                osc.start();
-                osc.stop(ctx.currentTime + 1);
-            } catch (e) { }
+            playPepPep();
+            if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
         }
 
         prevReadyCountRef.current = readyCount;
@@ -64,7 +75,7 @@ export default function WaiterDashboard() {
 
             const order = orders.find(o => o.id === orderId);
             if (order) {
-                publishMQTT(`restaurant/snmimt/table/${order.tableNo}`, {
+                publishMQTT(`restaurant/${order.restaurantId || user?.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
                     type: "ORDER_SERVED",
                     table_id: String(order.tableNo),
                     order_id: order.id
@@ -84,7 +95,7 @@ export default function WaiterDashboard() {
             // Mark orders as completed so they disappear from the active view
             await Promise.all(tableOrders.map(o => updateOrderStatus(o.id, 'completed')));
 
-            publishMQTT(`restaurant/snmimt/table/${table.tableNo}`, {
+            publishMQTT(`restaurant/${user?.restaurantId || 'snmimt'}/table/${table.tableNo}`, {
                 type: "PAYMENT_REQUEST",
                 table_id: String(table.tableNo),
                 total: totalAmount
@@ -120,7 +131,7 @@ export default function WaiterDashboard() {
             // Clear the table - Set to 'available'
             await updateTableStatus(selectedTable.docId, 'available');
 
-            publishMQTT(`restaurant/snmimt/table/${selectedTable.tableNo}`, {
+            publishMQTT(`restaurant/${user?.restaurantId || 'snmimt'}/table/${selectedTable.tableNo}`, {
                 type: "THANK_YOU",
                 table_id: String(selectedTable.tableNo)
             });

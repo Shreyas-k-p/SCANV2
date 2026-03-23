@@ -100,7 +100,17 @@ export default function Menu() {
         }
 
         try {
-            const newOrder = await placeOrder(trimmedTableNumber, cart);
+            const firstItem = menuItems[0];
+            if (!firstItem) throw new Error("No menu items found");
+
+            const newOrder = await placeOrder({
+                restaurantId: firstItem.restaurantId,
+                tableId: trimmedTableNumber,
+                items: cart,
+                totalAmount: cart.reduce((a, b) => a + (b.price * b.quantity), 0),
+                customerId: 'Session-' + Math.random().toString(36).substr(2, 5).toUpperCase()
+            });
+
             setCart([]);
             setShowCart(false);
             setInstructions('');
@@ -337,12 +347,12 @@ export default function Menu() {
                     </div>
                     <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
                         {(() => {
-                            const myOrders = orders.filter(o => myOrderIds.includes(o.$id || o.id) || String(o.tableNumber || o.tableNo) === String(tableNumber));
+                            const myOrders = orders.filter(o => myOrderIds.includes(o.id) || String(o.tableNo) === String(tableNumber));
                             if (myOrders.length === 0) return <p style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '2rem' }}>{t('noOrders')}</p>;
                             return myOrders.map(order => (
-                                <div key={order.$id || order.id} style={{ padding: '1rem', marginBottom: '10px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: `5px solid ${order.status === 'ready' ? '#fbbf24' : order.status === 'completed' ? '#10b981' : '#3b82f6'}` }}>
+                                <div key={order.id} style={{ padding: '1rem', marginBottom: '10px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: `5px solid ${order.status === 'ready' ? '#fbbf24' : order.status === 'completed' ? '#10b981' : '#3b82f6'}` }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontWeight: '700', color: 'var(--text-light)' }}>#{String(order.$id || order.id).slice(-4)}</span>
+                                        <span style={{ fontWeight: '700', color: 'var(--text-light)' }}>#{String(order.id).slice(-4)}</span>
                                         <span className={`badge badge-${order.status === 'ready' ? 'warning' : order.status === 'completed' ? 'success' : 'primary'}`}>{order.status.toUpperCase()}</span>
                                     </div>
                                     {(order.items || []).map((it, i) => (

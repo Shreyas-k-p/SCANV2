@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { databases, APPWRITE_CONFIG, Query, client, safeSubscribe } from "../lib/appwrite";
+import { supabase } from "../lib/supabase";
 import "./CustomerScreen.css";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -119,49 +119,17 @@ export default function CustomerScreen() {
         setTimeout(() => setFlash(false), 1000);
     }, []);
 
-    // ─── Appwrite Realtime Logic ──────────────────────────────────────────────
+    // ─── Supabase Realtime Logic ──────────────────────────────────────────────
     useEffect(() => {
-        const dbId = APPWRITE_CONFIG.DATABASE_ID;
-        const collectionId = APPWRITE_CONFIG.COLLECTIONS.ORDERS;
-
-        const findActiveOrder = async () => {
-            try {
-                const response = await databases.listDocuments(
-                    dbId,
-                    collectionId,
-                    [
-                        Query.equal("tableNumber", String(tableId)),
-                        Query.orderDesc("$createdAt"),
-                        Query.limit(1)
-                    ]
-                );
-
-                if (response.documents.length > 0) {
-                    const order = response.documents[0];
-                    // If order is old (e.g. completed more than 1 hour ago), ignore it
-                    const orderDate = new Date(order.createdAt);
-                    if (order.status === 'completed' && (new Date() - orderDate > 3600000)) {
-                        setStatusKey("WELCOME");
-                        setOrderData(null);
-                    } else {
-                        processOrderUpdate(order);
-                    }
-                }
-                setConnected(true);
-            } catch (err) {
-                console.error("❌ Error fetching order:", err);
-            }
-        };
-
-        const processOrderUpdate = (order) => {
-            const status = order.status.toUpperCase();
+        const fetchAndProcessOrder = async (order) => {
+            const status = (order.status || 'pending').toUpperCase();
 
             // Only trigger notifications if status actually changed
             if (status !== prevStatusRef.current) {
                 setStatusKey(status);
                 setOrderData({
-                    order_id: order.$id,
-                    total: order.total_amount || 0,
+                    id: order.id,
+                    total: order.totalAmount || order.total_amount || 0,
                     items: typeof order.items === 'string' ? JSON.parse(order.items || "[]") : (order.items || []),
                     status: order.status
                 });
@@ -175,20 +143,58 @@ export default function CustomerScreen() {
             }
         };
 
+        const findActiveOrder = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('table_number', String(tableId))
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const order = data[0];
+                    const orderDate = new Date(order.created_at || order.createdAt);
+                    if (order.status === 'completed' && (new Date() - orderDate > 3600000)) {
+                        setStatusKey("WELCOME");
+                        setOrderData(null);
+                    } else {
+                        fetchAndProcessOrder(order);
+                    }
+                } else {
+                    setStatusKey("WELCOME");
+                    setOrderData(null);
+                }
+                setConnected(true);
+            } catch (err) {
+                console.error("❌ Error fetching order from Supabase:", err);
+            }
+        };
+
         findActiveOrder();
 
-        // Subscribe to changes in the orders collection
-        const channel = `databases.${dbId}.collections.${collectionId}.documents`;
-        const unsubscribe = safeSubscribe(channel, (response) => {
-            const order = response.payload;
-            if (String(order.tableNumber) === String(tableId)) {
-                console.log("🔥 Order Updated via Realtime:", order.status);
-                processOrderUpdate(order);
-            }
-        });
+        const channelName = `order-updates-${tableId}`;
+        const channel = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'orders',
+                    filter: `table_number=eq.${tableId}`
+                },
+                (payload) => {
+                    console.log("🔥 Order Updated via Supabase Realtime:", payload.new.status);
+                    fetchAndProcessOrder(payload.new);
+                }
+            )
+            .subscribe();
 
         return () => {
-            unsubscribe();
+            supabase.removeChannel(channel);
         };
     }, [tableId, triggerFlash]);
 
@@ -245,12 +251,12 @@ export default function CustomerScreen() {
                 <p className="cs-message">{config.message}</p>
 
                 {/* Order details */}
-                {orderData && orderData.order_id && (
+                {orderData && orderData.id && (
                     <div className="cs-details">
-                        {orderData.order_id && (
+                        {orderData.id && (
                             <div className="cs-detail-row">
                                 <span className="cs-detail-key">Order ID</span>
-                                <span className="cs-detail-val">#{orderData.order_id.slice(-6).toUpperCase()}</span>
+                                <span className="cs-detail-val">#{String(orderData.id).slice(-6).toUpperCase()}</span>
                             </div>
                         )}
                         {orderData.total > 0 && (

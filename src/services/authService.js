@@ -1,59 +1,52 @@
-import { databases, account, APPWRITE_CONFIG, ID, Query, client } from "../lib/appwrite";
+import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-
-const db = APPWRITE_CONFIG.DATABASE_ID;
-const collection = APPWRITE_CONFIG.COLLECTIONS.STAFF;
 
 export const loginStaff = async (role, staffId, secretId) => {
     try {
-        console.log(`[AUTH] Attempting login: Role=${role}, StaffId=${staffId}`);
+        console.log(`[AUTH] Supabase: Attempting login: Role=${role}, StaffId=${staffId}`);
 
-        const response = await databases.listDocuments(
-            db,
-            collection,
-            [
-                Query.equal('staffid', staffId),
-                Query.equal('role', role.toUpperCase()),
-                Query.limit(1)
-            ]
-        );
+        // Mapping staffId to mock email: {staffId}@scan4serve.com
+        const email = staffId.includes('@') ? staffId.toLowerCase() : `${staffId.toLowerCase()}@scan4serve.com`;
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password: secretId,
+        });
 
-        if (response.documents.length === 0) {
-            toast.error("Invalid credentials (staff not found)");
-            return { success: false, message: "Invalid credentials" };
+        if (error) throw error;
+
+        const { user, session } = data;
+
+        // Fetch additional user profile data from 'profiles' table
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError) {
+            console.warn("Profile fetch error, using default user data:", profileError);
         }
 
-        const staffData = response.documents[0];
-        // Handle potential typo in schema ('secertKey' vs 'secretKey')
-        const storedSecret = staffData.secertKey || staffData.secretKey;
-
-        if (String(storedSecret).toUpperCase() !== String(secretId).toUpperCase()) {
-            toast.error("Invalid secret code");
-            return { success: false, message: "Invalid secret code" };
-        }
-
-        const user = {
-            id: staffData.staffid,
-            name: staffData.name || "Staff Member",
-            role: staffData.role,
-            docId: staffData.$id,
-            profilePhoto: staffData.photo ?
-                `https://fra.cloud.appwrite.io/v1/storage/buckets/${APPWRITE_CONFIG.BUCKETS.STAFF_PHOTOS}/files/${staffData.photo}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}` :
-                null
+        const userData = {
+            ...profile,
+            id: user.id,
+            email: user.email,
+            token: session.access_token,
         };
 
-        // Persist session
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 12);
-        const session = { user, expiresAt: expiresAt.toISOString() };
-        localStorage.setItem('staff_session', JSON.stringify(session));
+        // Persist token & session
+        localStorage.setItem('token', session.access_token);
+        localStorage.setItem('staff_session', JSON.stringify({
+            user: userData,
+            expiresAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString()
+        }));
 
         if (role === 'MANAGER') {
             localStorage.setItem('activeManager', staffId.toUpperCase());
         }
 
-        toast.success(`Welcome back, ${user.name}!`);
-        return { success: true, user };
+        toast.success(`Welcome back, ${userData.name || staffId}!`);
+        return { success: true, user: userData };
     } catch (error) {
         console.error("Login failed:", error);
         toast.error(`Login error: ${error.message}`);
@@ -61,54 +54,99 @@ export const loginStaff = async (role, staffId, secretId) => {
     }
 };
 
-export const logoutStaff = () => {
-    localStorage.removeItem('staff_session');
-    localStorage.removeItem('activeManager');
-    toast.success('Logged out successfully');
+export const logoutStaff = async () => {
+    try {
+        await supabase.auth.signOut();
+        localStorage.removeItem('token');
+        localStorage.removeItem('staff_session');
+        localStorage.removeItem('activeManager');
+        toast.success('Logged out successfully');
+    } catch (error) {
+        console.error("Logout failed:", error);
+    }
 };
 
 export const getStaffByRole = async (role) => {
     try {
-        const response = await databases.listDocuments(
-            db,
-            collection,
-            [Query.equal('role', role.toUpperCase())]
-        );
-        return { success: true, data: response.documents };
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', role);
+
+        if (error) throw error;
+        return { success: true, data };
     } catch (error) {
+        console.error("Error getting staff by role:", error);
         return { success: false, error: error.message, data: [] };
     }
 };
 
 export const getAllStaff = async () => {
     try {
-        const response = await databases.listDocuments(
-            db,
-            collection,
-            [Query.limit(100)]
-        );
-        return { success: true, data: response.documents };
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*');
+
+        if (error) throw error;
+        return { success: true, data };
     } catch (error) {
+        console.error("Error getting all staff:", error);
         return { success: false, error: error.message, data: [] };
     }
 };
 
 export const deleteStaffAccount = async (docId) => {
     try {
-        await databases.deleteDocument(db, collection, docId);
+        // Only deletes from 'profiles' table; for Supabase Auth, must use service_role or admin client (which we shouldn't do on frontend)
+        // For now, removing the user profile.
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', docId);
+
+        if (error) throw error;
         return { success: true };
     } catch (error) {
+        console.error("Error deleting staff account:", error);
         return { success: false, error: error.message };
     }
 };
 
 export const createStaffAccount = async (data) => {
-    // Legacy wrapper for staffService.createStaff
-    const { createStaff } = await import("./staffService");
     try {
-        const staff = await createStaff(data);
-        return { success: true, staff };
+        // Supabase Auth signUp. For a multi-tenant or multi-staff system,
+        // typically you use a server function (Edge Function) or allow open signUp if appropriate. 
+        // Here, we'll try standard signUp. Note: user may need to confirm email if configured in Supabase.
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: `${data.staffId.toLowerCase()}@scan4serve.com`,
+            password: data.password || data.secretId,
+            options: {
+                data: {
+                    name: data.name,
+                    role: data.role,
+                    restaurantId: data.restaurantId,
+                }
+            }
+        });
+
+        if (authError) throw authError;
+
+        const { error: dbError } = await supabase
+            .from('profiles')
+            .insert([{
+                id: authData.user.id,
+                name: data.name,
+                role: data.role,
+                // restaurant_id: data.restaurantId,
+                staff_id: data.staffId,
+                secret_id: data.secretId
+            }]);
+
+        if (dbError) throw dbError;
+
+        return { success: true, staff: authData.user };
     } catch (error) {
+        console.error("Error creating staff account:", error);
         return { success: false, error: error.message };
     }
 };

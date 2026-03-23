@@ -1,50 +1,53 @@
-import { databases, APPWRITE_CONFIG, ID, Query } from "../lib/appwrite";
+import { supabase } from '../lib/supabase';
 
-const db = APPWRITE_CONFIG.DATABASE_ID;
-const collection = APPWRITE_CONFIG.COLLECTIONS.ANNOUNCEMENTS;
-
-export const fetchActiveAnnouncements = async () => {
+export const fetchActiveAnnouncements = async (restaurantId) => {
     try {
-        const response = await databases.listDocuments(
-            db,
-            collection,
-            [Query.orderDesc('$createdAt'), Query.limit(5)]
-        );
-        return response.documents;
+        let query = supabase.from('announcements').select('*');
+        if (restaurantId) {
+            query = query.eq('restaurant_id', restaurantId);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
     } catch (error) {
-        console.error("Error fetching announcements:", error);
+        console.error('Error fetching announcements from Supabase:', error);
         return [];
     }
 };
 
-export const addAnnouncement = async (title, content, type = "info") => {
+export const addAnnouncement = async (title, content, type, restaurantId) => {
     try {
-        const payload = {
-            title,
-            content,
-            type,
-            createdAt: new Date().toISOString()
-        };
+        const { data, error } = await supabase
+            .from('announcements')
+            .insert([{ 
+                title, 
+                content, 
+                type, 
+                restaurant_id: restaurantId, 
+                created_at: new Date().toISOString() 
+            }])
+            .select()
+            .single();
 
-        const response = await databases.createDocument(
-            db,
-            collection,
-            ID.unique(),
-            payload
-        );
-        return response;
+        if (error) throw error;
+        return data;
     } catch (error) {
-        console.error("Error adding announcement:", error);
+        console.error('Error adding announcement in Supabase:', error);
         throw error;
     }
 };
 
-export const deleteAnnouncement = async (docId) => {
+export const deleteAnnouncement = async (id) => {
     try {
-        await databases.deleteDocument(db, collection, docId);
+        const { error } = await supabase
+            .from('announcements')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
         return true;
     } catch (error) {
-        console.error("Error deleting announcement:", error);
+        console.error('Error deleting announcement from Supabase:', error);
         throw error;
     }
 };

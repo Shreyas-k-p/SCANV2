@@ -1,192 +1,172 @@
-import { databases, storage, APPWRITE_CONFIG, Query, ID, client, safeSubscribe } from '../lib/appwrite';
+import { supabase } from '../lib/supabase';
 
-/**
- * Upload a staff document to Appwrite Storage
- */
 export const uploadStaffDocument = async (file, staffId) => {
     try {
         if (!file) return null;
+        
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${staffId}_${Date.now()}.${fileExt}`;
+        const filePath = `documents/${fileName}`;
 
-        const fileId = ID.unique();
-        const response = await storage.createFile(
-            'staff-documents', // Bucket ID (ensure this exists in Appwrite)
-            fileId,
-            file
-        );
+        const { error: uploadError } = await supabase.storage
+            .from('staff-documents')
+            .upload(filePath, file);
 
-        // Get public URL
-        const result = storage.getFileView('staff-documents', response.$id);
-        return result.href;
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+            .from('staff-documents')
+            .getPublicUrl(filePath);
+
+        return publicData.publicUrl;
     } catch (err) {
-        console.error('uploadStaffDocument error:', err);
+        console.error('uploadStaffDocument error with Supabase:', err);
         return null;
     }
 };
 
-/**
- * Get user profile by ID
- */
 export const getUserProfile = async (userId) => {
     try {
-        const data = await databases.getDocument(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            userId
-        );
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (error) throw error;
         return { success: true, data };
     } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error("getUserProfile error:", error);
         return { success: false, error: error.message };
     }
 };
 
-/**
- * Get user profile by staff ID
- */
 export const getUserByStaffId = async (staffId) => {
     try {
-        const response = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [Query.equal('staff_id', staffId.toUpperCase()), Query.limit(1)]
-        );
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('staff_id', staffId)
+            .single();
 
-        if (response.documents.length === 0) throw new Error('User not found');
-        return { success: true, data: response.documents[0] };
-    } catch (error) {
-        console.error('Error fetching user by staff ID:', error);
-        return { success: false, error: error.message };
-    }
-};
-
-/**
- * Update user profile
- */
-export const updateUserProfile = async (userId, updates) => {
-    try {
-        // Clean updates
-        const cleanUpdates = { ...updates };
-        delete cleanUpdates.$id;
-        delete cleanUpdates.$createdAt;
-        delete cleanUpdates.$updatedAt;
-        delete cleanUpdates.$permissions;
-        delete cleanUpdates.$databaseId;
-        delete cleanUpdates.$collectionId;
-
-        const data = await databases.updateDocument(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            userId,
-            cleanUpdates
-        );
+        if (error) throw error;
         return { success: true, data };
     } catch (error) {
-        console.error('Error updating user profile:', error);
+        console.error("getUserByStaffId error:", error);
         return { success: false, error: error.message };
     }
 };
 
-/**
- * Get all users by role
- */
+export const updateUserProfile = async (userId, updates) => {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error("updateUserProfile error:", error);
+        return { success: false, error: error.message };
+    }
+};
+
 export const getUsersByRole = async (role) => {
     try {
-        const response = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [
-                Query.equal('role', role.toUpperCase()),
-                Query.orderDesc('$createdAt')
-            ]
-        );
-        return { success: true, data: response.documents };
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', role);
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
     } catch (error) {
-        console.error('Error fetching users by role:', error);
+        console.error("getUsersByRole error:", error);
         return { success: false, error: error.message, data: [] };
     }
 };
 
-/**
- * Get all staff members
- */
 export const getAllStaff = async () => {
     try {
-        const response = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [Query.orderDesc('$createdAt')]
-        );
-        return { success: true, data: response.documents };
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*');
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
     } catch (error) {
-        console.error('Error fetching all staff:', error);
+        console.error("getAllStaff error:", error);
         return { success: false, error: error.message, data: [] };
     }
 };
 
-/**
- * Search staff by name or ID
- */
 export const searchStaff = async (searchTerm) => {
     try {
-        const response = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [
-                Query.or([
-                    Query.search('name', searchTerm),
-                    Query.search('staff_id', searchTerm)
-                ]),
-                Query.orderDesc('$createdAt')
-            ]
-        );
-        return { success: true, data: response.documents };
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .or(`name.ilike.%${searchTerm}%,staff_id.ilike.%${searchTerm}%`);
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
     } catch (error) {
-        console.error('Error searching staff:', error);
+        console.error("searchStaff error:", error);
         return { success: false, error: error.message, data: [] };
     }
 };
 
-/**
- * Subscribe to user profile changes
- */
 export const subscribeToUserChanges = (userId, callback) => {
-    const channel = `databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.${APPWRITE_CONFIG.COLLECTIONS.STAFF}.documents.${userId}`;
-    const unsubscribe = safeSubscribe(channel, (response) => {
-        callback(response);
-    });
-    return { unsubscribe };
+    const channel = supabase
+        .channel(`user-changes-${userId}`)
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+            (payload) => callback(payload.new)
+        )
+        .subscribe();
+
+    return {
+        unsubscribe: () => {
+            supabase.removeChannel(channel);
+        }
+    };
 };
 
-/**
- * Subscribe to all staff changes
- */
 export const subscribeToAllStaffChanges = (callback) => {
-    const channel = `databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.${APPWRITE_CONFIG.COLLECTIONS.STAFF}.documents`;
-    const unsubscribe = safeSubscribe(channel, (response) => {
-        callback(response);
-    });
-    return { unsubscribe };
+    const channel = supabase
+        .channel('all-staff-changes')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'profiles' },
+            (payload) => callback(payload.new || payload.old)
+        )
+        .subscribe();
+
+    return {
+        unsubscribe: () => {
+            supabase.removeChannel(channel);
+        }
+    };
 };
 
-/**
- * Get staff count by role
- */
 export const getStaffCountByRole = async () => {
     try {
-        const response = await databases.listDocuments(
-            APPWRITE_CONFIG.DATABASE_ID,
-            APPWRITE_CONFIG.COLLECTIONS.STAFF,
-            [Query.select(['role'])]
-        );
-
-        const counts = response.documents.reduce((acc, profile) => {
-            acc[profile.role] = (acc[profile.role] || 0) + 1;
+        // Supabase doesn't have a direct "group by count" via simple JS client as easily as SQL
+        // We'll fetch and count or use an RPC if defined. For now, simple fetch.
+        const { data, error } = await supabase.from('profiles').select('role');
+        if (error) throw error;
+        
+        const counts = data.reduce((acc, user) => {
+            acc[user.role] = (acc[user.role] || 0) + 1;
             return acc;
         }, {});
 
         return { success: true, data: counts };
     } catch (error) {
-        console.error('Error getting staff counts:', error);
+        console.error("getStaffCountByRole error:", error);
         return { success: false, error: error.message };
     }
 };

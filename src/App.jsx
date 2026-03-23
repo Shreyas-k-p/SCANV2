@@ -11,6 +11,8 @@ import KitchenDashboard from './pages/KitchenDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import SubManagerDashboard from './pages/SubManagerDashboard';
 import CustomerScreen from './pages/CustomerScreen';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import SubscriptionExpired from './pages/SubscriptionExpired';
 import { useEffect } from 'react';
 import { testConnection } from './services/dbTest';
 
@@ -19,12 +21,14 @@ function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useApp();
   if (!user) return <Navigate to="/" />;
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.map(r => r.toUpperCase()).includes(user.role?.toUpperCase())) {
+    console.warn(`[AUTH] Access denied. User role: ${user.role}, Allowed for: ${allowedRoles.join(',')}`);
     // Redirect based on their actual role to a safe place
-    if (user.role === 'WAITER') return <Navigate to="/waiter" />;
-    if (user.role === 'KITCHEN') return <Navigate to="/kitchen" />;
-    if (user.role === 'SUB_MANAGER') return <Navigate to="/sub-manager" />;
-    if (user.role === 'MANAGER') return <Navigate to="/manager" />;
+    const role = user.role?.toUpperCase();
+    if (role === 'WAITER') return <Navigate to="/waiter" />;
+    if (role === 'KITCHEN') return <Navigate to="/kitchen" />;
+    if (role === 'SUB_MANAGER') return <Navigate to="/sub-manager" />;
+    if (role === 'MANAGER' || role === 'SUPER ADMIN' || role === 'SUPERADMIN') return <Navigate to="/manager" />;
     return <Navigate to="/menu" />;
   }
   return children;
@@ -67,6 +71,14 @@ function App() {
                 <ManagerDashboard />
               </ProtectedRoute>
             } />
+
+            <Route path="/super-admin" element={
+              <ProtectedRoute allowedRoles={['SUPERADMIN', 'MANAGER']}>
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/expired" element={<SubscriptionExpired />} />
 
             {/* /table/:tableNo — customer ordering menu (QR code destination) */}
             <Route path="/table/:tableNo" element={<CustomerMenu />} />

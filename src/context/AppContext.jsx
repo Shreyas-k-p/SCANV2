@@ -1,13 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { onMQTTMessage, publishMQTT, connectMQTT } from "../services/mqttService";
-import { getMenuItemsFromDB, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB } from "../services/menuService";
+// import { onMQTTMessage, publishMQTT, connectMQTT } from "../services/mqttService"; // We'll keep MQTT for IoT but sync most via Socket.io
+import { getMenuItemsFromDB, addMenuItemToDB, updateMenuItemInDB, deleteMenuItemFromDB, getCategoriesFromDB, addCategoryToDB } from "../services/menuService";
 import {
   addTableToDB,
   getTablesFromDB,
   removeTableFromDB,
   updateTableInDB
 } from "../services/tableService";
-import { addOrderToDB, getOrdersFromDB, updateOrderStatus as updateOrderInDB, deleteOrder as deleteOrderFromDB, clearAllOrders as clearAllOrdersInDB } from "../services/orderService";
+import {
+  addOrderToDB,
+  getOrdersFromDB,
+  updateOrderStatus as updateOrderInDB,
+  deleteOrder as deleteOrderFromDB,
+  fetchSessionOrders as fetchOrderSession,
+  cancelOrder as cancelOrderInDB
+} from "../services/orderService";
 import { translations } from '../utils/translations';
 import {
   loginStaff,
@@ -23,7 +30,7 @@ import {
 } from '../services/announcementService';
 import { addFeedbackToDB, getFeedbacksFromDB } from "../services/feedbackService";
 import { fetchDeviceStatus } from "../services/deviceService";
-import { client, APPWRITE_CONFIG, safeSubscribe } from '../lib/appwrite';
+import { supabase } from '../lib/supabase';
 
 const AppContext = createContext();
 
@@ -42,10 +49,7 @@ export function AppProvider({ children }) {
     return null;
   });
 
-  const [menuItems, setMenuItems] = useState(() => {
-    const saved = localStorage.getItem('cachedMenuItems');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [waiters, setWaiters] = useState([]);
@@ -66,192 +70,194 @@ export function AppProvider({ children }) {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // --- DATA FETCHING & REAL-TIME RE-SYNC ---
   const fetchData = useCallback(async () => {
     try {
-      // 1. Menu
-      const menuData = await getMenuItemsFromDB();
+      // 1. Fetch Guest/Public Data (Menu & Categories)
+      // If we're at a table or just viewing menu, we need these even if not logged in.
+      // For now, let's try to get a restaurantId from URL or storage if guest
+      const urlParams = new URLSearchParams(window.location.search);
+      const tableNo = urlParams.get('table');
+      // For demo, we might need a default restaurant ID or it's global
+      const restId = user?.restaurantId || null;
+
+      const [menuData, categoryData] = await Promise.all([
+        getMenuItemsFromDB(restId),
+        getCategoriesFromDB(restId)
+      ]);
+
       if (Array.isArray(menuData)) {
-        const mappedData = menuData.map(m => ({ ...m, id: m.$id || m.id }));
+        const mappedData = menuData.map(m => ({
+          ...m,
+          id: m.id || m._id,
+          restaurantId: m.restaurantId || m.restaurant_id // Support both
+        }));
         setMenuItems(mappedData);
-        localStorage.setItem('cachedMenuItems', JSON.stringify(mappedData));
       }
       setMenuLoading(false);
 
-      // 2. Staff
-      const staffRes = await getAllStaff();
-      if (staffRes.success) {
-        const staffData = staffRes.data;
-        const project = import.meta.env.VITE_APPWRITE_PROJECT_ID;
-        const bucket = APPWRITE_CONFIG.BUCKETS.STAFF_PHOTOS;
+      // 2. Fetch Protected (Staff) Data - ONLY if logged in
+      if (user) {
+        const [
+          staffRes,
+          tableData,
+          orderData,
+          deviceData,
+          feedbackData
+        ] = await Promise.all([
+          getAllStaff(),
+          getTablesFromDB(restId),
+          getOrdersFromDB(restId),
+          fetchDeviceStatus(restId),
+          getFeedbacksFromDB(restId)
+        ]);
 
-        const mapStaff = (s) => ({
-          docId: s.$id,
-          id: s.staffid,
-          name: s.name,
-          mobile: s.mobile,
-          role: s.role,
-          secretID: s.secertKey || s.secretKey,
-          profilePhoto: s.photo ? `https://fra.cloud.appwrite.io/v1/storage/buckets/${bucket}/files/${s.photo}/view?project=${project}` : null
-        });
+        // Staff
+        if (staffRes.success) {
+          const staffData = staffRes.data;
+          const mapStaff = (s) => ({
+            docId: s.id || s._id,
+            id: s.id || s._id,
+            name: s.name,
+            email: s.email,
+            role: s.role,
+            isActive: s.isActive,
+            profilePhoto: s.profile_photo || s.profilePhoto || null,
+            staffId: s.staff_id,
+            secretID: s.secret_id
+          });
 
-        setWaiters(staffData.filter(s => s.role === 'WAITER').map(mapStaff));
-        setKitchenStaff(staffData.filter(s => s.role === 'KITCHEN').map(mapStaff));
-        setSubManagers(staffData.filter(s => s.role === 'SUB_MANAGER').map(mapStaff));
-        setManagers(staffData.filter(s => s.role === 'MANAGER').map(mapStaff));
-      }
+          setWaiters(staffData.filter(s => s.role === 'WAITER' || s.role === 'Waiter').map(mapStaff));
+          setKitchenStaff(staffData.filter(s => s.role === 'KITCHEN' || s.role === 'Kitchen').map(mapStaff));
+          setSubManagers(staffData.filter(s => s.role === 'SUB_MANAGER' || s.role === 'Sub-Manager').map(mapStaff));
+          setManagers(staffData.filter(s => s.role === 'MANAGER' || s.role === 'Manager' || s.role === 'SUPERADMIN' || s.role === 'SUPER ADMIN').map(mapStaff));
+        }
 
-      // 3. Tables
-      const tableData = await getTablesFromDB();
-      if (Array.isArray(tableData)) {
-        setTables(tableData.map(t => ({ docId: t.$id, id: t.$id, tableNo: t.tableNumber, status: t.status, isCalling: t.isCalling })));
-      }
+        // Tables
+        if (Array.isArray(tableData)) {
+          setTables(tableData.map(t => ({
+            docId: t.id || t._id,
+            id: t.id || t._id,
+            tableNo: t.table_number || t.tableNumber || '?',
+            status: (t.active ?? true) ? 'available' : 'disabled',
+            isCalling: t.isCalling || t.is_calling || false
+          })));
+        }
 
-      // 4. Orders
-      const orderData = await getOrdersFromDB();
-      if (Array.isArray(orderData)) {
-        setOrders(orderData.map(o => ({
-          docId: o.$id,
-          id: o.order_id || o.$id,
-          tableNo: o.tableNumber,
-          items: typeof o.items === 'string' ? JSON.parse(o.items || "[]") : (o.items || []),
-          status: o.status,
-          timestamp: o.createdAt || o.$createdAt,
-          totalAmount: o.total || o.total_amount || 0
-        })));
-      }
+        // Orders
+        if (Array.isArray(orderData)) {
+          setOrders(orderData.map(o => ({
+            docId: o.id || o._id,
+            id: o.id || o._id,
+            tableNo: o.table_number || o.tableNumber || 'Unknown',
+            items: typeof o.items === 'string' ? JSON.parse(o.items || "[]") : (o.items || []),
+            status: o.status,
+            timestamp: o.createdAt || o.created_at,
+            totalAmount: o.totalAmount || o.total_amount,
+            restaurantId: o.restaurant_id || o.restaurantId
+          })));
+        }
 
-      // 5. Devices
-      const deviceData = await fetchDeviceStatus();
-      if (Array.isArray(deviceData)) {
-        setDevices(deviceData.map(d => ({ ...d, id: d.$id || d.device_id })));
-      }
-
-      // 6. Announcements
-      const announceData = await fetchActiveAnnouncements();
-      if (Array.isArray(announceData)) {
-        setAnnouncements(announceData.map(a => ({ ...a, id: a.$id || a.id })));
-      }
-
-      // 7. Feedbacks
-      const feedbackData = await getFeedbacksFromDB();
-      if (Array.isArray(feedbackData)) {
-        setFeedbacks(feedbackData.map(f => ({ ...f, id: f.$id || f.id })));
+        // Devices, Feedbacks
+        if (Array.isArray(deviceData)) setDevices(deviceData.map(d => ({ ...d, id: d.id || d._id })));
+        if (Array.isArray(feedbackData)) setFeedbacks(feedbackData.map(f => ({ ...f, id: f.id || f._id })));
       }
 
     } catch (e) {
       console.error("Data fetch error:", e);
     }
+  }, [user]);
+
+  // Initial public data fetch
+  useEffect(() => {
+    if (!user) fetchData();
+  }, [user, fetchData]);
+
+  // Sync session and logic via Supabase Realtime
+  useEffect(() => {
+    if (user) {
+      // Subscribe to relevant changes
+      const channel = supabase
+        .channel(`restaurant-general`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders' /* filter: `restaurant_id=eq.${restId}` */ },
+          (payload) => {
+            console.log("🔔 Real-time: Order Update Received", payload.new.status);
+            fetchData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tables' /* filter: `restaurant_id=eq.${restId}` */ },
+          (payload) => {
+            console.log("🔔 Real-time: Table status updated", payload.new.is_calling);
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      fetchData();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, fetchData]);
+
+  // Auth Expired Listener
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+    };
+    window.addEventListener('auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('auth-expired', handleAuthExpired);
   }, []);
 
-  useEffect(() => {
-    connectMQTT(); // Pre-warm the broker connection explicitly
-    fetchData();
-
-    // -- Appwrite REAL-TIME SUBSCRIPTIONS --
-    const dbId = APPWRITE_CONFIG.DATABASE_ID;
-
-    // Appwrite realtime collection sync
-    const unsubscribe = safeSubscribe(`databases.${APPWRITE_CONFIG.DATABASE_ID}.collections.*.documents`, (response) => {
-      console.log("🔥 Appwrite Real-time Update:", response.events);
-      fetchData();
-    });
-
-    // MQTT subscription for the sync system
-    const mqttUnsub = onMQTTMessage(async (topic, msg) => {
-      // Logic: If any MQTT event happens (Order, Status, Call), force a database re-sync
-      // This is a robust fallback for Appwrite Realtime delays.
-      const syncEvents = ["ORDER_PLACED", "ORDER_STATUS", "CALL_WAITER", "waiter_call", "PAYMENT_REQUEST", "THANK_YOU"];
-
-      if (syncEvents.includes(msg.type)) {
-        console.log(`📡 MQTT Sync Signal [${msg.type}] → Re-fetching DB...`);
-
-        if (msg.type === "CALL_WAITER" || msg.type === "waiter_call") {
-          const rawTableNo = msg.table ? String(msg.table).replace('T', '').padStart(2, '0') : null;
-          const altTableNo = msg.table ? String(msg.table).replace('T', '') : null;
-
-          const allTables = await getTablesFromDB();
-          const table = allTables.find(t =>
-            String(t.tableNumber) === String(msg.table) ||
-            String(t.tableNumber) === rawTableNo ||
-            String(t.tableNumber) === altTableNo
-          );
-
-          if (table) {
-            await updateTableInDB(table.$id, { isCalling: true });
-          }
-        }
-
-        // Force Global Data Refresh
-        fetchData();
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      mqttUnsub();
-    };
-  }, [fetchData]);
-
-  // --- ACTIONS ---
-  const login = async (role, staffId, secretId, name) => {
-    const result = await loginStaff(role, staffId, secretId, name);
+  const login = async (role, staffId, secretId) => {
+    const result = await loginStaff(role, staffId, secretId);
     if (result.success) setUser(result.user);
     return result;
   };
   const logout = () => { logoutStaff(); setUser(null); };
 
-  const addMenuItem = async (item) => await addMenuItemToDB(item);
-  const updateMenuItem = async (id, updatedItem) => await updateMenuItemInDB(id, updatedItem);
-  const deleteMenuItem = async (id) => await deleteMenuItemFromDB(id);
+  const addMenuItem = async (item) => {
+    const res = await addMenuItemToDB(item);
+    fetchData();
+    return res;
+  };
+  const updateMenuItem = async (id, updatedItem) => {
+    const res = await updateMenuItemInDB(id, updatedItem);
+    fetchData();
+    return res;
+  };
+  const deleteMenuItem = async (id) => {
+    const res = await deleteMenuItemFromDB(id);
+    fetchData();
+    return res;
+  };
 
-  const placeOrder = async (tableNo, items) => {
-    const newOrder = {
-      tableNo: String(tableNo),
-      items: items,
-      status: "pending"
-    };
-
-    const dbResult = await addOrderToDB(newOrder);
-
-    // Broadcast sync sequence via MQTT per user instruction
-    const cleanItems = items.map(item => ({
-      name: item.name,
-      qty: item.quantity || item.qty || 1, // Accommodate standard front-end formatting
-      price: item.price
-    }));
-
-    publishMQTT(`restaurant/snmimt/table/${tableNo}`, {
-      type: "ORDER_PLACED",
-      order_id: dbResult.$id,
-      table_id: String(tableNo),
-      items: cleanItems,
-      total: dbResult.total || 0
-    });
-
+  const placeOrder = async (orderData) => {
+    const dbResult = await addOrderToDB(orderData);
+    // Realtime notification is handled by backend + socket.io room
+    fetchData();
     return dbResult;
   };
 
   const updateOrderStatus = async (docId, status) => {
-    // Find table ID logic locally from the cache to alert the right IoT dashboard
-    const relevantOrder = orders.find(o => o.id === docId);
-
     const res = await updateOrderInDB(docId, status);
-
-    if (relevantOrder) {
-      publishMQTT(`restaurant/snmimt/table/${relevantOrder.tableNo || relevantOrder.tableNumber}`, {
-        type: "ORDER_STATUS",
-        status: status
-      });
-    }
-
-    // Proactive refresh to handle cases where realtime might be slow/broken
-    setTimeout(() => fetchData(), 500);
-
+    fetchData();
     return res;
   };
-  const deleteOrder = async (id) => await deleteOrderFromDB(id);
-  const clearAllOrders = async () => await clearAllOrdersInDB();
+
+  const cancelOrder = async (orderId) => {
+    const res = await cancelOrderInDB(orderId);
+    return res;
+  };
+
+  const getMyOrders = async (ids) => {
+    const res = await fetchOrderSession(ids);
+    return res;
+  }
 
   const addTable = async (tableNo) => {
     const res = await addTableToDB(tableNo);
@@ -274,30 +280,32 @@ export function AppProvider({ children }) {
     return res;
   };
 
-  // Staff Management
-  const addWaiter = async (name, photoFile, mobile, email) => {
-    const result = await createStaffAccount({ name, photoFile, mobile, email, role: 'WAITER' });
-    return result.success ? (result.staff.secertKey || result.staff.secretKey) : null;
+  const addWaiter = async (data) => {
+    const result = await createStaffAccount({ ...data, role: 'Waiter' });
+    fetchData();
+    return result;
   };
-  const removeWaiter = async (id) => await deleteStaffAccount(id);
-  const addKitchenStaff = async (name, photoFile, mobile, email) => {
-    const result = await createStaffAccount({ name, photoFile, mobile, email, role: 'KITCHEN' });
-    return result.success ? (result.staff.secertKey || result.staff.secretKey) : null;
+  const addKitchenStaff = async (data) => {
+    const result = await createStaffAccount({ ...data, role: 'Kitchen' });
+    fetchData();
+    return result;
   };
-  const removeKitchenStaff = async (id) => await deleteStaffAccount(id);
-  const addSubManager = async (name, photoFile, mobile, email) => {
-    const result = await createStaffAccount({ name, photoFile, mobile, email, role: 'SUB_MANAGER' });
-    return result.success ? (result.staff.secertKey || result.staff.secretKey) : null;
+  const addManager = async (data) => {
+    const result = await createStaffAccount({ ...data, role: 'Manager' });
+    fetchData();
+    return result;
   };
-  const removeSubManager = async (id) => await deleteStaffAccount(id);
-  const addManager = async (name, photoFile) => {
-    const result = await createStaffAccount({ name, photoFile, role: 'MANAGER' });
-    return result.success ? (result.staff.secertKey || result.staff.secretKey) : null;
-  };
-  const removeManager = async (id) => await deleteStaffAccount(id);
 
-  const addAnnouncement = async (title, content, type) => await addAnnouncementToDB(title, content, type);
-  const deleteAnnouncement = async (id) => await deleteAnnouncementFromDB(id);
+  const addAnnouncement = async (title, content, type) => {
+    const res = await addAnnouncementToDB(title, content, type);
+    fetchData();
+    return res;
+  };
+  const deleteAnnouncement = async (id) => {
+    const res = await deleteAnnouncementFromDB(id);
+    fetchData();
+    return res;
+  };
 
   const addFeedback = async (feedbackData) => await addFeedbackToDB(feedbackData);
 
@@ -305,12 +313,13 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       user, login, logout,
       menuItems, menuLoading, addMenuItem, updateMenuItem, deleteMenuItem,
-      orders, placeOrder, updateOrderStatus, clearAllOrders, deleteOrder,
+      orders, placeOrder, updateOrderStatus, deleteOrder: deleteOrderFromDB,
+      cancelOrder, getMyOrders,
       tables, addTable, removeTable, updateTableStatus, clearTableCall,
-      waiters, addWaiter, removeWaiter,
-      kitchenStaff, addKitchenStaff, removeKitchenStaff,
-      subManagers, addSubManager, removeSubManager,
-      managers, addManager, removeManager,
+      waiters, addWaiter, removeWaiter: deleteStaffAccount,
+      kitchenStaff, addKitchenStaff, removeKitchenStaff: deleteStaffAccount,
+      subManagers, addSubManager: (data) => createStaffAccount({ ...data, role: 'Sub-Manager' }), removeSubManager: deleteStaffAccount,
+      managers, addManager, removeManager: deleteStaffAccount,
       devices,
       announcements, addAnnouncement, deleteAnnouncement,
       feedbacks, addFeedback,

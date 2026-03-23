@@ -955,10 +955,19 @@ export default function ManagerDashboard() {
 
                     <button
                         className="btn btn-primary"
-                        onClick={() => {
+                        onClick={async () => {
                             const num = prompt(t('tableNumber'));
                             if (!num) return;
-                            addTable(Number(num));
+                            try {
+                                await addTable(Number(num));
+                                toast.success("Table added successfully");
+                            } catch (e) {
+                                if (e.message?.includes('duplicate key')) {
+                                    toast.error(`Table ${num} already exists!`);
+                                } else {
+                                    toast.error("Failed to add table.");
+                                }
+                            }
                         }}
                     >
                         ➕ {t('addTable')}
@@ -981,7 +990,7 @@ export default function ManagerDashboard() {
                                         alignItems: 'center'
                                     }}
                                 >
-                                    <strong>Table {table.tableNo}</strong>
+                                    <strong>{table.tableNo}</strong>
 
                                     <button
                                         onClick={() => removeTable(table.docId)}
@@ -1106,7 +1115,7 @@ export default function ManagerDashboard() {
                                                     {waiter.name}
                                                 </h3>
                                                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-                                                    ID: {waiter.id}
+                                                    ID: {waiter.staffId || waiter.id}
                                                 </p>
                                             </div>
                                             <button
@@ -1225,7 +1234,7 @@ export default function ManagerDashboard() {
                                                     {staff.name}
                                                 </h3>
                                                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-                                                    ID: {staff.id}
+                                                    ID: {staff.staffId || staff.id}
                                                 </p>
                                             </div>
                                             <button
@@ -1570,8 +1579,16 @@ export default function ManagerDashboard() {
                             setNewSecretID(null);
                         }}
                         onAdd={async (name, photo, mobile, email, docText, documentFile) => {
-                            const secretID = await addWaiter(name, photo, mobile, email, docText, documentFile);
-                            setNewSecretID(secretID);
+                            const generatedSecret = Math.random().toString(36).slice(-8);
+                            const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
+                            const result = await addWaiter({
+                                name, mobile, email, staffId: generatedStaffId, secretId: generatedSecret
+                            });
+                            if (result && result.success) {
+                                setNewSecretID(generatedStaffId + " / " + generatedSecret);
+                            } else {
+                                toast.error(result?.error || "Failed to add waiter");
+                            }
                         }}
                         secretID={newSecretID}
                     />
@@ -1585,8 +1602,16 @@ export default function ManagerDashboard() {
                             setNewKitchenSecretID(null);
                         }}
                         onAdd={async (name, photo, mobile, email, docText, documentFile) => {
-                            const secretID = await addKitchenStaff(name, photo, mobile, email, docText, documentFile);
-                            setNewKitchenSecretID(secretID);
+                            const generatedSecret = Math.floor(1000 + Math.random() * 9000).toString();
+                            const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
+                            const result = await addKitchenStaff({
+                                name, mobile, email, staffId: generatedStaffId, secretId: generatedSecret
+                            });
+                            if (result && result.success) {
+                                setNewKitchenSecretID(generatedStaffId + " / " + generatedSecret);
+                            } else {
+                                toast.error(result?.error || "Failed to add kitchen staff");
+                            }
                         }}
                         secretID={newKitchenSecretID}
                     />
@@ -1621,8 +1646,23 @@ export default function ManagerDashboard() {
                                         const email = e.target.elements.email.value;
                                         const docText = e.target.elements.documents.value;
                                         if (!name.trim()) return;
-                                        const secret = await addSubManager(name, subManagerPhotoFile, mobile, email, docText, subManagerDocFile);
-                                        setNewSubManagerSecretID(secret);
+                                        const generatedSecret = Math.floor(100000 + Math.random() * 900000).toString();
+                                        const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
+                                        const result = await addSubManager({ 
+                                            name, 
+                                            photo: subManagerPhotoFile, 
+                                            mobile, 
+                                            email, 
+                                            documents: docText, 
+                                            documentFile: subManagerDocFile,
+                                            staffId: generatedStaffId,
+                                            secretId: generatedSecret
+                                        });
+                                        if (result && result.success) {
+                                            setNewSubManagerSecretID(generatedStaffId + " / " + generatedSecret);
+                                        } else {
+                                            toast.error(result?.error || "Failed to add Sub Manager");
+                                        }
                                         setSubManagerPhoto('');
                                         setSubManagerPhotoFile(null);
                                         setSubManagerDocFile(null);
@@ -1724,8 +1764,19 @@ export default function ManagerDashboard() {
                                         e.preventDefault();
                                         const name = e.target.elements.name.value;
                                         if (!name.trim()) return;
-                                        const secret = await addManager(name, managerPhotoFile);
-                                        setNewManagerSecretID(secret);
+                                        const generatedSecret = Math.floor(100000 + Math.random() * 900000).toString();
+                                        const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
+                                        const result = await addManager({ 
+                                            name, 
+                                            photo: managerPhotoFile,
+                                            staffId: generatedStaffId,
+                                            secretId: generatedSecret
+                                        });
+                                        if (result && result.success) {
+                                            setNewManagerSecretID(generatedStaffId + " / " + generatedSecret);
+                                        } else {
+                                            toast.error(result?.error || "Failed to add Manager");
+                                        }
                                         setManagerPhoto('');
                                         setManagerPhotoFile(null);
                                         e.target.reset();
@@ -1928,7 +1979,7 @@ function AddMenuModal({ onClose, onSave, item }) {
         price: item?.price || '',
         category: isCustomCategory ? 'Other' : itemCategory,
         image: item?.image || '',
-        benefits: item?.benefits || '',
+        benefits: item?.benefits || item?.description || '',
         available: item?.available !== false // Default true for new items
     });
     const [imagePreview, setImagePreview] = useState(item?.image || null);

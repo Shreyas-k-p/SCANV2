@@ -332,7 +332,7 @@ export default function SubManagerDashboard() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
                         {tables.map(table => (
                             <div key={table.docId} className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
-                                <h3 style={{ margin: 0 }}>Table {table.tableNo}</h3>
+                                <h3 style={{ margin: 0 }}>{table.tableNo}</h3>
                                 <button
                                     onClick={() => removeTable(table.docId)}
                                     style={{ position: 'absolute', top: '5px', right: '5px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
