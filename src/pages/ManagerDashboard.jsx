@@ -1602,7 +1602,7 @@ export default function ManagerDashboard() {
                             setNewKitchenSecretID(null);
                         }}
                         onAdd={async (name, photo, mobile, email, docText, documentFile) => {
-                            const generatedSecret = Math.floor(1000 + Math.random() * 9000).toString();
+                            const generatedSecret = Math.random().toString(36).slice(-8);
                             const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
                             const result = await addKitchenStaff({
                                 name, mobile, email, staffId: generatedStaffId, secretId: generatedSecret
@@ -1646,7 +1646,7 @@ export default function ManagerDashboard() {
                                         const email = e.target.elements.email.value;
                                         const docText = e.target.elements.documents.value;
                                         if (!name.trim()) return;
-                                        const generatedSecret = Math.floor(100000 + Math.random() * 900000).toString();
+                                        const generatedSecret = Math.random().toString(36).slice(-8);
                                         const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
                                         const result = await addSubManager({ 
                                             name, 
@@ -1764,7 +1764,7 @@ export default function ManagerDashboard() {
                                         e.preventDefault();
                                         const name = e.target.elements.name.value;
                                         if (!name.trim()) return;
-                                        const generatedSecret = Math.floor(100000 + Math.random() * 900000).toString();
+                                        const generatedSecret = Math.random().toString(36).slice(-8);
                                         const generatedStaffId = `${Math.floor(Math.random() * 9000) + 1000}`;
                                         const result = await addManager({ 
                                             name, 

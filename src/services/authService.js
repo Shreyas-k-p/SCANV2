@@ -5,40 +5,39 @@ export const loginStaff = async (role, staffId, secretId) => {
     try {
         console.log(`[AUTH] Supabase: Attempting login: Role=${role}, StaffId=${staffId}`);
 
-        // Mapping staffId to mock email: {staffId}@scan4serve.com
-        const email = staffId.includes('@') ? staffId.toLowerCase() : `${staffId.toLowerCase()}@scan4serve.com`;
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password: secretId,
-        });
-
-        if (error) throw error;
-
-        const { user, session } = data;
-
-        // Fetch additional user profile data from 'profiles' table
-        const { data: profile, error: profileError } = await supabase
+        // 1. DIRECT DATABASE LOGIN (Bypass Email/Auth system)
+        const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', user.id)
+            .eq('staff_id', staffId.trim())
+            .eq('secret_id', secretId.trim())
             .single();
 
-        if (profileError) {
-            console.warn("Profile fetch error, using default user data:", profileError);
+        if (error || !profile) {
+            throw new Error("Invalid Staff ID or Secret Code");
+        }
+
+        // ✅ Role check: tell user clearly if they picked the wrong role
+        if (role && profile.role) {
+            const selectedRole = role.toUpperCase().replace('-', '_');
+            const actualRole = profile.role.toUpperCase().replace('-', '_').replace(' ', '_');
+            if (selectedRole !== actualRole) {
+                throw new Error(`Wrong role selected. You are a ${profile.role}. Please select the correct role and try again.`);
+            }
         }
 
         const userData = {
             ...profile,
-            id: user.id,
-            email: user.email,
-            token: session.access_token,
+            id: profile.id,
+            email: `${profile.staff_id.toLowerCase()}@scan4serve.com`, // legacy compatibility
+            token: 'db_auth_session_' + Math.random().toString(36).slice(2),
         };
 
         // Persist token & session
-        localStorage.setItem('token', session.access_token);
+        localStorage.setItem('token', userData.token);
         localStorage.setItem('staff_session', JSON.stringify({
             user: userData,
-            expiresAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString()
+            expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString() // 24 hour session
         }));
 
         if (role === 'MANAGER') {
@@ -56,7 +55,7 @@ export const loginStaff = async (role, staffId, secretId) => {
 
 export const logoutStaff = async () => {
     try {
-        await supabase.auth.signOut();
+        // No need to call supabase.auth.signOut() as we aren't using Auth sessions
         localStorage.removeItem('token');
         localStorage.removeItem('staff_session');
         localStorage.removeItem('activeManager');
@@ -114,37 +113,24 @@ export const deleteStaffAccount = async (docId) => {
 
 export const createStaffAccount = async (data) => {
     try {
-        // Supabase Auth signUp. For a multi-tenant or multi-staff system,
-        // typically you use a server function (Edge Function) or allow open signUp if appropriate. 
-        // Here, we'll try standard signUp. Note: user may need to confirm email if configured in Supabase.
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: `${data.staffId.toLowerCase()}@scan4serve.com`,
-            password: data.password || data.secretId,
-            options: {
-                data: {
-                    name: data.name,
-                    role: data.role,
-                    restaurantId: data.restaurantId,
-                }
-            }
-        });
+        // DIRECT DATABASE CREATION (Skip Supabase Auth / Email)
+        const roleUpper = data.role.toUpperCase().replace(' ', '_').replace('-', '_');
 
-        if (authError) throw authError;
-
-        const { error: dbError } = await supabase
+        const { data: newProfile, error } = await supabase
             .from('profiles')
             .insert([{
-                id: authData.user.id,
                 name: data.name,
-                role: data.role,
-                // restaurant_id: data.restaurantId,
-                staff_id: data.staffId,
-                secret_id: data.secretId
-            }]);
+                role: roleUpper,
+                staff_id: data.staffId.trim(),
+                secret_id: data.secretId.trim(),
+                created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
 
-        if (dbError) throw dbError;
+        if (error) throw error;
 
-        return { success: true, staff: authData.user };
+        return { success: true, staff: newProfile };
     } catch (error) {
         console.error("Error creating staff account:", error);
         return { success: false, error: error.message };

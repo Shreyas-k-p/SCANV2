@@ -126,10 +126,10 @@ export function AppProvider({ children }) {
             secretID: s.secret_id
           });
 
-          setWaiters(staffData.filter(s => s.role === 'WAITER' || s.role === 'Waiter').map(mapStaff));
-          setKitchenStaff(staffData.filter(s => s.role === 'KITCHEN' || s.role === 'Kitchen').map(mapStaff));
-          setSubManagers(staffData.filter(s => s.role === 'SUB_MANAGER' || s.role === 'Sub-Manager').map(mapStaff));
-          setManagers(staffData.filter(s => s.role === 'MANAGER' || s.role === 'Manager' || s.role === 'SUPERADMIN' || s.role === 'SUPER ADMIN').map(mapStaff));
+          setWaiters(staffData.filter(s => String(s.role).toUpperCase() === 'WAITER').map(mapStaff));
+          setKitchenStaff(staffData.filter(s => String(s.role).toUpperCase() === 'KITCHEN').map(mapStaff));
+          setSubManagers(staffData.filter(s => String(s.role).toUpperCase() === 'SUB_MANAGER').map(mapStaff));
+          setManagers(staffData.filter(s => String(s.role).toUpperCase() === 'MANAGER' || String(s.role).toUpperCase() === 'SUPERADMIN').map(mapStaff));
         }
 
         // Tables
@@ -281,17 +281,17 @@ export function AppProvider({ children }) {
   };
 
   const addWaiter = async (data) => {
-    const result = await createStaffAccount({ ...data, role: 'Waiter' });
+    const result = await createStaffAccount({ ...data, role: 'WAITER' });
     fetchData();
     return result;
   };
   const addKitchenStaff = async (data) => {
-    const result = await createStaffAccount({ ...data, role: 'Kitchen' });
+    const result = await createStaffAccount({ ...data, role: 'KITCHEN' });
     fetchData();
     return result;
   };
   const addManager = async (data) => {
-    const result = await createStaffAccount({ ...data, role: 'Manager' });
+    const result = await createStaffAccount({ ...data, role: 'MANAGER' });
     fetchData();
     return result;
   };
@@ -318,7 +318,7 @@ export function AppProvider({ children }) {
       tables, addTable, removeTable, updateTableStatus, clearTableCall,
       waiters, addWaiter, removeWaiter: deleteStaffAccount,
       kitchenStaff, addKitchenStaff, removeKitchenStaff: deleteStaffAccount,
-      subManagers, addSubManager: (data) => createStaffAccount({ ...data, role: 'Sub-Manager' }), removeSubManager: deleteStaffAccount,
+      subManagers, addSubManager: (data) => createStaffAccount({ ...data, role: 'SUB_MANAGER' }), removeSubManager: deleteStaffAccount,
       managers, addManager, removeManager: deleteStaffAccount,
       devices,
       announcements, addAnnouncement, deleteAnnouncement,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
-import { publishMQTT } from '../services/mqttService';
+import { publishEvent } from '../services/mqttService';
 import './KitchenDashboard.css';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -280,12 +280,12 @@ export default function KitchenDashboard() {
                                             style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', width: '100%' }}
                                             onClick={async () => {
                                                     await updateOrderStatus(order.id, 'preparing');
-                                                 publishMQTT(`restaurant/${order.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
-                                                     type: "ORDER_COOKING",
-                                                     table_id: String(order.tableNo),
-                                                     order_id: order.id
-                                                 });
-                                             }}
+                                                    await publishEvent(
+                                                        order.restaurantId || user?.restaurantId || 'snmimt',
+                                                        String(order.tableNo),
+                                                        'ORDER_PREPARING'
+                                                    );
+                                                }}
                                         >
                                             👨‍🍳 Start Cooking
                                         </button>
@@ -294,12 +294,12 @@ export default function KitchenDashboard() {
                                             className="btn-mark-ready"
                                             onClick={async () => {
                                                     await updateOrderStatus(order.id, 'ready');
-                                                 publishMQTT(`restaurant/${order.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
-                                                     type: "ORDER_READY",
-                                                     table_id: String(order.tableNo),
-                                                     order_id: order.id
-                                                 });
-                                             }}
+                                                    await publishEvent(
+                                                        order.restaurantId || user?.restaurantId || 'snmimt',
+                                                        String(order.tableNo),
+                                                        'ORDER_READY'
+                                                    );
+                                                }}
                                         >
                                             ✨ {t('markReady')}
                                         </button>

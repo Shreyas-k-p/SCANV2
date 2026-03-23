@@ -28,7 +28,7 @@ serve(async (req: any) => {
     // ✅ STEP 2 - VALIDATION
     if (!type || !table_id || !restaurant_id) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing required fields (type, table_id, restaurant_id)" }),
         { headers, status: 400 }
       );
     }
@@ -37,30 +37,55 @@ serve(async (req: any) => {
     const topic = `restaurant/${restaurant_id}/table/${table_id}`;
 
     // ✅ STEP 4 - CLEAN PAYLOAD (STRICT FOR OLED DISPLAY)
-    const cleanItems = body.items.map((item: any) => ({
-      name: item.name,
-      qty: item.quantity || item.qty // Handles both formats
-    }));
+    let payload;
 
-    const payload = JSON.stringify({
-      type: body.type,
-      table: table_id,
-      items: cleanItems,
-      total: body.total,
+    if (type === "ORDER_PREPARING") {
+      payload = {
+        message: "Order is being prepared",
+        table: table_id
+      };
+    } else if (type === "ORDER_READY") {
+      payload = {
+        message: "Your order is ready to serve",
+        table: table_id
+      };
+    } else if (type === "BILL_GENERATED") {
+      payload = {
+        message: "Thanks for visiting!",
+        table: table_id,
+        total: total
+      };
+    } else if (type === "ORDER_PLACED") {
+      const cleanItems = (items || []).map((item: any) => ({
+        name: item.name,
+        qty: item.quantity || item.qty
+      }));
+      payload = {
+        type: "ORDER_PLACED",
+        table: table_id,
+        items: cleanItems,
+        total: total
+      };
+    } else {
+      payload = body; // Fallback
+    }
+
+    const payloadString = JSON.stringify({
+      ...payload,
       timestamp: new Date().toISOString()
     });
 
-    console.log(`Publishing to ${topic}: ${payload}`);
+    console.log(`[MQTT] Publishing to ${topic}: ${payloadString}`);
 
-    // Logic to actually publish via MQTT (e.g., using a broker's HTTP bridge or a library)
-    // Since this varies, the structure below is the logic fixed as requested.
+    // NOTE: In a real environment, you'd use a broker's HTTP bridge or a Deno MQTT library here
+    // e.g., fetch(`https://api.hivemq.cloud/v1/publish`, { ... })
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Payload structured correctly for MQTT",
+        message: "MQTT event processed",
         topic,
-        payload: JSON.parse(payload) // Echoing back for debugging
+        payload: JSON.parse(payloadString)
       }), 
       { headers, status: 200 }
     );

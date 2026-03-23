@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { extractGradientContent } from '../utils/gradientUtils';
-import { publishMQTT } from '../services/mqttService';
+import { publishEvent } from '../services/mqttService';
 import './WaiterDashboard.css';
 
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -72,14 +72,13 @@ export default function WaiterDashboard() {
     const handleServeOrder = async (orderId) => {
         if (confirm("Confirm this order has been served?")) {
             await updateOrderStatus(orderId, 'served');
-
             const order = orders.find(o => o.id === orderId);
             if (order) {
-                publishMQTT(`restaurant/${order.restaurantId || user?.restaurantId || 'snmimt'}/table/${order.tableNo}`, {
-                    type: "ORDER_SERVED",
-                    table_id: String(order.tableNo),
-                    order_id: order.id
-                });
+                await publishEvent(
+                    order.restaurantId || user?.restaurantId || 'snmimt',
+                    String(order.tableNo),
+                    'ORDER_READY'
+                );
             }
         }
     };
@@ -89,22 +88,17 @@ export default function WaiterDashboard() {
             const tableOrders = getTableOrders(table.tableNo);
             const totalAmount = tableOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
-            // Capture the current session orders BEFORE marking them completed
             setBilledOrders(tableOrders);
-
-            // Mark orders as completed so they disappear from the active view
             await Promise.all(tableOrders.map(o => updateOrderStatus(o.id, 'completed')));
 
-            publishMQTT(`restaurant/${user?.restaurantId || 'snmimt'}/table/${table.tableNo}`, {
-                type: "PAYMENT_REQUEST",
-                table_id: String(table.tableNo),
-                total: totalAmount
-            });
+            await publishEvent(
+                user?.restaurantId || 'snmimt',
+                String(table.tableNo),
+                'BILL_GENERATED',
+                { total: totalAmount }
+            );
 
-            // Refresh UI
             fetchData();
-
-            // Automatically open print modal
             setSelectedTable(table);
             setShowBillPrint(true);
         }
